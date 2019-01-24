@@ -10,13 +10,10 @@ Wait for more details.
 
 ##### Build Instructions
 ```
-git clone https://github.com/nvidia/AIAAClient.git NvidiaAIAAClient
+git clone https://github.com/NVIDIA/ai-assisted-annotation-client.git NvidiaAIAAClient
 
 # For Windows, checkout into shorter path like C:\NvidiaAIAAClient 
 # to avoid ITK build errors due to very longer path
-
-# For e.g. IF you are working on ai-infro repository, then consider to
-# move C:\Projects\ai-infra\medical\annotation\AIAAClient to C:\NvidiaAIAAClient 
 
 cd NvidiaAIAAClient
 mkdir build
@@ -102,7 +99,6 @@ nvidiaAIAAListModels \
   -label spleen
 
 #call dextr3d from command line
-#You can download the sample _image.nii.gz from https://drive.google.com/open?id=1WzxapzANOe7aOO-PNc76U5gXepk_ZBQh
 nvidiaAIAADEXTR3D \
   -server http://10.110.45.66:5000/v1 \
   -label spleen \

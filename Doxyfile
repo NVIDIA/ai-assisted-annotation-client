@@ -1,0 +1,8 @@
+INPUT = cpp-client
+FILE_PATTERNS = client.h \
+                common.h \
+                model.h \
+                pointset.h \
+                polygon.h \
+                utils.h \
+                exception.h

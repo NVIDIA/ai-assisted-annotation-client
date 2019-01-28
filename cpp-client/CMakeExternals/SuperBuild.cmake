@@ -33,7 +33,7 @@ if(EXTERNAL_ITK_DIR)
   set(ITK_DIR ${EXTERNAL_ITK_DIR})
 else()
   if(NOT DEFINED ITK_DIR)
-    include(CMakeExternals/ITK.cmake)
+    include(cpp-client/CMakeExternals/ITK.cmake)
     list(APPEND proj_DEPENDENCIES ITK)
     set(ITK_DIR ${CMAKE_BINARY_DIR}/3rdparty/lib/cmake/ITK-4.13)
   endif()
@@ -44,14 +44,14 @@ if(EXTERNAL_Poco_DIR)
   set(Poco_DIR ${EXTERNAL_Poco_DIR})
 else()
   if(NOT DEFINED Poco_DIR)
-    include(CMakeExternals/Poco.cmake)
+    include(cpp-client/CMakeExternals/Poco.cmake)
     list(APPEND proj_DEPENDENCIES Poco)
     set(Poco_DIR ${CMAKE_BINARY_DIR}/3rdparty/lib/cmake/Poco)
   endif()
 endif()
 
 # Others
-include(CMakeExternals/nlohmann_json.cmake)
+include(cpp-client/CMakeExternals/nlohmann_json.cmake)
 list(APPEND proj_DEPENDENCIES nlohmann_json)
 
 message(STATUS "(SuperBuild: ${USE_SUPERBUILD}) Dependenceies:  ${proj_DEPENDENCIES}")
@@ -88,8 +88,8 @@ set(AIAA_INCLUDE_DIR   ${CMAKE_INSTALL_PREFIX}/include)
 set(AIAA_LIBRARY_DIR   ${CMAKE_INSTALL_PREFIX}/lib)
 set(AIAA_LIBRARY_NAME  NvidiaAIAAClient)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/Config.cmake.in "${CMAKE_BINARY_DIR}/NvidiaAIAAClientConfig.cmake" @ONLY)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/ConfigVersion.cmake.in "${CMAKE_BINARY_DIR}/NvidiaAIAAClientConfigVersion.cmake" @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cpp-client/cmake/Config.cmake.in "${CMAKE_BINARY_DIR}/NvidiaAIAAClientConfig.cmake" @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cpp-client/cmake/ConfigVersion.cmake.in "${CMAKE_BINARY_DIR}/NvidiaAIAAClientConfigVersion.cmake" @ONLY)
 
 install(FILES
   "${CMAKE_BINARY_DIR}/NvidiaAIAAClientConfig.cmake"

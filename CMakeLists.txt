@@ -29,7 +29,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if (NOT DEFINED USE_SUPERBUILD)
   project(NvidiaAIAAClient-superbuild)
-  include (CMakeExternals/SuperBuild.cmake)
+  include (cpp-client/CMakeExternals/SuperBuild.cmake)
   return()
 endif()
 
@@ -61,9 +61,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 #############################################################
 include_directories(cpp-client/include)
-
 add_subdirectory(cpp-client)
-add_subdirectory(tools)
+#add_subdirectory(cpp-client/test)
+add_subdirectory(cpp-client/tools)
 
 
 #############################################################
@@ -99,6 +99,3 @@ if(DOXYGEN_FOUND)
         COMMENT "Generate doxygen html for cpp-client API"
     )
 endif(DOXYGEN_FOUND)
-
-
-

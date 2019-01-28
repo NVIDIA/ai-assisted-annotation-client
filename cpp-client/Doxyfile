@@ -1,4 +1,4 @@
-INPUT = cpp-client
+INPUT = include
 FILE_PATTERNS = client.h \
                 common.h \
                 model.h \

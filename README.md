@@ -7,19 +7,22 @@ Nvidia AI-Assisted Annotation SDK follows a client-server approach to integrate 
 [![GitHub Issues](https://img.shields.io/github/issues/NVIDIA/ai-assisted-annotation-client.svg)](http://github.com/NVIDIA/ai-assisted-annotation-client/issues)
 
 
-### Integration
+## Integration
 
-#### Supported Platforms
-AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate with AI-Assisted Annotation Server for NVidia and it officially supports:
+### Supported Platforms
+AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate with AI-Assisted Annotation Server for Nvidia and it officially supports:
  - Windows
  - Linux
  - MacOS
- 
-#### Python Client Integration
+
+
+### Python Client Integration
 Need to write some here...
+
 
 ### C++ Client Integration
 Follow the [build instructions](http://github.com/NVIDIA/ai-assisted-annotation-client/cpp-client/BuildInstractions) to compile and install from the source code.  Or directly download the binaries available for certain platforms [released here](https://github.com/NVIDIA/ai-assisted-annotation-client/releases).
+
 Following is a sample code to invoke Segmentation API.
 
 ```cpp
@@ -36,13 +39,18 @@ nvidia::aiaa::Model model = modelList.getMatchingModel("spleen");
 int ret = client.dextr3d(model, pointSet, input3dImageFile, outputDextra3dImageFile);
 
 ```
+Compile your example code as
+```console
+gcc -std=c++11 -I/home/xyz/install/include -L/home/xyz/install/lib -lNvidiaAIAAClient example.cpp
+```
+
 More details on C++ Client APIs can be found [here](http://docs.nvidia.com)
 
 
-##### CMake
+#### CMake
 You can also use the NvidiaAIAAClient interface target in CMake. This target populates the appropriate usage requirements for INTERFACE_INCLUDE_DIRS to point to the appropriate include directories and INTERFACE_LIBRARY for linking the necessary Libraries.
 
-###### External
+##### External
 To use this library from a CMake project, you can locate it directly with find_package() and use the namespaced imported target from the generated package configuration:
 
 ```cmake
@@ -61,7 +69,7 @@ For example, you can specify the -DNvidiaAIAAClient_DIR option while generating 
 cmake -DNvidiaAIAAClient_DIR=/user/xyz/myinstall/lib/cmake/NvidiaAIAAClient
 ```
 
-###### Embedded
+##### Embedded
 You can achieve this by adding External Project in CMake.
 
 ```cmake
@@ -75,7 +83,8 @@ ExternalProject_Add(${proj}
 target_link_libraries(foo ${NvidiaAIAAClient_LIBRARY})
 ```
 
-### License
+## License
 
-### Contributions
+
+## Contributions
 

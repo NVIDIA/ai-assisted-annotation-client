@@ -38,47 +38,47 @@ namespace aiaa {
 // [[70,172,86],[105,161,180],[125,147,164],[56,174,124],[91,119,143],[77,219,120]]
 
 bool Point3DSet::empty() const {
-	return points.empty();
+  return points.empty();
 }
 
 size_t Point3DSet::size() const {
-	return points.size();
+  return points.size();
 }
 
 void Point3DSet::push_back(Point3D point) {
-	points.push_back(point);
+  points.push_back(point);
 }
 
 Point3DSet Point3DSet::fromJson(const std::string &json) {
-	try {
-		nlohmann::json j = nlohmann::json::parse(json);
-		Point3DSet point3DSet;
-		for (auto e : j) {
-			Point3DSet::Point3D point;
-			for (auto n : e) {
-				point.push_back(n);
-			}
-			point3DSet.push_back(point);
-		}
-		return point3DSet;
-	} catch (nlohmann::json::parse_error& e) {
-		AIAA_LOG_ERROR(e.what());
-		throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-	} catch (nlohmann::json::type_error& e) {
-		AIAA_LOG_ERROR(e.what());
-		throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-	}
+  try {
+    nlohmann::json j = nlohmann::json::parse(json);
+    Point3DSet point3DSet;
+    for (auto e : j) {
+      Point3DSet::Point3D point;
+      for (auto n : e) {
+        point.push_back(n);
+      }
+      point3DSet.push_back(point);
+    }
+    return point3DSet;
+  } catch (nlohmann::json::parse_error& e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  } catch (nlohmann::json::type_error& e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  }
 }
 
 std::string Point3DSet::toJson(int space) const {
-	nlohmann::json j = points;
-	return space ? j.dump(space) : j.dump();
+  nlohmann::json j = points;
+  return space ? j.dump(space) : j.dump();
 }
 
 }
 }
 
 std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::Point3DSet& p) {
-	os << p.toJson();
-	return os;
+  os << p.toJson();
+  return os;
 }

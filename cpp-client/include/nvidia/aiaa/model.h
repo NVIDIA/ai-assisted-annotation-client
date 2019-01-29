@@ -45,49 +45,49 @@ namespace aiaa {
  @brief AIAA Model
  */
 struct AIAA_CLIENT_API Model {
-	/// Set of Label strings supported by this particular AIAA model
-	std::set<std::string> labels;
+  /// Set of Label strings supported by this particular AIAA model
+  std::set<std::string> labels;
 
-	/// Internal Name used by AIAA Server
-	std::string internal_name;
+  /// Internal Name used by AIAA Server
+  std::string internal_name;
 
-	/// Detailed description
-	std::string description;
+  /// Detailed description
+  std::string description;
 
-	/// Official Name for the AIAA Model.  For example, this name shall be used for inference/dextr3d API
-	std::string name;
+  /// Official Name for the AIAA Model.  For example, this name shall be used for inference/dextr3d API
+  std::string name;
 
-	/// Sigma value used while training;  This shall be used for dextr3d API
-	double sigma;
+  /// Sigma value used while training;  This shall be used for dextr3d API
+  double sigma;
 
-	/// Padding used while training images;  This shall be used for dextr3d API
-	double padding;
+  /// Padding used while training images;  This shall be used for dextr3d API
+  double padding;
 
-	/// Image ROI size used while training [x,y,z] Format;  This shall be used for dextr3d API
-	std::vector<int> roi;
+  /// Image ROI size used while training [x,y,z] Format;  This shall be used for dextr3d API
+  std::vector<int> roi;
 
-	/*!
-	 @brief create Model from JSON String
-	 @param[in] json  JSON String.
+  /*!
+   @brief create Model from JSON String
+   @param[in] json  JSON String.
 
-	 Example:
-	 @code
-	 {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC"}
-	 @endcode
+   Example:
+   @code
+   {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC"}
+   @endcode
 
-	 @return Model object
-	 */
-	static Model fromJson(const std::string &json);
+   @return Model object
+   */
+  static Model fromJson(const std::string &json);
 
-	/*!
-	 @brief convert Model to JSON String
-	 @param[in] space  If space > 0; then JSON string will be formatted accordingly
-	 @return JSON String
-	 */
-	std::string toJson(int space = 0) const;
+  /*!
+   @brief convert Model to JSON String
+   @param[in] space  If space > 0; then JSON string will be formatted accordingly
+   @return JSON String
+   */
+  std::string toJson(int space = 0) const;
 
-	/// Default constructor
-	Model();
+  /// Default constructor
+  Model();
 };
 
 /*!
@@ -96,41 +96,41 @@ struct AIAA_CLIENT_API Model {
  This class provides APIs to connect to AIAA server and perform operations like dextra3d, fixPolygon etc...
  */
 struct AIAA_CLIENT_API ModelList {
-	/// List of Model Objects where each Model Object carries relevant information about the model being supported by AIAA Server
-	std::vector<Model> models;
+  /// List of Model Objects where each Model Object carries relevant information about the model being supported by AIAA Server
+  std::vector<Model> models;
 
-	/*!
-	 @brief Get the first matching model for a given label
-	 First preference goes to exact match.  Otherwise prefix match will be preferred.
-	 @note Here, the matching type is case-insensitive
-	 @param[in] label  Organ Name
-	 @return Model
-	 */
-	Model getMatchingModel(const std::string &label);
+  /*!
+   @brief Get the first matching model for a given label
+   First preference goes to exact match.  Otherwise prefix match will be preferred.
+   @note Here, the matching type is case-insensitive
+   @param[in] label  Organ Name
+   @return Model
+   */
+  Model getMatchingModel(const std::string &label);
 
-	/*!
-	 @brief create Model from JSON String
-	 @param[in] json  JSON String.
+  /*!
+   @brief create Model from JSON String
+   @param[in] json  JSON String.
 
-	 Example:
-	 @code
-	 [
-	 {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0},
-	 {"labels": ["liver"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DLiver", "padding": 10.0 "roi": [96,96,96], "sigma": 3.0},
-	 {"labels": ["brain_whole_tumor"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainWT", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0}
-	 ]
-	 @endcode
+   Example:
+   @code
+   [
+   {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0},
+   {"labels": ["liver"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DLiver", "padding": 10.0 "roi": [96,96,96], "sigma": 3.0},
+   {"labels": ["brain_whole_tumor"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainWT", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0}
+   ]
+   @endcode
 
-	 @return ModelList object
-	 */
-	static ModelList fromJson(const std::string &json);
+   @return ModelList object
+   */
+  static ModelList fromJson(const std::string &json);
 
-	/*!
-	 @brief convert ModelList to JSON String
-	 @param[in] space  If space > 0; then JSON string will be formatted accordingly
-	 @return JSON String
-	 */
-	std::string toJson(int space = 0) const;
+  /*!
+   @brief convert ModelList to JSON String
+   @param[in] space  If space > 0; then JSON string will be formatted accordingly
+   @return JSON String
+   */
+  std::string toJson(int space = 0) const;
 };
 
 }

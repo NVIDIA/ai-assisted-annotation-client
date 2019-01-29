@@ -45,39 +45,39 @@ namespace aiaa {
  */
 
 struct AIAA_CLIENT_API Point3DSet {
-	typedef std::vector<int> Point3D;
+  typedef std::vector<int> Point3D;
 
-	/// Array of 3D Points to represent [[x,y,z]+]
-	std::vector<Point3D> points;
+  /// Array of 3D Points to represent [[x,y,z]+]
+  std::vector<Point3D> points;
 
-	/// Checks if points is empty
-	bool empty() const;
+  /// Checks if points is empty
+  bool empty() const;
 
-	/// Count of points
-	size_t size() const;
+  /// Count of points
+  size_t size() const;
 
-	/// Append new Point3D to points list
-	void push_back(Point3D point);
+  /// Append new Point3D to points list
+  void push_back(Point3D point);
 
-	/*!
-	 @brief create Model from JSON String
-	 @param[in] json  JSON String
+  /*!
+   @brief create Model from JSON String
+   @param[in] json  JSON String
 
-	 Example:
-	 @code
-	 [[70,172,86],[105,161,180],[125,147,164],[56,174,124],[91,119,143],[77,219,120]]
-	 @endcode
+   Example:
+   @code
+   [[70,172,86],[105,161,180],[125,147,164],[56,174,124],[91,119,143],[77,219,120]]
+   @endcode
 
-	 @return Point3DSet object
-	 */
-	static Point3DSet fromJson(const std::string &json);
+   @return Point3DSet object
+   */
+  static Point3DSet fromJson(const std::string &json);
 
-	/*!
-	 @brief convert Point3DSet to JSON String
-	 @param[in] space  If space > 0; then JSON string will be formatted accordingly
-	 @return JSON String
-	 */
-	std::string toJson(int space = 0) const;
+  /*!
+   @brief convert Point3DSet to JSON String
+   @param[in] space  If space > 0; then JSON string will be formatted accordingly
+   @return JSON String
+   */
+  std::string toJson(int space = 0) const;
 };
 
 }

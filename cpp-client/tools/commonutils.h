@@ -34,27 +34,27 @@
 #include <sstream>
 
 std::string getCmdOption(char **begin, char **end, const std::string &option, const std::string &defaultVal = "") {
-	char ** itr = std::find(begin, end, option);
-	if (itr != end && ++itr != end) {
-		return std::string(*itr);
-	}
-	return defaultVal;
+  char ** itr = std::find(begin, end, option);
+  if (itr != end && ++itr != end) {
+    return std::string(*itr);
+  }
+  return defaultVal;
 }
 
 bool cmdOptionExists(char** begin, char** end, const std::string& option) {
-	return std::find(begin, end, option) != end;
+  return std::find(begin, end, option) != end;
 }
 
 std::string fileToString(const std::string &file) {
-	std::ifstream in(file);
-	std::stringstream buffer;
-	buffer << in.rdbuf();
-	return buffer.str();
+  std::ifstream in(file);
+  std::stringstream buffer;
+  buffer << in.rdbuf();
+  return buffer.str();
 }
 
 void stringToFile(const std::string &str, const std::string &file) {
-	std::ofstream out(file);
-	out << str;
-	out.close();
+  std::ofstream out(file);
+  out << str;
+  out.close();
 }
 

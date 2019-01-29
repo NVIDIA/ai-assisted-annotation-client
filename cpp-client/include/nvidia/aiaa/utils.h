@@ -36,44 +36,44 @@ namespace nvidia {
 namespace aiaa {
 
 class AIAA_CLIENT_API Utils {
-public:
-	/*!
-	 @brief compare if 2 strings are same with ignore-case
-	 @param[in] string a
-	 @param[in] string b
-	 @retval true if a == b
-	 @retval false if a != b
-	 */
-	static bool iequals(const std::string &a, const std::string& b);
+ public:
+  /*!
+   @brief compare if 2 strings are same with ignore-case
+   @param[in] string a
+   @param[in] string b
+   @retval true if a == b
+   @retval false if a != b
+   */
+  static bool iequals(const std::string &a, const std::string& b);
 
-	/*!
-	 @brief convert string to lower case
-	 @param[in] string str
-	 @return lower case version of input string
-	 */
-	static std::string to_lower(std::string str);
+  /*!
+   @brief convert string to lower case
+   @param[in] string str
+   @return lower case version of input string
+   */
+  static std::string to_lower(std::string str);
 
-	/*!
-	 @brief get temporary filename
-	 @return full path for temporary file
-	 */
-	static std::string tempfilename();
+  /*!
+   @brief get temporary filename
+   @return full path for temporary file
+   */
+  static std::string tempfilename();
 
-	/*!
-	 @brief split the sting
-	 @param[in] string input string
-	 @param[in] char delimiter character
-	 @return vector of split strings
-	 */
-	static std::vector<std::string> split(const std::string &str, char delim);
+  /*!
+   @brief split the sting
+   @param[in] string input string
+   @param[in] char delimiter character
+   @return vector of split strings
+   */
+  static std::vector<std::string> split(const std::string &str, char delim);
 
-	/*!
-	 @brief 3D point
-	 @param[in] string input string
-	 @param[in] char delimiter character
-	 @param[in,out] point3D size which represents x,y,z
-	 */
-	static void stringToPoint3D(const std::string &str, char delim, int point3D[3]);
+  /*!
+   @brief 3D point
+   @param[in] string input string
+   @param[in] char delimiter character
+   @param[in,out] point3D size which represents x,y,z
+   */
+  static void stringToPoint3D(const std::string &str, char delim, int point3D[3]);
 };
 
 }

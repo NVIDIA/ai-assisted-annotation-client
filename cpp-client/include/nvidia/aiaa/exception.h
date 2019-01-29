@@ -53,35 +53,39 @@ namespace aiaa {
  nvidia.aiaa.error.105 | System/Unknown Error.
  */
 
-class exception: public std::exception {
-public:
-	enum errorType {
-		AIAA_SERVER_ERROR = 101, RESPONSE_PARSE_ERROR = 102, ITK_PROCESS_ERROR = 103, INVALID_ARGS_ERROR = 104, SYSTEM_ERROR = 105
-	};
+class exception : public std::exception {
+ public:
+  enum errorType {
+    AIAA_SERVER_ERROR = 101,
+    RESPONSE_PARSE_ERROR = 102,
+    ITK_PROCESS_ERROR = 103,
+    INVALID_ARGS_ERROR = 104,
+    SYSTEM_ERROR = 105
+  };
 
-	const std::string messages[5] = { "Failed to communicate to AIAA Server", "Failed to parse AIAA Server Response", "Failed to process ITK Operations", "Invalid Arguments",
-			"System/Unknown Error" };
+  const std::string messages[5] = { "Failed to communicate to AIAA Server", "Failed to parse AIAA Server Response", "Failed to process ITK Operations", "Invalid Arguments",
+      "System/Unknown Error" };
 
-	/// returns the explanatory string
-	const char* what() const noexcept override
-	{
-		return m.what();
-	}
+  /// returns the explanatory string
+  const char* what() const noexcept override {
+    return m.what();
+  }
 
-	/// the id of the exception
-	errorType id = SYSTEM_ERROR;
+  /// the id of the exception
+  errorType id = SYSTEM_ERROR;
 
-	exception(errorType id_, const char* what_arg) :
-			id(id_), m(what_arg) {
-	}
+  exception(errorType id_, const char* what_arg)
+      : id(id_),
+        m(what_arg) {
+  }
 
-	std::string name() const {
-		return messages[id - AIAA_SERVER_ERROR];
-	}
+  std::string name() const {
+    return messages[id - AIAA_SERVER_ERROR];
+  }
 
-private:
-	/// an exception object as storage for error messages
-	std::runtime_error m;
+ private:
+  /// an exception object as storage for error messages
+  std::runtime_error m;
 };
 
 }

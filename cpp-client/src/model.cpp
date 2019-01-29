@@ -41,68 +41,68 @@ const double DEFAULT_PADDING = 20.0;
 const int DEFAULT_ROI = 128;
 
 Model::Model() {
-	sigma = DEFAULT_SIGMA;
-	padding = DEFAULT_PADDING;
-	roi = {DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI};
+  sigma = DEFAULT_SIGMA;
+  padding = DEFAULT_PADDING;
+  roi = {DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI};
 }
 
 // {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0}
 
 Model Model::fromJson(const std::string &json) {
-	try {
-		nlohmann::json j = nlohmann::json::parse(json);
+  try {
+    nlohmann::json j = nlohmann::json::parse(json);
 
-		Model model;
-		model.name = j["name"].get<std::string>();
-		model.internal_name = j["internal name"].get<std::string>();
-		model.description = j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
-		// TODO:: Ask server to correct the spelling for description
+    Model model;
+    model.name = j["name"].get<std::string>();
+    model.internal_name = j["internal name"].get<std::string>();
+    model.description = j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
+    // TODO:: Ask server to correct the spelling for description
 
-		for (auto e : j["labels"]) {
-			model.labels.insert(e.get<std::string>());
-		}
+    for (auto e : j["labels"]) {
+      model.labels.insert(e.get<std::string>());
+    }
 
-		model.sigma = j.find("sigma") != j.end() ? j["sigma"].get<double>() : DEFAULT_SIGMA;
-		model.padding = j.find("padding") != j.end() ? j["padding"].get<double>() : DEFAULT_PADDING;
+    model.sigma = j.find("sigma") != j.end() ? j["sigma"].get<double>() : DEFAULT_SIGMA;
+    model.padding = j.find("padding") != j.end() ? j["padding"].get<double>() : DEFAULT_PADDING;
 
-		model.roi.clear();
-		if (j.find("roi") != j.end()) {
-			for (auto n : j["roi"]) {
-				model.roi.push_back(n);
-			}
-		}
-		if (model.roi.empty()) {
-			model.roi.push_back(DEFAULT_ROI);
-		}
-		while (model.roi.size() < 3) {
-			model.roi.push_back(model.roi[model.roi.size() - 1]);
-		}
+    model.roi.clear();
+    if (j.find("roi") != j.end()) {
+      for (auto n : j["roi"]) {
+        model.roi.push_back(n);
+      }
+    }
+    if (model.roi.empty()) {
+      model.roi.push_back(DEFAULT_ROI);
+    }
+    while (model.roi.size() < 3) {
+      model.roi.push_back(model.roi[model.roi.size() - 1]);
+    }
 
-		return model;
-	} catch (nlohmann::json::parse_error& e) {
-		AIAA_LOG_ERROR(e.what());
-		throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-	} catch (nlohmann::json::type_error& e) {
-		AIAA_LOG_ERROR(e.what());
-		throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-	}
+    return model;
+  } catch (nlohmann::json::parse_error& e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  } catch (nlohmann::json::type_error& e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  }
 }
 
 std::string Model::toJson(int space) const {
-	nlohmann::json j;
-	j["labels"] = labels;
-	j["internal name"] = internal_name;
-	j["description"] = description;
-	j["name"] = name;
-	j["sigma"] = sigma;
-	j["padding"] = padding;
-	j["roi"] = roi;
+  nlohmann::json j;
+  j["labels"] = labels;
+  j["internal name"] = internal_name;
+  j["description"] = description;
+  j["name"] = name;
+  j["sigma"] = sigma;
+  j["padding"] = padding;
+  j["roi"] = roi;
 
-	std::string str = j.dump(space);
-	if (!space) {
-		str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
-	}
-	return str;
+  std::string str = j.dump(space);
+  if (!space) {
+    str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+  }
+  return str;
 }
 
 // [
@@ -112,64 +112,64 @@ std::string Model::toJson(int space) const {
 // ]
 
 ModelList ModelList::fromJson(const std::string &json) {
-	try {
-		nlohmann::json j = nlohmann::json::parse(json);
-		ModelList modelList;
-		for (auto e : j) {
-			modelList.models.push_back(Model::fromJson(e.dump()));
-		}
-		return modelList;
-	} catch (nlohmann::json::parse_error& e) {
-		AIAA_LOG_ERROR(e.what());
-		throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-	} catch (nlohmann::json::type_error& e) {
-		AIAA_LOG_ERROR(e.what());
-		throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-	}
+  try {
+    nlohmann::json j = nlohmann::json::parse(json);
+    ModelList modelList;
+    for (auto e : j) {
+      modelList.models.push_back(Model::fromJson(e.dump()));
+    }
+    return modelList;
+  } catch (nlohmann::json::parse_error& e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  } catch (nlohmann::json::type_error& e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  }
 }
 
 std::string ModelList::toJson(int space) const {
-	nlohmann::json j;
-	for (auto m : models) {
-		j.push_back(nlohmann::json::parse(m.toJson()));
-	}
+  nlohmann::json j;
+  for (auto m : models) {
+    j.push_back(nlohmann::json::parse(m.toJson()));
+  }
 
-	return space ? j.dump(space) : j.dump();
+  return space ? j.dump(space) : j.dump();
 }
 
 Model ModelList::getMatchingModel(const std::string &labelName) {
-	// Exact Match (first preference)
-	for (auto model : models) {
-		for (auto label : model.labels) {
-			if (Utils::iequals(labelName, label)) {
-				return model;
-			}
-		}
-	}
+  // Exact Match (first preference)
+  for (auto model : models) {
+    for (auto label : model.labels) {
+      if (Utils::iequals(labelName, label)) {
+        return model;
+      }
+    }
+  }
 
-	// Prefix Match (find as prefix in either)
-	std::string l1 = Utils::to_lower(labelName);
-	for (auto model : models) {
-		for (auto label : model.labels) {
-			std::string l2 = Utils::to_lower(label);
-			if (l1.find(l2) != std::string::npos || l2.find(l1) != std::string::npos) {
-				return model;
-			}
-		}
-	}
+  // Prefix Match (find as prefix in either)
+  std::string l1 = Utils::to_lower(labelName);
+  for (auto model : models) {
+    for (auto label : model.labels) {
+      std::string l2 = Utils::to_lower(label);
+      if (l1.find(l2) != std::string::npos || l2.find(l1) != std::string::npos) {
+        return model;
+      }
+    }
+  }
 
-	return Model();
+  return Model();
 }
 
 }
 }
 
 std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::Model& m) {
-	os << m.toJson();
-	return os;
+  os << m.toJson();
+  return os;
 }
 
 std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::ModelList& m) {
-	os << m.toJson();
-	return os;
+  os << m.toJson();
+  return os;
 }

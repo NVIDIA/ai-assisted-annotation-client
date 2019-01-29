@@ -32,78 +32,78 @@
 #include "../commonutils.h"
 
 int main(int argc, char **argv) {
-	if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
-		std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-				"  |-h        (Help) Print this information                                                |\n"
-				"  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
-				" *|-label    Input Label Name  [either -label or -model is required]                      |\n"
-				" *|-model    Model Name        [either -label or -model is required]                      |\n"
-				" *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
-				"  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
-				"  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
-				"  |-sigma    Sigma Value for inference {default: 3.0}                                     |\n"
-				" *|-image    Input Image File                                                             |\n"
-				" *|-output   Output Image File                                                            |\n";
-		return 0;
-	}
+  if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
+    std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
+        "  |-h        (Help) Print this information                                                |\n"
+        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+        " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
+        " *|-model    Model Name        [either -label or -model is required]                      |\n"
+        " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
+        "  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
+        "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
+        "  |-sigma    Sigma Value for inference {default: 3.0}                                     |\n"
+        " *|-image    Input Image File                                                             |\n"
+        " *|-output   Output Image File                                                            |\n";
+    return 0;
+  }
 
-	std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-	std::string label = getCmdOption(argv, argv + argc, "-label");
-	std::string model = getCmdOption(argv, argv + argc, "-model");
-	std::string points = getCmdOption(argv, argv + argc, "-points");
-	double pad = ::atof(getCmdOption(argv, argv + argc, "-pad", "20.0").c_str());
-	std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
-	double sigma = ::atof(getCmdOption(argv, argv + argc, "-sigma", "3.0").c_str());
-	std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
-	std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string label = getCmdOption(argv, argv + argc, "-label");
+  std::string model = getCmdOption(argv, argv + argc, "-model");
+  std::string points = getCmdOption(argv, argv + argc, "-points");
+  double pad = ::atof(getCmdOption(argv, argv + argc, "-pad", "20.0").c_str());
+  std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
+  double sigma = ::atof(getCmdOption(argv, argv + argc, "-sigma", "3.0").c_str());
+  std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
+  std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
 
-	if (label.empty() && model.empty()) {
-		std::cerr << "Either Label or Model is required\n";
-		return -1;
-	}
-	if (points.empty()) {
-		std::cerr << "Pointset is empty\n";
-		return -1;
-	}
-	if (inputImageFile.empty()) {
-		std::cerr << "Input Image file is missing\n";
-		return -1;
-	}
-	if (outputImageFile.empty()) {
-		std::cerr << "Output Image file is missing\n";
-		return -1;
-	}
+  if (label.empty() && model.empty()) {
+    std::cerr << "Either Label or Model is required\n";
+    return -1;
+  }
+  if (points.empty()) {
+    std::cerr << "Pointset is empty\n";
+    return -1;
+  }
+  if (inputImageFile.empty()) {
+    std::cerr << "Input Image file is missing\n";
+    return -1;
+  }
+  if (outputImageFile.empty()) {
+    std::cerr << "Output Image file is missing\n";
+    return -1;
+  }
 
-	try {
-		nvidia::aiaa::Point3DSet pointSet = nvidia::aiaa::Point3DSet::fromJson(points);
-		nvidia::aiaa::Client client(serverUri);
+  try {
+    nvidia::aiaa::Point3DSet pointSet = nvidia::aiaa::Point3DSet::fromJson(points);
+    nvidia::aiaa::Client client(serverUri);
 
-		if (!model.empty()) {
-			nvidia::aiaa::Model m;
-			m.name = model;
-			m.padding = pad;
-			m.sigma = sigma;
+    if (!model.empty()) {
+      nvidia::aiaa::Model m;
+      m.name = model;
+      m.padding = pad;
+      m.sigma = sigma;
 
-			int xyz[3];
-			nvidia::aiaa::Utils::stringToPoint3D(roi, 'x', xyz);
-			m.roi[0] = xyz[0];
-			m.roi[1] = xyz[1];
-			m.roi[2] = xyz[2];
+      int xyz[3];
+      nvidia::aiaa::Utils::stringToPoint3D(roi, 'x', xyz);
+      m.roi[0] = xyz[0];
+      m.roi[1] = xyz[1];
+      m.roi[2] = xyz[2];
 
-			return client.dextr3d(m, pointSet, inputImageFile, outputImageFile);
-		}
+      return client.dextr3d(m, pointSet, inputImageFile, outputImageFile);
+    }
 
-		int ret = 0;
-		if (cmdOptionExists(argv, argv + argc, "-roi") || cmdOptionExists(argv, argv + argc, "-pad")) {
-			ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile, pad, roi, sigma);
-		} else {
-			ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile);
-		}
+    int ret = 0;
+    if (cmdOptionExists(argv, argv + argc, "-roi") || cmdOptionExists(argv, argv + argc, "-pad")) {
+      ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile, pad, roi, sigma);
+    } else {
+      ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile);
+    }
 
-		std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
-		return ret;
-	} catch (nvidia::aiaa::exception& e) {
-		std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
-	}
-	return -1;
+    std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
+    return ret;
+  } catch (nvidia::aiaa::exception& e) {
+    std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
+  }
+  return -1;
 }

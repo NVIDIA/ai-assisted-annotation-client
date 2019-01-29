@@ -30,45 +30,45 @@
 #include "../commonutils.h"
 
 int main(int argc, char **argv) {
-	if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
-		std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-				"  |-h        (Help) Print this information                                                |\n"
-				"  |-server   Server URI  {default: http://10.110.45.66:5000/v1}                           |\n"
-				"  |-ratio    Point Ratio {default: 10}                                                    |\n"
-				" *|-image    Input Image File                                                             |\n"
-				"  |-format   Format Output Json                                                           |\n"
-				"  |-output   Output File Name to store result                                             |\n";
-		return 0;
-	}
+  if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
+    std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
+        "  |-h        (Help) Print this information                                                |\n"
+        "  |-server   Server URI  {default: http://10.110.45.66:5000/v1}                           |\n"
+        "  |-ratio    Point Ratio {default: 10}                                                    |\n"
+        " *|-image    Input Image File                                                             |\n"
+        "  |-format   Format Output Json                                                           |\n"
+        "  |-output   Output File Name to store result                                             |\n";
+    return 0;
+  }
 
-	std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-	int ratio = ::atoi(getCmdOption(argv, argv + argc, "-ratio", "10").c_str());
-	std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
-	std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
-	int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  int ratio = ::atoi(getCmdOption(argv, argv + argc, "-ratio", "10").c_str());
+  std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
+  std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
+  int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
 
-	if (ratio < 1) {
-		std::cerr << "Invalid Point Ratio (should be > 0)\n";
-		return -1;
-	}
-	if (inputImageFile.empty()) {
-		std::cerr << "Input Image file is missing\n";
-		return -1;
-	}
+  if (ratio < 1) {
+    std::cerr << "Invalid Point Ratio (should be > 0)\n";
+    return -1;
+  }
+  if (inputImageFile.empty()) {
+    std::cerr << "Input Image file is missing\n";
+    return -1;
+  }
 
-	try {
-		nvidia::aiaa::Client client(serverUri);
-		nvidia::aiaa::PolygonsList result = client.mask2Polygon(ratio, inputImageFile);
+  try {
+    nvidia::aiaa::Client client(serverUri);
+    nvidia::aiaa::PolygonsList result = client.mask2Polygon(ratio, inputImageFile);
 
-		if (outputJsonFile.empty()) {
-			std::cout << result.toJson(jsonSpace) << std::endl;
-		} else {
-			stringToFile(result.toJson(jsonSpace), outputJsonFile);
-		}
-		return 0;
-	} catch (nvidia::aiaa::exception& e) {
-		std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
-	}
+    if (outputJsonFile.empty()) {
+      std::cout << result.toJson(jsonSpace) << std::endl;
+    } else {
+      stringToFile(result.toJson(jsonSpace), outputJsonFile);
+    }
+    return 0;
+  } catch (nvidia::aiaa::exception& e) {
+    std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
+  }
 
-	return -1;
+  return -1;
 }

@@ -38,40 +38,40 @@ namespace nvidia {
 namespace aiaa {
 
 bool Utils::iequals(const std::string &a, const std::string& b) {
-	return std::equal(a.begin(), a.end(), b.begin(), [] (const char& a, const char& b) {
-		return (std::tolower(a) == std::tolower(b));
-	});
+  return std::equal(a.begin(), a.end(), b.begin(), [] (const char& a, const char& b) {
+    return (std::tolower(a) == std::tolower(b));
+  });
 }
 
 std::string Utils::to_lower(std::string s) {
-	std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {return std::tolower(c);});
-	return s;
+  std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) {return std::tolower(c);});
+  return s;
 }
 
 std::string Utils::tempfilename() {
-	return std::tmpnam(nullptr);
+  return std::tmpnam(nullptr);
 }
 
 std::vector<std::string> Utils::split(const std::string &str, char delim) {
-	std::vector < std::string > strings;
-	std::istringstream f(str);
+  std::vector < std::string > strings;
+  std::istringstream f(str);
 
-	std::string s;
-	while (std::getline(f, s, delim)) {
-		strings.push_back(s);
-	}
-	return strings;
+  std::string s;
+  while (std::getline(f, s, delim)) {
+    strings.push_back(s);
+  }
+  return strings;
 }
 
 void Utils::stringToPoint3D(const std::string &str, char delim, int point3D[3]) {
-	std::vector < std::string > xyz = split(str, delim);
-	int x = xyz.size() > 0 ? atoi(xyz[0].c_str()) : 0;
-	int y = xyz.size() > 1 ? atoi(xyz[1].c_str()) : x;
-	int z = xyz.size() > 2 ? atoi(xyz[2].c_str()) : y;
+  std::vector < std::string > xyz = split(str, delim);
+  int x = xyz.size() > 0 ? atoi(xyz[0].c_str()) : 0;
+  int y = xyz.size() > 1 ? atoi(xyz[1].c_str()) : x;
+  int z = xyz.size() > 2 ? atoi(xyz[2].c_str()) : y;
 
-	point3D[0] = x;
-	point3D[1] = y;
-	point3D[2] = z;
+  point3D[0] = x;
+  point3D[1] = y;
+  point3D[2] = z;
 }
 
 }

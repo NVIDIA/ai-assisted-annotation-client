@@ -34,6 +34,14 @@
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
+#ifndef AIAA_LOG_DEBUG_ENABLED
+#define AIAA_LOG_DEBUG_ENABLED 1
+#endif
+
+#ifndef AIAA_LOG_INFO_ENABLED
+#define AIAA_LOG_INFO_ENABLED 1
+#endif
+
 #ifndef AIAA_LOG_DEBUG
 #if AIAA_LOG_DEBUG_ENABLED
 #define AIAA_LOG_DEBUG(s) std::cout << "[DEBUG] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl

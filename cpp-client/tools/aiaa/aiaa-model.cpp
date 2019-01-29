@@ -30,45 +30,45 @@
 #include "../commonutils.h"
 
 int main(int argc, char **argv) {
-	if (cmdOptionExists(argv, argv + argc, "-h")) {
-		std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-				"  |-h        (Help) Print this information                                                |\n"
-				"  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
-				"  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
-				"  |-format   Format Output Json                                                           |\n"
-				"  |-output   Output File Name to store result                                             |\n";
+  if (cmdOptionExists(argv, argv + argc, "-h")) {
+    std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
+        "  |-h        (Help) Print this information                                                |\n"
+        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+        "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
+        "  |-format   Format Output Json                                                           |\n"
+        "  |-output   Output File Name to store result                                             |\n";
 
-		return 0;
-	}
+    return 0;
+  }
 
-	std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-	std::string label = getCmdOption(argv, argv + argc, "-label");
-	std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
-	int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string label = getCmdOption(argv, argv + argc, "-label");
+  std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
+  int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
 
-	try {
-		nvidia::aiaa::Client client(serverUri);
-		nvidia::aiaa::ModelList modelList = client.models();
+  try {
+    nvidia::aiaa::Client client(serverUri);
+    nvidia::aiaa::ModelList modelList = client.models();
 
-		if (!label.empty()) {
-			nvidia::aiaa::Model model = modelList.getMatchingModel(label);
-			if (outputJsonFile.empty()) {
-				std::cout << model.toJson(jsonSpace) << std::endl;
-			} else {
-				stringToFile(model.toJson(jsonSpace), outputJsonFile);
-			}
-			return 0;
-		}
+    if (!label.empty()) {
+      nvidia::aiaa::Model model = modelList.getMatchingModel(label);
+      if (outputJsonFile.empty()) {
+        std::cout << model.toJson(jsonSpace) << std::endl;
+      } else {
+        stringToFile(model.toJson(jsonSpace), outputJsonFile);
+      }
+      return 0;
+    }
 
-		if (outputJsonFile.empty()) {
-			std::cout << modelList.toJson(jsonSpace) << std::endl;
-		} else {
-			stringToFile(modelList.toJson(jsonSpace), outputJsonFile);
-		}
-		return 0;
-	} catch (nvidia::aiaa::exception& e) {
-		std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
-	}
+    if (outputJsonFile.empty()) {
+      std::cout << modelList.toJson(jsonSpace) << std::endl;
+    } else {
+      stringToFile(modelList.toJson(jsonSpace), outputJsonFile);
+    }
+    return 0;
+  } catch (nvidia::aiaa::exception& e) {
+    std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
+  }
 
-	return -1;
+  return -1;
 }

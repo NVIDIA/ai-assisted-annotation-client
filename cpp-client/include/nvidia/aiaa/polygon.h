@@ -46,94 +46,94 @@ namespace aiaa {
  */
 
 struct AIAA_CLIENT_API Polygons {
-	typedef std::vector<int> Point;
-	typedef std::vector<Point> Polygon;
+  typedef std::vector<int> Point;
+  typedef std::vector<Point> Polygon;
 
-	/// Array of 2D Points to represent [[x,y]+]
-	std::vector<Polygon> polys;
+  /// Array of 2D Points to represent [[x,y]+]
+  std::vector<Polygon> polys;
 
-	/// Checks if polys is empty
-	bool empty() const;
+  /// Checks if polys is empty
+  bool empty() const;
 
-	/// Count of Polygons
-	size_t size() const;
+  /// Count of Polygons
+  size_t size() const;
 
-	/// Append new Polygon to polys list
-	void push_back(Polygon poly);
+  /// Append new Polygon to polys list
+  void push_back(Polygon poly);
 
-	/// Flip X,Y points to Y,X
-	void flipXY();
+  /// Flip X,Y points to Y,X
+  void flipXY();
 
-	/*!
-	 @brief create Model from JSON String
-	 @param[in] polygons  Polygons to compare against
-	 @param[in,out] polyIndex  First Polygon Index where the Polygon is not matching
-	 @param[in,out] vertexIndex  Vertex Index where the Point is not matching
+  /*!
+   @brief create Model from JSON String
+   @param[in] polygons  Polygons to compare against
+   @param[in,out] polyIndex  First Polygon Index where the Polygon is not matching
+   @param[in,out] vertexIndex  Vertex Index where the Point is not matching
 
-	 @return True if non-matching polygon + vertex is found
-	 */
-	bool findFirstNonMatching(const Polygons &polygons, int &polyIndex, int &vertexIndex) const;
+   @return True if non-matching polygon + vertex is found
+   */
+  bool findFirstNonMatching(const Polygons &polygons, int &polyIndex, int &vertexIndex) const;
 
-	/*!
-	 @brief create Model from JSON String
-	 @param[in] json  JSON String.
+  /*!
+   @brief create Model from JSON String
+   @param[in] json  JSON String.
 
-	 Example:
-	 @code
-	 [ [[170, 66],[162, 73],[169, 77],[180, 76],[185, 68],[175, 66]], [[1,2]], [] ]
-	 @endcode
+   Example:
+   @code
+   [ [[170, 66],[162, 73],[169, 77],[180, 76],[185, 68],[175, 66]], [[1,2]], [] ]
+   @endcode
 
-	 @return Polygons object
-	 */
-	static Polygons fromJson(const std::string &json);
+   @return Polygons object
+   */
+  static Polygons fromJson(const std::string &json);
 
-	/*!
-	 @brief convert Polygons to JSON String
-	 @param[in] space  If space > 0; then JSON string will be formatted accordingly
-	 @return JSON String
-	 */
-	std::string toJson(int space = 0) const;
+  /*!
+   @brief convert Polygons to JSON String
+   @param[in] space  If space > 0; then JSON string will be formatted accordingly
+   @return JSON String
+   */
+  std::string toJson(int space = 0) const;
 };
 
 struct AIAA_CLIENT_API PolygonsList {
 
-	std::vector<Polygons> list;
+  std::vector<Polygons> list;
 
-	/// Checks if Polygons list is empty
-	bool empty() const;
+  /// Checks if Polygons list is empty
+  bool empty() const;
 
-	/// Count of Polygons list
-	size_t size() const;
+  /// Count of Polygons list
+  size_t size() const;
 
-	/// Append new Polygons to the list
-	void push_back(Polygons polygons);
+  /// Append new Polygons to the list
+  void push_back(Polygons polygons);
 
-	/// Flip X,Y points to Y,X
-	void flipXY();
+  /// Flip X,Y points to Y,X
+  void flipXY();
 
-	/*!
-	 @brief create PolygonsList from JSON String
-	 @param[in] json  JSON String.
+  /*!
+   @brief create PolygonsList from JSON String
+   @param[in] json  JSON String.
 
-	 Example:
-	 @code
-	 [
-	 [],
-	 [[[169,66],[163,74],[173,77],[183,75],[184,68],[174,66]]],
-	 [[[169,66],[163,74],[172,78],[183,76],[184,69],[175,66]]]
-	 ]
-	 @endcode
+   Example:
+   @code
+   [
+   [],
+   [[[169,66],[163,74],[173,77],[183,75],[184,68],[174,66]]],
+   [[[169,66],[163,74],[172,78],[183,76],[184,69],[175,66]]]
+   ]
+   @endcode
 
-	 @return PolygonsList object
-	 */
-	static PolygonsList fromJson(const std::string &json);
+   @return PolygonsList object
+   */
+  static PolygonsList fromJson(const std::string &json);
 
-	/*!
-	 @brief convert PolygonsList to JSON String
-	 @param[in] space  If space > 0; then JSON string will be formatted accordingly
-	 @return JSON String
-	 */
-	std::string toJson(int space = 0) const;
+  /*!
+   @brief convert PolygonsList to JSON String
+   @param[in] space  If space > 0; then JSON string will be formatted accordingly
+   @return JSON String
+   */
+  std::string toJson(int space = 0) const;
 };
 
 }

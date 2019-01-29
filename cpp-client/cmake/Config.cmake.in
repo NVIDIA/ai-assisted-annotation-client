@@ -27,6 +27,8 @@
 include(CMakeFindDependencyMacro)
 
 # Capturing values from configure
+set(NvidiaAIAAClient_DIR "@AIAA_CMAKE_DIR@")
+
 set(NvidiaAIAAClient_INCLUDE_DIRS "@AIAA_INCLUDE_DIR@")
 set(NvidiaAIAAClient_INCLUDE_DIRECTORIES "@AIAA_INCLUDE_DIR@")
 
@@ -36,8 +38,6 @@ set(NvidiaAIAAClient_LIBRARIES @AIAA_LIBRARY_NAME@)
 
 find_library(NvidiaAIAAClient_LIBRARY @AIAA_LIBRARY_NAME@ HINTS @AIAA_LIBRARY_DIR@)
 
-# Add the targets file (TODO)
-#file(GLOB CONFIG_FILES "${_DIR}/NvidiaAIAAClientTargets-*.cmake")
-#foreach(f ${CONFIG_FILES})
-#  include(${f})
-#endforeach()
+if(NvidiaAIAAClient_LIBRARY)
+   set(NvidiaAIAAClient_FOUND TRUE)
+endif()

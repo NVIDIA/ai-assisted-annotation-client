@@ -86,6 +86,7 @@ install(DIRECTORY ${CMAKE_BINARY_DIR}/install/
 
 set(AIAA_INCLUDE_DIR   ${CMAKE_INSTALL_PREFIX}/include)
 set(AIAA_LIBRARY_DIR   ${CMAKE_INSTALL_PREFIX}/lib)
+set(AIAA_CMAKE_DIR     ${CMAKE_INSTALL_PREFIX}/lib/cmake/NvidiaAIAAClient)
 set(AIAA_LIBRARY_NAME  NvidiaAIAAClient)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cpp-client/cmake/Config.cmake.in "${CMAKE_BINARY_DIR}/NvidiaAIAAClientConfig.cmake" @ONLY)

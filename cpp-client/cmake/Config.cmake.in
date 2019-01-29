@@ -28,7 +28,10 @@ include(CMakeFindDependencyMacro)
 
 # Capturing values from configure
 set(NvidiaAIAAClient_INCLUDE_DIRS "@AIAA_INCLUDE_DIR@")
+set(NvidiaAIAAClient_INCLUDE_DIRECTORIES "@AIAA_INCLUDE_DIR@")
+
 set(NvidiaAIAAClient_LIBRARY_DIR "@AIAA_LIBRARY_DIR@")
+set(NvidiaAIAAClient_LIBRARY @AIAA_LIBRARY_NAME@)
 set(NvidiaAIAAClient_LIBRARIES @AIAA_LIBRARY_NAME@)
 
 find_library(NvidiaAIAAClient_LIBRARY @AIAA_LIBRARY_NAME@ HINTS @AIAA_LIBRARY_DIR@)

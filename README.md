@@ -1,136 +1,81 @@
-# AIAA Client
-Wait for more details.
+# Nvidia AI-Assisted Annotation Client
+Nvidia AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
 
-### Building from Source
-
-##### Requirements
- - [CMake](https://cmake.org/) (version >= 3.12.4)
- - C++ 11 or higher
- - For Windows Visual Studio 2017 [community version is free](https://visualstudio.microsoft.com/vs/community/)
-
-##### Build Instructions
-```
-git clone https://github.com/NVIDIA/ai-assisted-annotation-client.git NvidiaAIAAClient
-
-# For Windows, checkout into shorter path like C:\NvidiaAIAAClient 
-# to avoid ITK build errors due to very longer path
-
-cd NvidiaAIAAClient
-mkdir build
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ../
-
-# If you have already ITK installed then
-cmake  -DCMAKE_INSTALL_PREFIX=/usr/local -DEXTERNAL_ITK_DIR=/home/xyz/install/lib/cmake/ITK-4.13 ../
-
-# If you have already Poco installed then
-cmake  -DCMAKE_INSTALL_PREFIX=/usr/local -DEXTERNAL_Poco_DIR=/home/xyz/install/lib/cmake/Poco ../
+[![Documentation](https://img.shields.io/badge/docs-doxygen-blue.svg)](http://docs.nvidia.com)
+[![GitHub license](https://img.shields.io/badge/license-BSD-blue.svg)](https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/LICENSE)
+[![GitHub Releases](https://img.shields.io/github/release/NVIDIA/ai-assisted-annotation-client.svg)](https://github.com/NVIDIA/ai-assisted-annotation-client/releases)
+[![GitHub Issues](https://img.shields.io/github/issues/NVIDIA/ai-assisted-annotation-client.svg)](http://github.com/NVIDIA/ai-assisted-annotation-client/issues)
 
 
-#####################################################################
-# Linux/Mac
-make -j16
+### Integration
 
-# Install/Package
-cd NvidiaAIAAClient-Build
-make install
-make package
+#### Supported Platforms
+AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate with AI-Assisted Annotation Server for NVidia and it officially supports:
+ - Windows
+ - Linux
+ - MacOS
+ 
+#### Python Client Integration
+Need to write some here...
 
+### C++ Client Integration
+Follow the [build instructions](http://github.com/NVIDIA/ai-assisted-annotation-client/cpp-client/BuildInstractions) to compile and install from the source code.  Or directly download the binaries available for certain platforms [released here](https://github.com/NVIDIA/ai-assisted-annotation-client/releases).
+Following is a sample code to invoke Segmentation API.
 
-#####################################################################
-# Windows
-msbuild NvidiaAIAAClient-superbuild.sln -m:4
+```cpp
+#include <nvidia/aiaa/client.h>
+nvidia::aiaa::Client client("http://10.110.45.66:5000/v1");
 
-# Install/Package
-cd NvidiaAIAAClient-Build
+// List all models
+nvidia::aiaa::ModelList modelList = client.models();
 
-# Open NvidiaAIAAClient.sln in IDE and run INSTALL/PACKAGE (currently works through IDE only)
+// Get matching model for organ Spleen
+nvidia::aiaa::Model model = modelList.getMatchingModel("spleen");
+
+// Call 3D Segmentation for a given model, points and input 3D image
+int ret = client.dextr3d(model, pointSet, input3dImageFile, outputDextra3dImageFile);
 
 ```
+More details on C++ Client APIs can be found [here](http://docs.nvidia.com)
 
-> On Windows use CMAKE GUI client (and select Release for CMAKE_CONFIGURATION_TYPES) to configure and generate the files.
 
+##### CMake
+You can also use the NvidiaAIAAClient interface target in CMake. This target populates the appropriate usage requirements for INTERFACE_INCLUDE_DIRS to point to the appropriate include directories and INTERFACE_LIBRARY for linking the necessary Libraries.
 
-##### To use from CMake:
-```
-cmake_minimum_required(VERSION 3.12.4)
-project(main)
+###### External
+To use this library from a CMake project, you can locate it directly with find_package() and use the namespaced imported target from the generated package configuration:
 
-set(CMAKE_CXX_STANDARD 11)
-
+```cmake
+#CMakeLists.txt
 find_package(NvidiaAIAAClient REQUIRED)
+...
 include_directories(${NvidiaAIAAClient_INCLUDE_DIRS})
-
-add_executable(main main.cpp)
-target_link_libraries(main ${NvidiaAIAAClient_LIBRARY})
+...
+target_link_libraries(foo ${NvidiaAIAAClient_LIBRARY})
 ```
 
-Generate CMake files for main by
+The package configuration file, NvidiaAIAAClientConfig.cmake, can be used either from an install tree or directly out of the build tree.
+For example, you can specify the -DNvidiaAIAAClient_DIR option while generating the CMake targets for project foo.
 
-```
+```console
 cmake -DNvidiaAIAAClient_DIR=/user/xyz/myinstall/lib/cmake/NvidiaAIAAClient
 ```
 
+###### Embedded
+You can achieve this by adding External Project in CMake.
 
-##### API Docs
-Generate Doxygen Documents for AIAA Client by running the following target
-
-```
-make doxygen
-```
-
-#### Command-Line Tools
-The build will output the following useful command-line utilites
-
-```
-make install
-
-# If install path is not /usr/local then
-export PATH=$PATH:myinstall/bin
-export LD_LIBRARY_PATH=myinstall/lib         # for Linux
-export DYLD_LIBRARY_PATH=myinstall/lib       # for MacOS
-
-#fetch model list
-nvidiaAIAAListModels \
-  -server http://10.110.45.66:5000/v1
-
-#fetch matching model
-nvidiaAIAAListModels \
-  -server http://10.110.45.66:5000/v1 \
-  -label spleen
-
-#call dextr3d from command line
-nvidiaAIAADEXTR3D \
-  -server http://10.110.45.66:5000/v1 \
-  -label spleen \
-  -points `cat ../test/data/pointset.json` \
-  -image _image.nii.gz \
-  -output tmp_out.nii.gz
-
-#call mask2Polygon
-nvidiaAIAAMaskPolygon \
-  -server http://10.110.45.66:5000/v1 \
-  -image tmp_out.nii.gz \
-  -output polygonlist.json
-
-#call fixPolygon
-nvidiaAIAAFixPolygon \
-  -server http://10.110.45.66:5000/v1 \
-  -neighbor 10 \
-  -poly `cat ../test/data/polygons.json` \
-  -ppoly `cat ../test/data/polygons.json` \
-  -pindex 0 \
-  -vindex 17 \
-  -image ../test/data/image_slice_2D.png \
-  -output updated_image_2d.png
+```cmake
+#CMakeLists.txt
+...
+ExternalProject_Add(${proj}
+   GIT_REPOSITORY https://github.com/NVIDIA/ai-assisted-annotation-client.git
+   GIT_TAG v1.0.0
+)
+...
+target_link_libraries(foo ${NvidiaAIAAClient_LIBRARY})
 ```
 
-> For more details on the parameters run *nvidiaAIAAxxx -h* to print the help information
+### License
 
-
-### Supported Platforms
-AIAAClient is a cross-platform C++/Python Client API to communicate with AIAA Server for NVidia and it officially supports:
-
- - Windows
- - Linux
- - macOS
+### Contributions
 

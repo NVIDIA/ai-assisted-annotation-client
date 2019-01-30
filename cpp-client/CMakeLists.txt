@@ -84,6 +84,7 @@ install(FILES
          include/nvidia/aiaa/pointset.h
          include/nvidia/aiaa/polygon.h
          include/nvidia/aiaa/utils.h
+         include/nvidia/aiaa/imageinfo.h
          include/nvidia/aiaa/exception.h
        DESTINATION include/nvidia/aiaa)
 

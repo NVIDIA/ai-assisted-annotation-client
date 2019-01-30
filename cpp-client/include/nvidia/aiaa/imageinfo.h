@@ -28,27 +28,34 @@
 
 #pragma once
 
-#include "pointset.h"
-#include "imageinfo.h"
+#include "common.h"
 
-#include <string>
-#include <itkImage.h>
+#include <vector>
 
 namespace nvidia {
 namespace aiaa {
 
-class ITKUtils {
- public:
-  template<typename TPixel, unsigned int VImageDimension>
-  static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
-                                                                           typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate);
+////////////
+// Image3DInfo //
+////////////
 
-  template<class TImageType>
-  static typename TImageType::Pointer getLargestConnectedComponent(TImageType *itkImage);
+/*!
+ @brief 3D-Image Info
 
-  static Point3DSet imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
-                                    const std::vector<int>& ROI_SIZE);
-  static void imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const Image3DInfo &imageInfo);
+ This class contains information related to size, crop and crop index for a 3D Image
+ */
+
+struct AIAA_CLIENT_API Image3DInfo {
+  /// Original Size in [x,y,z] format
+  std::vector<int> imageSize = { 0, 0, 0 };
+
+  /// Cropped Size in [x,y,z] format
+  std::vector<int> cropSize = { 0, 0, 0 };
+
+  /// Cropped Index in [x,y,z] format
+  std::vector<int> cropIndex = { 0, 0, 0 };
+
+  std::string dump();
 };
 
 }

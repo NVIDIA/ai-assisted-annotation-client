@@ -32,6 +32,7 @@
 #include "model.h"
 #include "pointset.h"
 #include "polygon.h"
+#include "imageinfo.h"
 #include "exception.h"
 
 #include <string>
@@ -67,6 +68,20 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.102 if case of response parsing
    */
   ModelList models() const;
+
+  /*!
+   @brief This API is used to sample the input image
+   @param[in] model  Model to be used
+   @param[in] pointSet  Point3DSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] inputImageFile  Input image filename where image is stored in 3D format
+   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server
+   @param[out] imageInfo  ImageInfo for sampled image
+   @return Point3DSet object representing new PointSet for sampled image
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
+   */
+  Point3DSet sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, Image3DInfo &imageInfo) const;
 
   /*!
    @brief 3D image segmentation using DEXTR3D method

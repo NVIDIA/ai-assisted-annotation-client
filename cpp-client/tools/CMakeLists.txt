@@ -52,6 +52,9 @@ target_link_libraries(nvidiaAIAAListModels NvidiaAIAAClient ${CMAKE_DL_LIBS})
 add_executable(nvidiaAIAADEXTR3D aiaa/aiaa-dextra3d.cpp)
 target_link_libraries(nvidiaAIAADEXTR3D NvidiaAIAAClient ${CMAKE_DL_LIBS})
 
+add_executable(nvidiaAIAASampling3D aiaa/aiaa-sampling3d.cpp)
+target_link_libraries(nvidiaAIAASampling3D NvidiaAIAAClient ${CMAKE_DL_LIBS})
+
 add_executable(nvidiaAIAAFixPolygon aiaa/aiaa-fix-polygon.cpp)
 target_link_libraries(nvidiaAIAAFixPolygon NvidiaAIAAClient ${CMAKE_DL_LIBS})
 

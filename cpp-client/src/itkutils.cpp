@@ -47,24 +47,15 @@
 namespace nvidia {
 namespace aiaa {
 
-std::string ImageInfo::dump() {
-  std::stringstream ss;
-  ss << "ImageSize: [" << imageSize[0] << "," << imageSize[1] << "," << imageSize[2] << "]; ";
-  ss << "CropSize: [" << cropSize[0] << "," << cropSize[1] << "," << cropSize[2] << "]; ";
-  ss << "CropIndex: [" << cropIndex[0] << "," << cropIndex[1] << "," << cropIndex[2] << "]; ";
-
-  return ss.str();
-}
+const unsigned int DIM3 = 3;
 
 template<typename TPixel, unsigned int VImageDimension>
 typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
                                                                             typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate) {
-
-  typedef itk::Image<TPixel, VImageDimension> InputImageType;
-
   auto imageSize = itkImage->GetLargestPossibleRegion().GetSize();
   auto imageSpacing = itkImage->GetSpacing();
 
+  typedef itk::Image<TPixel, VImageDimension> InputImageType;
   typename InputImageType::SpacingType targetSpacing;
   for (unsigned int i = 0; i < VImageDimension; i++) {
     targetSpacing[i] = imageSpacing[i] * (static_cast<double>(imageSize[i]) / static_cast<double>(targetSize[i]));
@@ -108,7 +99,7 @@ typename TImageType::Pointer ITKUtils::getLargestConnectedComponent(TImageType *
   return filter->GetOutput();
 }
 
-Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, ImageInfo &imageInfo, double PAD,
+Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
                                      const std::vector<int>& ROI_SIZE) {
   AIAA_LOG_DEBUG("Total Points: " << inputPointSet.points.size());
   AIAA_LOG_DEBUG("PAD: " << PAD);
@@ -221,7 +212,7 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
   }
 }
 
-void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const ImageInfo &imageInfo) {
+void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const Image3DInfo &imageInfo) {
   try {
     typedef itk::Image<unsigned char, DIM3> ImageType;
 

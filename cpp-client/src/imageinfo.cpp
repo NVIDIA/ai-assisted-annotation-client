@@ -26,30 +26,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "../include/nvidia/aiaa/imageinfo.h"
 
-#include "pointset.h"
-#include "imageinfo.h"
-
-#include <string>
-#include <itkImage.h>
+#include <sstream>
 
 namespace nvidia {
 namespace aiaa {
 
-class ITKUtils {
- public:
-  template<typename TPixel, unsigned int VImageDimension>
-  static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
-                                                                           typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate);
+std::string Image3DInfo::dump() {
+  std::stringstream ss;
+  ss << "{";
+  ss << "\"imageSize\": [" << imageSize[0] << "," << imageSize[1] << "," << imageSize[2] << "], ";
+  ss << "\"cropSize\": [" << cropSize[0] << "," << cropSize[1] << "," << cropSize[2] << "], ";
+  ss << "\"cropIndex\": [" << cropIndex[0] << "," << cropIndex[1] << "," << cropIndex[2] << "]";
+  ss << "}";
 
-  template<class TImageType>
-  static typename TImageType::Pointer getLargestConnectedComponent(TImageType *itkImage);
-
-  static Point3DSet imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
-                                    const std::vector<int>& ROI_SIZE);
-  static void imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const Image3DInfo &imageInfo);
-};
+  return ss.str();
+}
 
 }
 }

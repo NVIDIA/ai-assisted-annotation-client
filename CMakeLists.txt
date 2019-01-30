@@ -95,6 +95,7 @@ if(DOXYGEN_FOUND)
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/pointset.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/polygon.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/utils.h
+        ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/imageinfo.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/exception.h
         COMMENT "Generate doxygen html for cpp-client API"
     )

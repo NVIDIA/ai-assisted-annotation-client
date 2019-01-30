@@ -78,6 +78,11 @@ int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const 
   return dextr3d(model, pointSet, inputImageFile, outputImageFile);
 }
 
+Point3DSet Client::sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, Image3DInfo &imageInfo) const {
+  // Perform crop/sample and compute point index
+  return ITKUtils::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
+}
+
 int Client::dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile) const {
   if (pointSet.points.size() < MIN_POINTS_FOR_DEXTR3D) {
     AIAA_LOG_ERROR("Insufficient Points; Minimum Points required for input PointSet: " << MIN_POINTS_FOR_DEXTR3D);
@@ -98,7 +103,7 @@ int Client::dextr3d(const Model &model, const Point3DSet &pointSet, const std::s
   std::string tmpResultFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
 
   // Perform pre-processing of crop/re-sample and re-compute point index
-  ImageInfo imageInfo;
+  Image3DInfo imageInfo;
   Point3DSet pointSetROI = ITKUtils::imagePreProcess(pointSet, inputImageFile, tmpImageFile, imageInfo, model.padding, model.roi);
 
   // TODO:: Ask AIAA Server to make value of points to JSON Array

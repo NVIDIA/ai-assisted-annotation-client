@@ -30,6 +30,7 @@
 
 #include "common.h"
 
+#include <string>
 #include <vector>
 
 namespace nvidia {

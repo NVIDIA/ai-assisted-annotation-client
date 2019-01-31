@@ -45,6 +45,7 @@ namespace aiaa {
  */
 
 struct AIAA_CLIENT_API Point3DSet {
+	/// Type Definition for 3D Point
   typedef std::vector<int> Point3D;
 
   /// Array of 3D Points to represent [[x,y,z]+]
@@ -82,5 +83,3 @@ struct AIAA_CLIENT_API Point3DSet {
 
 }
 }
-
-AIAA_CLIENT_API std::ostream& operator<<(std::ostream&, const nvidia::aiaa::Point3DSet&);

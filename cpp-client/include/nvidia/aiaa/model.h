@@ -135,6 +135,3 @@ struct AIAA_CLIENT_API ModelList {
 
 }
 }
-
-AIAA_CLIENT_API std::ostream& operator<<(std::ostream&, const nvidia::aiaa::Model&);
-AIAA_CLIENT_API std::ostream& operator<<(std::ostream&, const nvidia::aiaa::ModelList&);

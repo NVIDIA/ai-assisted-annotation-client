@@ -164,12 +164,3 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
 }
 }
 
-std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::Model& m) {
-  os << m.toJson();
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::ModelList& m) {
-  os << m.toJson();
-  return os;
-}

@@ -46,7 +46,10 @@ namespace aiaa {
  */
 
 struct AIAA_CLIENT_API Polygons {
+	/// Type Definition for Point
   typedef std::vector<int> Point;
+
+  /// Type Definition for Polygon
   typedef std::vector<Point> Polygon;
 
   /// Array of 2D Points to represent [[x,y]+]
@@ -95,8 +98,13 @@ struct AIAA_CLIENT_API Polygons {
   std::string toJson(int space = 0) const;
 };
 
+/*!
+ @brief AIAA List of Polygons
+ */
+
 struct AIAA_CLIENT_API PolygonsList {
 
+	/// List of Polygons
   std::vector<Polygons> list;
 
   /// Checks if Polygons list is empty
@@ -138,6 +146,3 @@ struct AIAA_CLIENT_API PolygonsList {
 
 }
 }
-
-AIAA_CLIENT_API std::ostream& operator<<(std::ostream&, const nvidia::aiaa::Polygons&);
-AIAA_CLIENT_API std::ostream& operator<<(std::ostream&, const nvidia::aiaa::PolygonsList&);

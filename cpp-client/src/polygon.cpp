@@ -165,13 +165,3 @@ std::string PolygonsList::toJson(int space) const {
 }
 }
 
-std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::Polygons& p) {
-  os << p.toJson();
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::PolygonsList& p) {
-  os << p.toJson();
-  return os;
-}
-

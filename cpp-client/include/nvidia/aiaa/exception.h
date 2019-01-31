@@ -55,15 +55,21 @@ namespace aiaa {
 
 class exception : public std::exception {
  public:
-  enum errorType {
-    AIAA_SERVER_ERROR = 101,
-    RESPONSE_PARSE_ERROR = 102,
-    ITK_PROCESS_ERROR = 103,
-    INVALID_ARGS_ERROR = 104,
-    SYSTEM_ERROR = 105
-  };
+	/// @brief Enum for Error Type
+	enum errorType {
+		AIAA_SERVER_ERROR = 101, ///Failed to communicate to AIAA Server
+		RESPONSE_PARSE_ERROR = 102, /// Failed to parse AIAA Server Response
+		ITK_PROCESS_ERROR = 103, /// Failed to process ITK Operations
+		INVALID_ARGS_ERROR = 104, /// Invalid Arguments
+		SYSTEM_ERROR = 105 /// System/Unknown Error
+	};
 
-  const std::string messages[5] = { "Failed to communicate to AIAA Server", "Failed to parse AIAA Server Response", "Failed to process ITK Operations", "Invalid Arguments",
+	/// Message String for each enum type
+  const std::string messages[5] = {
+  		"Failed to communicate to AIAA Server",
+			"Failed to parse AIAA Server Response",
+			"Failed to process ITK Operations",
+			"Invalid Arguments",
       "System/Unknown Error" };
 
   /// returns the explanatory string
@@ -74,11 +80,13 @@ class exception : public std::exception {
   /// the id of the exception
   errorType id = SYSTEM_ERROR;
 
+  /// Construct exception
   exception(errorType id_, const char* what_arg)
       : id(id_),
         m(what_arg) {
   }
 
+  /// String version of error
   std::string name() const {
     return messages[id - AIAA_SERVER_ERROR];
   }

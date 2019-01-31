@@ -78,7 +78,3 @@ std::string Point3DSet::toJson(int space) const {
 }
 }
 
-std::ostream& operator<<(std::ostream& os, const nvidia::aiaa::Point3DSet& p) {
-  os << p.toJson();
-  return os;
-}

@@ -56,6 +56,7 @@ struct AIAA_CLIENT_API Image3DInfo {
   /// Cropped Index in [x,y,z] format
   std::vector<int> cropIndex = { 0, 0, 0 };
 
+  /// Returns string/json version of Image3DInfo
   std::string dump();
 };
 

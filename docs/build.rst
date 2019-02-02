@@ -1,5 +1,5 @@
 ..
-  # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+  # Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
   #
   # Redistribution and use in source and binary forms, with or without
   # modification, are permitted provided that the following conditions
@@ -28,54 +28,80 @@
 Building
 ========
 
-C++ Library
------------
 
-Build Requirements
-++++++++++++++++++
+Building C++ Client
+-------------------
 
- - [CMake](https://cmake.org/) (version >= 3.12.4)
- - C++ 11 or higher
- - For Windows Visual Studio 2017 [community version is free](https://visualstudio.microsoft.com/vs/community/)
+Nvidia AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
 
-Build Instructions
-+++++++++++++++++++
-.. code-block:: guess
-
-	git clone https://github.com/NVIDIA/ai-assisted-annotation-client.git NvidiaAIAAClient
-	
-	# For Windows, checkout into shorter path like C:\NvidiaAIAAClient 
-	# to avoid ITK build errors due to very longer path
-	
-	cd NvidiaAIAAClient
-	mkdir build
-	cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ../
-	
-	# If you have already ITK installed then
-	cmake  -DCMAKE_INSTALL_PREFIX=/usr/local -DEXTERNAL_ITK_DIR=/home/xyz/install/lib/cmake/ITK-4.13 ../
-	
-	# If you have already Poco installed then
-	cmake  -DCMAKE_INSTALL_PREFIX=/usr/local -DEXTERNAL_Poco_DIR=/home/xyz/install/lib/cmake/Poco ../
+It officially supports following 3 platforms
+   - Windows (Windows 10)
+   - Linux (Ubuntu16+)
+   - macOS (High Sierra and above)
 
 
-For Linux/Mac run::
+Prerequisites
+^^^^^^^^^^^^^
+   - `CMake <https://cmake.org>`_ (version >= 3.12.4)
+   - For Linux/Mac gcc which supports C++ 11 or higher
+   - For Windows `Visual Studio 2017 <https://visualstudio.microsoft.com/downloads>`_
 
-	make -j16
+External Dependencies
+^^^^^^^^^^^^^^^^^^^^^
+   - `ITK <https://itk.org>`_ (version = 4.13..1)
+   - `Poco <https://pocoproject.org>`_  (version = 1.9.0)
+   - `nlohmann_json <https://github.com/nlohmann/json>`_
+   
+.. note::
+   Above are source only dependencies for CMake project.
+   They will get downloaded and built as part of super-build project for AIAA Client.
+   
+Building Binaries
+^^^^^^^^^^^^^^^^^
+Following the below instructions to get the source code and build the project
 
-	# To Install/Package
-	cd NvidiaAIAAClient-Build
-	make install
-	make package
+.. code-block:: bash
+
+   git clone https://github.com/NVIDIA/ai-assisted-annotation-client.git NvidiaAIAAClient
+   cd NvidiaAIAAClient
+   mkdir build
+   cmake ../
+   
+   # If ITK is installed locally
+   export MYINSTALL_DIR=/home/xyz/install
+   cmake -DITK_DIR=${MYINSTALL_DIR}/lib/cmake/ITK-4.13 ../
+   
+   # If ITK and Poco are installed locally
+   cmake -DITK_DIR=${MYINSTALL_DIR}/lib/cmake/ITK-4.13 -DPoco_DIR=${MYINSTALL_DIR}/lib/cmake/Poco ../
 
 
+.. note::
+   - Use Release mode for faster build.
+   - For Windows, use CMAKE GUI client to configure and generate the files.  
+   - For Windows, if ITK is not externally installed, then use shorter path for *ROOT* Folder e.g. ``C:/NvidiaAIAAClient`` to avoid ``LongPath`` error.
 
-For Windows::
+Following are some additional CMake Flags helpful while configuring the project.
+   -  ``ITK_DIR`` - use already installed ITK libraries and includes
+   -  ``Poco_DIR`` - use already installed Poco libraries and includes
+   -  ``AIAA_LOG_DEBUG_ENABLED`` - enable/disable Debug-level Logging (default: 0)
+   -  ``AIAA_LOG_INFO_ENABLED`` - enable/disable Info-level Logging (default: 1)
 
-	msbuild NvidiaAIAAClient-superbuild.sln -m:4
 
-	#Install/Package
-	cd NvidiaAIAAClient-Build
+Building the Documentation
+--------------------------
 
-> Open NvidiaAIAAClient.sln in IDE and run INSTALL/PACKAGE (currently works through IDE only)
-> On Windows use CMAKE GUI client (and select Release for CMAKE_CONFIGURATION_TYPES) to configure and generate the files.
+The Nvidia AI-Assisted Annotation Client documentation is found in the docs/ directory and is based
+on `Sphinx <http://www.sphinx-doc.org>`_.  `Doxygen <http://www.doxygen.org/>`_ integrated with `Exhale <https://github.com/svenevs/exhale>`_ is 
+used for C++ API docuementation.
 
+To build the docs install the required dependencies::
+
+  $ apt-get update
+  $ apt-get install -y --no-install-recommends doxygen
+  $ pip install --upgrade sphinx sphinx-rtd-theme nbsphinx exhale
+
+Then use Sphinx to build the documentation into the build/html
+directory::
+
+  $ cd docs
+  $ make clean html

@@ -36,10 +36,6 @@ NVIDIA AI-Assisted Annotation Client
      stable release click `here
      <https://docs.nvidia.com/deeplearning/sdk/ai-assisted-annotation-client-guide/docs/index.html>`_.
 
-.. include:: ../README.rst
-   :start-after: overview-begin-marker-do-not-remove
-   :end-before: overview-end-marker-do-not-remove
-
 .. toctree::
    :hidden:
 
@@ -50,17 +46,9 @@ NVIDIA AI-Assisted Annotation Client
    :caption: User Guide
 
    quickstart
-   install
-   client
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Developer Guide
-
-   architecture
-   contribute
    build
-   test
+   tools
+   contribute
 
 .. toctree::
    :maxdepth: 2

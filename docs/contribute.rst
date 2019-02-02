@@ -1,5 +1,5 @@
 ..
-  # Copyright (c) 2018, NVIDIA CORPORATION. All rights reserved.
+  # Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
   #
   # Redistribution and use in source and binary forms, with or without
   # modification, are permitted provided that the following conditions
@@ -28,24 +28,19 @@
 Contributing
 ============
 
-Contributions to TensorRT Inference Server are more than welcome. To
+Contributions to Nvidia AI-Assisted Annotation Client are more than welcome. To
 contribute make a pull request and follow the guidelines outlined in
 the `CONTRIBUTING
-<https://github.com/NVIDIA/tensorrt-inference-server/blob/master/CONTRIBUTING.md>`_
+<https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/CONTRIBUTING.md>`_
 document.
 
 Coding Convention
 -----------------
 
-Use clang-format to format all source files (\*.h, \*.cc, \*.proto) to
+Use clang-format to format all source files (\*.h, \*.cpp) to
 a consistent format. You should run clang-format on all source files
 before submitting a pull request::
 
   $ apt-get install clang-format clang-format-6.0
-  $ clang-format-6.0 --style=file -i *.proto *.cc *.h
+  $ clang-format-6.0 --style=file -i *.cpp *.h
 
-For convenience there is a format.py script in tools/ that can be used
-to clang-format all files within the repo::
-
-  $ cd .../tensorrt-inference-server    # top-level of repo
-  $ python format.py *

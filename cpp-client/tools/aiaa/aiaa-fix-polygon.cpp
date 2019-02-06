@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
         "  |-h            (Help) Print this information                                            |\n"
         "  |-server       Server URI  {default: http://10.110.45.66:5000/v1}                       |\n"
-        "  |-neighbor     NeighborHood Size for propagation {default: 10}                          |\n"
+        "  |-neighbor     NeighborHood Size for propagation {default: 1}                           |\n"
         " *|-poly         New Polygons Array [[[x,y]+]] Example: [[[70,172,86],...,[125,147,164]]] |\n"
         " *|-ppoly        Old Polygons Array [[[x,y]+]]                                            |\n"
         " *|-pindex       Polygon Index which needs to be updated                                  |\n"
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
   }
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-  int neighborhoodSize = ::atoi(getCmdOption(argv, argv + argc, "-neighbor", "10").c_str());
+  int neighborhoodSize = ::atoi(getCmdOption(argv, argv + argc, "-neighbor", "1").c_str());
   std::string polygon = getCmdOption(argv, argv + argc, "-poly");
   std::string prevPoly = getCmdOption(argv, argv + argc, "-ppoly");
   int polygonIndex = ::atoi(getCmdOption(argv, argv + argc, "-pindex", "0").c_str());

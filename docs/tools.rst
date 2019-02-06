@@ -150,7 +150,7 @@ Following are the options available
 
    -h,Prints the help information,,
    -server,Server URI for AIAA Server,,-server http://10.110.45.66:5000/v1
-   -neighbor,Neighborhood size for propagation,10,-neighbor 10
+   -neighbor,Neighborhood size for propagation,1,-neighbor 1
    -poly,"New 2D Polygon Array in [[[x,y]+]] format",,"-poly [[[54,162],…,[62,140]]]"
    -ppoly,"Current or Old 2D Polygon Array in [[[x,y]+]] format",,"-poly [[[53,162],…,[62,140]]]"
    -pindex,Polygon Index within new Polygon Array which needs to be updated,,-pindex 0
@@ -164,7 +164,7 @@ Example
 
    nvidiaAIAAFixPolygon \
       -server http://10.110.45.66:5000/v1 \
-      -neighbor 10 \
+      -neighbor 1 \
       -poly `cat ../test/data/polygons.json` \
       -ppoly `cat ../test/data/polygons.json` \
       -pindex 0 \

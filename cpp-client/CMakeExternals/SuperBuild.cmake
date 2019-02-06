@@ -57,6 +57,8 @@ list(APPEND proj_DEPENDENCIES nlohmann_json)
 message(STATUS "(SuperBuild: ${USE_SUPERBUILD}) Dependenceies:  ${proj_DEPENDENCIES}")
 message(STATUS "(SuperBuild: ${USE_SUPERBUILD}) Using ITK_DIR:  ${ITK_DIR}")
 message(STATUS "(SuperBuild: ${USE_SUPERBUILD}) Using Poco_DIR: ${Poco_DIR}")
+message(STATUS "(SuperBuild: ${USE_SUPERBUILD}) AIAA_LOG_DEBUG_ENABLED: ${AIAA_LOG_DEBUG_ENABLED}")
+message(STATUS "(SuperBuild: ${USE_SUPERBUILD}) AIAA_LOG_INFO_ENABLED: ${AIAA_LOG_INFO_ENABLED}")
 
 ExternalProject_Add(
   NvidiaAIAAClient
@@ -75,6 +77,8 @@ ExternalProject_Add(
     -DTHIRDPARTY_BINARY_DIR=${CMAKE_BINARY_DIR}/3rdparty
     -DITK_DIR:PATH=${ITK_DIR}
     -DPoco_DIR:PATH=${Poco_DIR}
+    -DAIAA_LOG_DEBUG_ENABLED=${AIAA_LOG_DEBUG_ENABLED}
+    -DAIAA_LOG_INFO_ENABLED=${AIAA_LOG_INFO_ENABLED}
 
   TEST_COMMAND ""
 )

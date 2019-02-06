@@ -27,6 +27,10 @@
 cmake_minimum_required(VERSION 3.12.4)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Logging Enable/Disable
+set(AIAA_LOG_DEBUG_ENABLED "0" CACHE STRING "Enable Debug Level logs for AIAA Client")
+set(AIAA_LOG_INFO_ENABLED  "1" CACHE STRING "Enable Info Level logs for AIAA Client")
+
 if (NOT DEFINED USE_SUPERBUILD)
   project(NvidiaAIAAClient-superbuild)
   include (cpp-client/CMakeExternals/SuperBuild.cmake)
@@ -56,7 +60,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # Global compiler flags
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 
 
 #############################################################

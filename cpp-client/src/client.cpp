@@ -145,11 +145,18 @@ PolygonsList Client::mask2Polygon(int pointRatio, const std::string &inputImageF
 
 Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex, const std::string &inputImageFile,
                             const std::string &outputImageFile) const {
+  // NOTE:: Flip Input/Output Polygons to support AIAA server as it currently expects input in (y,x) format
+  Polygons p1 = newPoly;
+  p1.flipXY();
+
+  Polygons p2 = oldPrev;
+  p2.flipXY();
+
   std::string uri = serverUri + EP_FIX_POLYGON;
   std::string paramStr = "{\"propagate_neighbor\":" + std::to_string(neighborhoodSize) + ",";
   paramStr = paramStr + "\"polygonIndex\":" + std::to_string(polyIndex) + ",";
   paramStr = paramStr + "\"vertexIndex\":" + std::to_string(vertexIndex) + ",";
-  paramStr = paramStr + "\"poly\":" + newPoly.toJson() + ",\"prev_poly\":" + oldPrev.toJson() + "}";
+  paramStr = paramStr + "\"poly\":" + p1.toJson() + ",\"prev_poly\":" + p2.toJson() + "}";
 
   AIAA_LOG_DEBUG("URI: " << uri);
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
@@ -160,8 +167,9 @@ Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, in
   AIAA_LOG_DEBUG("Response: \n" << response);
 
   // TODO:: Ask AIAA Server to remove redundant [] to return the updated Polygons (same as input)
-  return PolygonsList::fromJson(response).list[0];
+  Polygons result = PolygonsList::fromJson(response).list[0];
+  result.flipXY();
+  return result;
 }
-
 }
 }

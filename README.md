@@ -4,7 +4,7 @@ NVIDIA AI-Assisted Annotation SDK follows a client-server approach to integrate 
 [![Documentation](https://img.shields.io/badge/NVIDIA-documentation-brightgreen.svg)](https://docs.nvidia.com/deeplearning/sdk/ai-assisted-annotation-client-guide)
 [![GitHub license](https://img.shields.io/badge/license-BSD3-blue.svg)](/LICENSE)
 [![GitHub Releases](https://img.shields.io/github/release/NVIDIA/ai-assisted-annotation-client.svg)](https://github.com/NVIDIA/ai-assisted-annotation-client/releases)
-[![GitHub Issues](https://img.shields.io/github/issues/NVIDIA/ai-assisted-annotation-client.svg)](/issues)
+[![GitHub Issues](https://img.shields.io/github/issues/NVIDIA/ai-assisted-annotation-client.svg)](https://github.com/NVIDIA/ai-assisted-annotation-client/issues)
 
 ## Supported Platforms
 AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate with AI-Assisted Annotation Server for NVIDIA and it officially supports:

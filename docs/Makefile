@@ -41,12 +41,7 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 clean:
-	@rm -fr $(BUILDDIR) $(EXHALEDIRS)
-
-protobufdoc: protobuf_api/gen_proto_doc.sh
-	cd protobuf_api && \
-    rm -f *.proto.rst && \
-    bash -x ./gen_proto_doc.sh $(PROTOBUFFILES:%=../%)
+	@rm -fr $(BUILDDIR) $(EXHALEDIRS) ../py-client/__pycache__
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

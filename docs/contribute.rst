@@ -28,7 +28,7 @@
 Contributing
 ============
 
-Contributions to Nvidia AI-Assisted Annotation Client are more than welcome. To
+Contributions to NVIDIA AI-Assisted Annotation Client are more than welcome. To
 contribute make a pull request and follow the guidelines outlined in
 the `CONTRIBUTING
 <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/CONTRIBUTING.md>`_

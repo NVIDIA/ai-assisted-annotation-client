@@ -32,14 +32,6 @@ Building
 Building C++ Client
 -------------------
 
-Nvidia AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
-
-It officially supports following 3 platforms
-   - Windows (Windows 10)
-   - Linux (Ubuntu16+)
-   - macOS (High Sierra and above)
-
-
 Prerequisites
 ^^^^^^^^^^^^^
    - `CMake <https://cmake.org>`_ (version >= 3.12.4)
@@ -90,7 +82,7 @@ Following are some additional CMake Flags helpful while configuring the project.
 Building the Documentation
 --------------------------
 
-The Nvidia AI-Assisted Annotation Client documentation is found in the docs/ directory and is based
+The NVIDIA AI-Assisted Annotation Client documentation is found in the docs/ directory and is based
 on `Sphinx <http://www.sphinx-doc.org>`_.  `Doxygen <http://www.doxygen.org/>`_ integrated with `Exhale <https://github.com/svenevs/exhale>`_ is 
 used for C++ API docuementation.
 
@@ -98,7 +90,7 @@ To build the docs install the required dependencies::
 
   $ apt-get update
   $ apt-get install -y --no-install-recommends doxygen
-  $ pip install --upgrade sphinx sphinx-rtd-theme nbsphinx exhale
+  $ pip install --upgrade sphinx sphinx-rtd-theme nbsphinx exhale breathe numpy requests_toolbelt nibabel
 
 Then use Sphinx to build the documentation into the build/html
 directory::

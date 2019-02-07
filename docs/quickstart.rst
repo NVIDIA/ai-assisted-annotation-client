@@ -28,7 +28,7 @@
 Getting Started
 ===============
 
-Nvidia AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
+NVIDIA AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
 
 It officially supports following 3 platforms
    - Windows (Windows 10)

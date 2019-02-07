@@ -17,9 +17,5 @@ Follow the [Quick Start](https://docs.nvidia.com/deeplearning/sdk/ai-assisted-an
 
 >C++ Client Library provides support for CMake project
 
-## External Use-Case
-The [Medical Imaging Interaction Toolkit](http://mitk.org/wiki/MITK) (MITK) is a free open-source software system for development of interactive medical image processing software.
-Please follow [mitk-nvidia-plugin](https://github.com/NVIDIA/mitk-nvidia-plugin) to get a demo on Auto Segmentation *(dextr3D)*, Smart Polygon Fix *(fixPolygon)* features supported through AI-Assisted Annotation Client.
-
 ## Contributions
 Contributions to NVIDIA AI-Assisted Annotation Client are more than welcome. To contribute make a pull request and follow the guidelines outlined in the [CONTRIBUTING](/CONTRIBUTING.md) document.

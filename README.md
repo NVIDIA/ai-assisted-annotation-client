@@ -8,9 +8,9 @@ NVIDIA AI-Assisted Annotation SDK follows a client-server approach to integrate 
 
 ## Supported Platforms
 AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate with AI-Assisted Annotation Server for NVIDIA and it officially supports:
- - Windows (Windows 10)
  - Linux (Ubuntu16+)
  - macOS (High Sierra and above)
+ - Windows (Windows 10)
 
 ## Quick Start
 Follow the [Quick Start](https://docs.nvidia.com/deeplearning/sdk/ai-assisted-annotation-client-guide/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++/Python and run some basic tools to verify few important functionalities like *dextr3D*, *fixPolygon* over an existing AI-Assisted Annotation Server.

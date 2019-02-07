@@ -31,42 +31,50 @@ Getting Started
 NVIDIA AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
 
 It officially supports following 3 platforms
-   - Windows (Windows 10)
    - Linux (Ubuntu16+)
    - macOS (High Sierra and above)
+   - Windows (Windows 10)
 
 
 Installing prebuilt C++ packages
 --------------------------------
-Download the binary packages for corresponding OS supported from here.
+Download the binary packages for corresponding OS supported from `Releases <https://github.com/NVIDIA/ai-assisted-annotation-client/releases>`_.
 
 
-Linux/MacOS
-^^^^^^^^^^^
+Linux
+^^^^^
 
 .. code-block:: bash
+   export version=1.0.0
+   wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Linux.sh
+   sudo sh NvidiaAIAAClient-${version}-Linux.sh --prefix=/usr/local --exclude_sub_dir --skip-license
 
-   wget http://my.release/mac_os.tar.gz
-   tar xvf mac_os.tar.gz ~/install
-
-   export LD_LIBRARY_PATH=~/install/lib # For Linux
-   export DYLD_LIBRARY_PATH=~/install/lib # For MacOS
-   
-   gcc -std=c++11 -I~/install/include -lNvidiaAIAAClient example.cpp -o example
+   export LD_LIBRARY_PATH=/usr/local/lib
+   c++ -std=c++11 -o example example.cpp -lNvidiaAIAAClient
    ./example
+
+
+MacOS
+^^^^^
+
+.. code-block:: bash
+   export version=1.0.0
+   wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Darwin.sh
+   sh NvidiaAIAAClient-${version}-Darwin.sh --prefix=/usr/local --exclude_sub_dir --skip-license
    
+   c++ -std=c++11 -o example example.cpp -lNvidiaAIAAClient
+   ./example
+
 
 Windows
 ^^^^^^^
+   Download NvidiaAIAAClient-``<version>``-win64.exe from `Releases <https://github.com/NVIDIA/ai-assisted-annotation-client/releases>`_ and Install the package.  Say by-default it installs into C:\Program Files\NvidiaAIAAClient
 
 .. code-block:: bash
 
-   wget http://my.release/windows_os.zip
-   tar xvf windows_os.tar.gz c:/install
-
-   export PATH=~/install/lib:%PATH%
-   cl -std=c++11 -Ic:/install/include -Lc:/install/lib -lNvidiaAIAAClient example.cpp -o example
-   ./example
+   PATH=C:\Program Files\NvidiaAIAAClient\bin;%PATH%
+   cl /EHsc -I"C:\Program Files\NvidiaAIAAClient\include" example.cpp /link NvidiaAIAAClient.lib /LIBPATH:"C:\Program Files\NvidiaAIAAClient\lib"
+   example.exe
 
 
 Following is the code snippet to start using AIAA Client APIs
@@ -78,18 +86,23 @@ Following is the code snippet to start using AIAA Client APIs
    #include <iostream>
 
    int main() {
-      // Create AIAA Client object
-      nvidia::aiaa::Client client("http://my-aiaa-server.com:5000/v1");
+      try {
+         // Create AIAA Client object
+         nvidia::aiaa::Client client("http://my-aiaa-server.com:5000/v1");
    
-      // List all models
-      nvidia::aiaa::ModelList modelList = client.models();
-      std::cout << "Models Supported by AIAA Server: " << modelList.toJson() << std::endl();
+         // List all models
+         nvidia::aiaa::ModelList modelList = client.models();
+         std::cout << "Models Supported by AIAA Server: " << modelList.toJson() << std::endl;
    
-      // Get matching model for organ Spleen
-      nvidia::aiaa::Model model = modelList.getMatchingModel("spleen");
-      std::cout << "Selected AIAA Model for organ 'Spleen' is: " << model.toJson(2) << std::endl();
+         // Get matching model for organ Spleen
+         nvidia::aiaa::Model model = modelList.getMatchingModel("spleen");
+         std::cout << "Selected AIAA Model for organ 'Spleen' is: " << model.toJson(2) << std::endl;
    
-      // More API calls can follow here...
+         // More API calls can follow here...
+      } catch (nvidia::aiaa::exception& e) {
+         std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
+      }
+
       return 0;
    }
 

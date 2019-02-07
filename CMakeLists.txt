@@ -72,11 +72,11 @@ add_subdirectory(cpp-client/tools)
 #############################################################
 # Package
 include(InstallRequiredSystemLibraries)
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Nvidia AIAA Client Libraries")
-set(CPACK_PACKAGE_VENDOR "Nvidia")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "NVIDIA AIAA Client Libraries")
+set(CPACK_PACKAGE_VENDOR "NVIDIA")
 #set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "/usr/local")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:\Program Files\NvidiaAIAAClient")
 include(CPack)
 
 
@@ -87,8 +87,8 @@ find_package(Doxygen QUIET)
 if(DOXYGEN_FOUND)
     set(DOXYGEN_GENERATE_HTML YES)
     set(DOXYGEN_GENERATE_MAN  NO)
-    set(DOXYGEN_PROJECT_NAME  "AIAA Client C++")
-    set(DOXYGEN_PROJECT_BRIEF "AIAA Client C++ API to connect to AIAA Server to execute operations like dextr3d(), fixPolygon()...")
+    set(DOXYGEN_PROJECT_NAME  "NVIDIA AIAA Client C++")
+    set(DOXYGEN_PROJECT_BRIEF "NVIDIA AIAA Client C++ API to connect to AIAA Server to execute operations like dextr3d(), fixPolygon()...")
 
     doxygen_add_docs(
         doxygen
@@ -100,6 +100,6 @@ if(DOXYGEN_FOUND)
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/utils.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/imageinfo.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/exception.h
-        COMMENT "Generate doxygen html for cpp-client API"
+        COMMENT "Generate doxygen html for NVIDIA AIAA cpp-client API"
     )
 endif(DOXYGEN_FOUND)

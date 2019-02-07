@@ -57,14 +57,14 @@ Following the below instructions to get the source code and build the project
    git clone https://github.com/NVIDIA/ai-assisted-annotation-client.git NvidiaAIAAClient
    cd NvidiaAIAAClient
    mkdir build
-   cmake ../
+   cmake -DCMAKE_BUILD_TYPE=Release ../
    
    # If ITK is installed locally
    export MYINSTALL_DIR=/home/xyz/install
-   cmake -DITK_DIR=${MYINSTALL_DIR}/lib/cmake/ITK-4.13 ../
+   cmake -DCMAKE_BUILD_TYPE=Release -DITK_DIR=${MYINSTALL_DIR}/lib/cmake/ITK-4.13 ../
    
    # If ITK and Poco are installed locally
-   cmake -DITK_DIR=${MYINSTALL_DIR}/lib/cmake/ITK-4.13 -DPoco_DIR=${MYINSTALL_DIR}/lib/cmake/Poco ../
+   cmake -DCMAKE_BUILD_TYPE=Release -DITK_DIR=${MYINSTALL_DIR}/lib/cmake/ITK-4.13 -DPoco_DIR=${MYINSTALL_DIR}/lib/cmake/Poco ../
 
 
 .. note::
@@ -77,6 +77,14 @@ Following are some additional CMake Flags helpful while configuring the project.
    -  ``Poco_DIR`` - use already installed Poco libraries and includes
    -  ``AIAA_LOG_DEBUG_ENABLED`` - enable/disable Debug-level Logging (default: 0)
    -  ``AIAA_LOG_INFO_ENABLED`` - enable/disable Info-level Logging (default: 1)
+
+To Build binaries/package on Linux/MacOS::
+   make -j6
+   cd NvidiaAIAAClient-Build || make package
+
+To Build binaries/package on Windows::
+   - open ``NvidiaAIAAClient-superbuild.sln`` and run ``ALL_BUILD`` target
+   - open ``NvidiaAIAAClient.sln`` under NvidiaAIAAClient-Build and run ``PACKAGE`` target to build *(in Release mode)* an installable-package
 
 
 Building the Documentation

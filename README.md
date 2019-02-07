@@ -15,7 +15,7 @@ AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate 
 ## Quick Start
 Follow the [Quick Start](https://docs.nvidia.com/deeplearning/sdk/ai-assisted-annotation-client-guide/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++/Python and run some basic tools to verify few important functionalities like *dextr3D*, *fixPolygon* over an existing AI-Assisted Annotation Server.
 
->C++ Client Library is provides support for CMake project
+>C++ Client Library provides support for CMake project
 
 ## External Use-Case
 The [Medical Imaging Interaction Toolkit](http://mitk.org/wiki/MITK) (MITK) is a free open-source software system for development of interactive medical image processing software.

@@ -45,6 +45,7 @@ Linux
 ^^^^^
 
 .. code-block:: bash
+
    export version=1.0.0
    wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Linux.sh
    sudo sh NvidiaAIAAClient-${version}-Linux.sh --prefix=/usr/local --exclude_sub_dir --skip-license
@@ -58,6 +59,7 @@ MacOS
 ^^^^^
 
 .. code-block:: bash
+
    export version=1.0.0
    wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Darwin.sh
    sh NvidiaAIAAClient-${version}-Darwin.sh --prefix=/usr/local --exclude_sub_dir --skip-license

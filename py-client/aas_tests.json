@@ -1,0 +1,45 @@
+{
+  "server": {
+    "ip": "10.110.45.66",
+    "port": "5000",
+    "api_version": "v1"
+  },
+
+  "tests": [
+    {
+      "name": "get models",
+      "disabled": false,
+      "api": "models",
+      "result_prefix": "Outputs/model_list"
+    },
+    {
+      "name": "liver1",
+      "disabled": false,
+      "api": "dextr3d",
+      "model": "Dextr3DLiver",
+      "image": "Inputs/image.nii.gz",
+      "result_prefix": "Outputs/liver1",
+      "temp_folder": "Tmp/",
+      "params": "{\"points\":\"[[275,215,194],[310,212,30],[209,283,108],[304,112,138],[171,258,150],[337,162,119]]\"}",
+      "pad": 20,
+      "roi_size": "128x128x128",
+      "sigma": 3
+    },
+    {
+      "name": "liver1",
+      "disabled": false,
+      "api": "mask2polygon",
+      "image": "Inputs/liver1_result_aas.nii.gz",
+      "result_prefix": "Outputs/liver1_polygon",
+      "params": 10
+    },
+    {
+      "name": "spleen1",
+      "disabled": false,
+      "api": "fixpolygon",
+      "image": "Inputs/image_slice_2D.png",
+      "result_prefix": "Outputs/spleen1_polygonUpdate",
+      "params": "{\"propagate_neighbor\": 1, \"polygonIndex\": 0, \"vertexIndex\": 8, \"poly\": [[[69,167],[73,156],[78,146],[87,137],[98,131],[108,130],[118,132],[123,141],[139,155],[119,161],[109,166],[98,170],[89,176],[80,183],[71,182],[69,172]]], \"prev_poly\": [[[69,167],[73,156],[78,146],[87,137],[98,131],[108,130],[118,132],[123,141],[125,152],[119,161],[109,166],[98,170],[89,176],[80,183],[71,182],[69,172]]]}"
+    }
+  ]
+}

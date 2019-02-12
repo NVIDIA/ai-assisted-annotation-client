@@ -137,7 +137,10 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
         indexMin[i] = std::min(std::max((int) (index[i] - vxPad), 0), (int) (indexMin[i]));
         indexMax[i] = std::max(std::min((int) (index[i] + vxPad), (int) (imageSize[i] - 1)), (int) (indexMax[i]));
 
-        assert(indexMin[i] < indexMax[i]);
+        if(indexMin[i] > indexMax[i]) {
+          AIAA_LOG_ERROR("Invalid PointSet w.r.t. input Image; [i=" << i << "] MinIndex: " << indexMin[i] << "; MaxIndex: " << indexMax[i]);
+          throw exception(exception::INVALID_ARGS_ERROR, "Invalid PointSet w.r.t. input Image");
+        }
       }
     }
 

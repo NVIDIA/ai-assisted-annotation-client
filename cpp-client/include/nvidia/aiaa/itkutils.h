@@ -43,9 +43,6 @@ class ITKUtils {
   static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
                                                                            typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate);
 
-  template<class TImageType>
-  static typename TImageType::Pointer getLargestConnectedComponent(TImageType *itkImage);
-
   static Point3DSet imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
                                     const std::vector<int>& ROI_SIZE);
   static void imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const Image3DInfo &imageInfo);

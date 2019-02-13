@@ -80,25 +80,6 @@ typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(itk:
   return filter->GetOutput();
 }
 
-template<class TImageType>
-typename TImageType::Pointer ITKUtils::getLargestConnectedComponent(TImageType *itkImage) {
-  auto connected = itk::ConnectedComponentImageFilter<TImageType, TImageType>::New();
-  connected->SetInput(itkImage);
-  connected->Update();
-
-  AIAA_LOG_DEBUG("Number of objects: " << connected->GetObjectCount());
-
-  auto filter = itk::LabelShapeKeepNObjectsImageFilter < TImageType > ::New();
-  filter->SetInput(connected->GetOutput());
-
-  filter->SetBackgroundValue(0);
-  filter->SetNumberOfObjects(1);
-  filter->SetAttribute(itk::LabelShapeKeepNObjectsImageFilter < TImageType > ::LabelObjectType::NUMBER_OF_PIXELS);
-
-  filter->Update();
-  return filter->GetOutput();
-}
-
 Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
                                      const std::vector<int>& ROI_SIZE) {
   AIAA_LOG_DEBUG("Total Points: " << inputPointSet.points.size());
@@ -224,8 +205,7 @@ void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::st
     reader->SetFileName(inputImageName);
     reader->Update();
 
-    // Select largest connected component
-    auto segLocalImage = ITKUtils::getLargestConnectedComponent<ImageType>(reader->GetOutput());
+    auto segLocalImage = reader->GetOutput();
 
     // Recover the ROI segmentation back to original image space for storage
     // Reverse the resize and crop operation for result image

@@ -28,6 +28,7 @@
 
 #include <nvidia/aiaa/client.h>
 #include "../commonutils.h"
+#include <chrono>
 
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
@@ -40,8 +41,9 @@ int main(int argc, char **argv) {
         " *|-pindex       Polygon Index which needs to be updated                                  |\n"
         " *|-vindex       Vertext Index which needs to be updated                                  |\n"
         " *|-image        Input 2D Slice Image File                                                |\n"
+        " *|-output       Output Image File                                                        |\n"
         "  |-format       Format Output Json                                                       |\n"
-        " *|-output       Output Image File                                                        |\n";
+        "  |-ts           Print API Latency                                                        |\n";
     return 0;
   }
 
@@ -54,6 +56,7 @@ int main(int argc, char **argv) {
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (polygon.empty()) {
     std::cerr << "Input Polygon List missing\n";
@@ -75,10 +78,18 @@ int main(int argc, char **argv) {
   try {
     nvidia::aiaa::Polygons p1 = nvidia::aiaa::Polygons::fromJson(polygon);
     nvidia::aiaa::Polygons p2 = nvidia::aiaa::Polygons::fromJson(prevPoly);
-    nvidia::aiaa::Client client(serverUri);
 
+    auto begin = std::chrono::high_resolution_clock::now();
+    nvidia::aiaa::Client client(serverUri);
     nvidia::aiaa::Polygons result = client.fixPolygon(p1, p2, neighborhoodSize, polygonIndex, vertexIndex, inputImageFile, outputImageFile);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
     std::cout << result.toJson(jsonSpace) << std::endl;
+    if (printTs) {
+      std::cout << "Time taken (in milli sec): " << ms << std::endl;
+    }
     return 0;
   } catch (nvidia::aiaa::exception& e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;

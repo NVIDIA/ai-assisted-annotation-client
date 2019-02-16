@@ -28,6 +28,7 @@
 
 #include <nvidia/aiaa/client.h>
 #include "../commonutils.h"
+#include <chrono>
 
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
@@ -36,8 +37,9 @@ int main(int argc, char **argv) {
         "  |-server   Server URI  {default: http://10.110.45.66:5000/v1}                           |\n"
         "  |-ratio    Point Ratio {default: 10}                                                    |\n"
         " *|-image    Input Image File                                                             |\n"
+        "  |-output   Output File Name to store result                                             |\n"
         "  |-format   Format Output Json                                                           |\n"
-        "  |-output   Output File Name to store result                                             |\n";
+        "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
@@ -46,6 +48,7 @@ int main(int argc, char **argv) {
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (ratio < 1) {
     std::cerr << "Invalid Point Ratio (should be > 0)\n";
@@ -57,13 +60,21 @@ int main(int argc, char **argv) {
   }
 
   try {
+    auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri);
     nvidia::aiaa::PolygonsList result = client.mask2Polygon(ratio, inputImageFile);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     if (outputJsonFile.empty()) {
       std::cout << result.toJson(jsonSpace) << std::endl;
     } else {
       stringToFile(result.toJson(jsonSpace), outputJsonFile);
+    }
+
+    if (printTs) {
+      std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }
     return 0;
   } catch (nvidia::aiaa::exception& e) {

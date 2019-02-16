@@ -28,6 +28,7 @@
 
 #include <nvidia/aiaa/client.h>
 #include "../commonutils.h"
+#include <chrono>
 
 int main(int argc, char **argv) {
   if (cmdOptionExists(argv, argv + argc, "-h")) {
@@ -35,8 +36,9 @@ int main(int argc, char **argv) {
         "  |-h        (Help) Print this information                                                |\n"
         "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
         "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
+        "  |-output   Output File Name to store result                                             |\n"
         "  |-format   Format Output Json                                                           |\n"
-        "  |-output   Output File Name to store result                                             |\n";
+        "  |-ts       Print API Latency                                                            |\n";
 
     return 0;
   }
@@ -45,10 +47,15 @@ int main(int argc, char **argv) {
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   try {
+    auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri);
     nvidia::aiaa::ModelList modelList = client.models();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     if (!label.empty()) {
       nvidia::aiaa::Model model = modelList.getMatchingModel(label);
@@ -57,6 +64,10 @@ int main(int argc, char **argv) {
       } else {
         stringToFile(model.toJson(jsonSpace), outputJsonFile);
       }
+
+      if (printTs) {
+        std::cout << "API Latency (in milli sec): " << ms << std::endl;
+      }
       return 0;
     }
 
@@ -64,6 +75,10 @@ int main(int argc, char **argv) {
       std::cout << modelList.toJson(jsonSpace) << std::endl;
     } else {
       stringToFile(modelList.toJson(jsonSpace), outputJsonFile);
+    }
+
+    if (printTs) {
+      std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }
     return 0;
   } catch (nvidia::aiaa::exception& e) {

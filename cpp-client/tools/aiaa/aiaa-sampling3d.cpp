@@ -30,6 +30,7 @@
 #include <nvidia/aiaa/utils.h>
 
 #include "../commonutils.h"
+#include <chrono>
 
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
@@ -42,7 +43,8 @@ int main(int argc, char **argv) {
         "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
         "  |-format   Format Output Json                                                           |\n"
         " *|-image    Input Image File                                                             |\n"
-        " *|-output   Output Image File                                                            |\n";
+        " *|-output   Output Image File                                                            |\n"
+        "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
@@ -54,6 +56,7 @@ int main(int argc, char **argv) {
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (points.empty()) {
     std::cerr << "Pointset is empty\n";
@@ -88,10 +91,19 @@ int main(int argc, char **argv) {
       m.padding = pad;
     }
 
+    auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Image3DInfo imageInfo;
     nvidia::aiaa::Point3DSet resultPointSet = client.sampling3d(m, pointSet, inputImageFile, outputImageFile, imageInfo);
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
     std::cout << "Result PointSet: " << resultPointSet.toJson(jsonSpace) << std::endl;
     std::cout << "Result ImageInfo: " << imageInfo.dump() << std::endl;
+
+    if (printTs) {
+      std::cout << "API Latency (in milli sec): " << ms << std::endl;
+    }
     return 0;
   } catch (nvidia::aiaa::exception& e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;

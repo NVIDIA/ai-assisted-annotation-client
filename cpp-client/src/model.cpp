@@ -141,6 +141,7 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
   // Exact Match (first preference)
   for (auto model : models) {
     for (auto label : model.labels) {
+      AIAA_LOG_DEBUG("Exact Match: " << label << " and " << labelName);
       if (Utils::iequals(labelName, label)) {
         return model;
       }
@@ -152,6 +153,7 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
   for (auto model : models) {
     for (auto label : model.labels) {
       std::string l2 = Utils::to_lower(label);
+      AIAA_LOG_DEBUG("Prefix Match: " << l2 << " and " << labelName);
       if (l1.find(l2) != std::string::npos || l2.find(l1) != std::string::npos) {
         return model;
       }

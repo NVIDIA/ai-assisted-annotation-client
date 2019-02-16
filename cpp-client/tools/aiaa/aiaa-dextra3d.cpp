@@ -30,6 +30,7 @@
 #include <nvidia/aiaa/utils.h>
 
 #include "../commonutils.h"
+#include <chrono>
 
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
@@ -43,7 +44,8 @@ int main(int argc, char **argv) {
         "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
         "  |-sigma    Sigma Value for inference {default: 3.0}                                     |\n"
         " *|-image    Input Image File                                                             |\n"
-        " *|-output   Output Image File                                                            |\n";
+        " *|-output   Output Image File                                                            |\n"
+        "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
@@ -56,6 +58,7 @@ int main(int argc, char **argv) {
   double sigma = ::atof(getCmdOption(argv, argv + argc, "-sigma", "3.0").c_str());
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
+  bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (label.empty() && model.empty()) {
     std::cerr << "Either Label or Model is required\n";
@@ -90,17 +93,33 @@ int main(int argc, char **argv) {
       m.roi[1] = xyz[1];
       m.roi[2] = xyz[2];
 
-      return client.dextr3d(m, pointSet, inputImageFile, outputImageFile);
+      auto begin = std::chrono::high_resolution_clock::now();
+      int ret = client.dextr3d(m, pointSet, inputImageFile, outputImageFile);
+
+      auto end = std::chrono::high_resolution_clock::now();
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
+      if (printTs) {
+        std::cout << "API Latency (in milli sec): " << ms << std::endl;
+      }
+      return ret;
     }
 
     int ret = 0;
+    auto begin = std::chrono::high_resolution_clock::now();
     if (cmdOptionExists(argv, argv + argc, "-roi") || cmdOptionExists(argv, argv + argc, "-pad")) {
       ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile, pad, roi, sigma);
     } else {
       ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile);
     }
 
+    auto end = std::chrono::high_resolution_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
     std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
+    if (printTs) {
+      std::cout << "API Latency (in milli sec): " << ms << std::endl;
+    }
     return ret;
   } catch (nvidia::aiaa::exception& e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;

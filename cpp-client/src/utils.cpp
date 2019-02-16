@@ -38,7 +38,7 @@ namespace nvidia {
 namespace aiaa {
 
 bool Utils::iequals(const std::string &a, const std::string& b) {
-  return std::equal(a.begin(), a.end(), b.begin(), [] (const char& a, const char& b) {
+  return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [] (const char& a, const char& b) {
     return (std::tolower(a) == std::tolower(b));
   });
 }

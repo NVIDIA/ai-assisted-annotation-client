@@ -44,7 +44,7 @@
 
 #ifndef AIAA_LOG_DEBUG
 #if AIAA_LOG_DEBUG_ENABLED
-#define AIAA_LOG_DEBUG(s) std::cout << "[DEBUG] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_DEBUG(s) std::cout << __TIME__ << " [DEBUG] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #else
 #define AIAA_LOG_DEBUG(s)
 #endif
@@ -52,16 +52,16 @@
 
 #ifndef AIAA_LOG_INFO
 #if AIAA_LOG_INFO_ENABLED
-#define AIAA_LOG_INFO(s) std::cout << "[INFO ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_INFO(s) std::cout << __TIME__ << " [INFO ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #else
 #define AIAA_LOG_INFO(s)
 #endif
 #endif
 
 #ifndef AIAA_LOG_WARN
-#define AIAA_LOG_WARN(s) std::cerr << "[WARN ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_WARN(s) std::cerr << __TIME__ << " [WARN ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #endif
 
 #ifndef AIAA_LOG_ERROR
-#define AIAA_LOG_ERROR(s) std::cerr << "[ERROR] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_ERROR(s) std::cerr << __TIME__ << " [ERROR] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #endif

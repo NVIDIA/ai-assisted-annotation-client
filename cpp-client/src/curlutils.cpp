@@ -59,6 +59,7 @@ std::string CurlUtils::doGet(const std::string &uri) {
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
+    session.setKeepAlive(true);
     session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0));
 
     std::string path(u.getPathAndQuery());
@@ -94,6 +95,7 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
+    session.setKeepAlive(true);
     session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0));
 
     std::string path(u.getPathAndQuery());
@@ -136,6 +138,7 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
+    session.setKeepAlive(true);
     session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0));
 
     std::string path(u.getPathAndQuery());

@@ -31,8 +31,21 @@
 #include <iostream>
 #include <string>
 #include <cstring>
+#include <sstream>
+#include <chrono>
+#include <iomanip>
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+
+static std::string timestamp() {
+  auto now = std::chrono::system_clock::now();
+  auto in_time_t = std::chrono::system_clock::to_time_t(now);
+
+  std::stringstream ss;
+#pragma warning(suppress:4996)
+  ss << std::put_time(std::localtime(&in_time_t), "%H:%M:%S");
+  return ss.str();
+}
 
 #ifndef AIAA_LOG_DEBUG_ENABLED
 #define AIAA_LOG_DEBUG_ENABLED 1
@@ -44,7 +57,7 @@
 
 #ifndef AIAA_LOG_DEBUG
 #if AIAA_LOG_DEBUG_ENABLED
-#define AIAA_LOG_DEBUG(s) std::cout << __TIME__ << " [DEBUG] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_DEBUG(s) std::cout << timestamp() << " [DEBUG] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #else
 #define AIAA_LOG_DEBUG(s)
 #endif
@@ -52,16 +65,16 @@
 
 #ifndef AIAA_LOG_INFO
 #if AIAA_LOG_INFO_ENABLED
-#define AIAA_LOG_INFO(s) std::cout << __TIME__ << " [INFO ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_INFO(s) std::cout << timestamp() << " [INFO ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #else
 #define AIAA_LOG_INFO(s)
 #endif
 #endif
 
 #ifndef AIAA_LOG_WARN
-#define AIAA_LOG_WARN(s) std::cerr << __TIME__ << " [WARN ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_WARN(s) std::cerr << timestamp() << " [WARN ] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #endif
 
 #ifndef AIAA_LOG_ERROR
-#define AIAA_LOG_ERROR(s) std::cerr << __TIME__ << " [ERROR] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
+#define AIAA_LOG_ERROR(s) std::cerr << timestamp() << " [ERROR] [" << __FILENAME__ << ":" << __LINE__ << " - " << __func__ << "()] " << s << std::endl
 #endif

@@ -49,6 +49,7 @@ std::string Utils::to_lower(std::string s) {
 }
 
 std::string Utils::tempfilename() {
+#pragma warning(suppress:4996)
   return std::tmpnam(nullptr);
 }
 

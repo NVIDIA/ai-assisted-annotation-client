@@ -57,9 +57,10 @@ if(NOT DEFINED NvidiaAIAAClient_DIR)
 
   list(APPEND additional_cmake_args -DAIAA_LOG_DEBUG_ENABLED=1)
 
+  message(STATUS "NvidiaAIAAClient CMAKE_CURRENT_LIST_DIR = ${CMAKE_CURRENT_LIST_DIR}")
   ExternalProject_Add(${proj}
-     GIT_REPOSITORY https://github.com/SachidanandAlle/ai-assisted-annotation-client.git
-     GIT_TAG master
+     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/../../
+     DOWNLOAD_COMMAND ""
 
      CMAKE_GENERATOR ${gen}
      CMAKE_ARGS

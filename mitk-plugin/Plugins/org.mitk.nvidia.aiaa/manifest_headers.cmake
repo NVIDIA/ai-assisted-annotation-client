@@ -1,0 +1,6 @@
+set(Plugin-Name "Nvidia AIAA")
+set(Plugin-Version "1.0")
+set(Plugin-Vendor "Nvidia")
+set(Plugin-ContactAddress "https://www.nvidia.com/")
+set(Require-Plugin org.blueberry.ui.qt)
+set(Plugin-ActivationPolicy "eager")

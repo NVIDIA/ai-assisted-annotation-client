@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin>
+  <extension point="org.blueberry.ui.preferencePages">
+    <page id="org.mitk.preferencePages.nvidia.aiaa"
+          name="Nvidia AI-Assisted Annotation"
+          class="QmitkNvidiaAIAAPreferencePage" />
+  </extension>
+</plugin>

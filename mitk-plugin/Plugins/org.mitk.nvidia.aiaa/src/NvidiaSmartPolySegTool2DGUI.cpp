@@ -47,34 +47,34 @@ NvidiaSmartPolySegTool2DGUI::NvidiaSmartPolySegTool2DGUI() : m_Ui(new Ui::Nvidia
 NvidiaSmartPolySegTool2DGUI::~NvidiaSmartPolySegTool2DGUI() {
 }
 
-void NvidiaSmartPolySegTool2DGUI::OnNewToolAssociated(mitk::Tool *tool) {
-  m_NvidiaSmartPolySegTool2D = dynamic_cast<NvidiaSmartPolySegTool2D *>(tool);
-
+void NvidiaSmartPolySegTool2DGUI::updateConfigs() {
   if (m_NvidiaSmartPolySegTool2D.IsNotNull()) {
     auto preferencesService = berry::Platform::GetPreferencesService();
     auto systemPreferences = preferencesService->GetSystemPreferences();
-    auto preferences = systemPreferences->Node(
-        "/org.mitk.preferences.nvidia.aiaa");
-    auto serverURI = preferences->Get(
-        QmitkNvidiaAIAAPreferencePage::SERVER_URI,
-        QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
-    auto neighborhoodSize = preferences->GetInt(
-        QmitkNvidiaAIAAPreferencePage::NEIGHBORHOOD_SIZE,
-        QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE);
-    auto flipPoly = preferences->GetBool(
-        QmitkNvidiaAIAAPreferencePage::FLIP_POLY,
-        QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY);
+    auto preferences = systemPreferences->Node("/org.mitk.preferences.nvidia.aiaa");
+    auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI,
+                                      QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
+    auto neighborhoodSize = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::NEIGHBORHOOD_SIZE,
+                                                QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE);
+    auto flipPoly = preferences->GetBool(QmitkNvidiaAIAAPreferencePage::FLIP_POLY,
+                                         QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY);
 
     m_NvidiaSmartPolySegTool2D->SetServerURI(serverURI.toStdString());
     m_NvidiaSmartPolySegTool2D->SetNeighborhoodSize(neighborhoodSize);
     m_NvidiaSmartPolySegTool2D->SetFlipPoly(flipPoly);
+  }
+}
+
+void NvidiaSmartPolySegTool2DGUI::OnNewToolAssociated(mitk::Tool *tool) {
+  m_NvidiaSmartPolySegTool2D = dynamic_cast<NvidiaSmartPolySegTool2D *>(tool);
+
+  if (m_NvidiaSmartPolySegTool2D.IsNotNull()) {
+    updateConfigs();
 
     mitk::BaseRenderer::Pointer renderer = mitk::BaseRenderer::GetInstance(
         mitk::BaseRenderer::GetRenderWindowByName("stdmulti.widget1"));
     if (renderer.IsNotNull() && !m_SliceIsConnected) {
-      new QmitkStepperAdapter(
-          this, renderer->GetSliceNavigationController()->GetSlice(),
-          "stepper");
+      new QmitkStepperAdapter(this, renderer->GetSliceNavigationController()->GetSlice(), "stepper");
       m_SliceIsConnected = true;
     }
 
@@ -84,10 +84,12 @@ void NvidiaSmartPolySegTool2DGUI::OnNewToolAssociated(mitk::Tool *tool) {
 }
 
 void NvidiaSmartPolySegTool2DGUI::SetStepper(mitk::Stepper *stepper) {
+  updateConfigs();
   this->m_SliceStepper = stepper;
 }
 
 void NvidiaSmartPolySegTool2DGUI::Refetch() {
   // event from image navigator received - time step has changed
+  updateConfigs();
   m_NvidiaSmartPolySegTool2D->SetCurrentSlice(m_SliceStepper->GetPos());
 }

@@ -1,26 +1,25 @@
 /*===================================================================
 
-The Medical Imaging Interaction Toolkit (MITK)
+ The Medical Imaging Interaction Toolkit (MITK)
 
-Copyright (c) German Cancer Research Center,
-Division of Medical and Biological Informatics.
-All rights reserved.
+ Copyright (c) German Cancer Research Center,
+ Division of Medical and Biological Informatics.
+ All rights reserved.
 
-This software is distributed WITHOUT ANY WARRANTY; without
-even the implied warranty of MERCHANTABILITY or FITNESS FOR
-A PARTICULAR PURPOSE.
+ This software is distributed WITHOUT ANY WARRANTY; without
+ even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ A PARTICULAR PURPOSE.
 
-See LICENSE.txt or http://www.mitk.org for details.
+ See LICENSE.txt or http://www.mitk.org for details.
 
-===================================================================*/
+ ===================================================================*/
 
 #ifndef PluginActivator_h
 #define PluginActivator_h
 
 #include <ctkPluginActivator.h>
 
-class PluginActivator : public QObject, public ctkPluginActivator
-{
+class PluginActivator : public QObject, public ctkPluginActivator {
   Q_OBJECT
   Q_PLUGIN_METADATA(IID "org_mitk_nvidia_aiaa")
   Q_INTERFACES(ctkPluginActivator)

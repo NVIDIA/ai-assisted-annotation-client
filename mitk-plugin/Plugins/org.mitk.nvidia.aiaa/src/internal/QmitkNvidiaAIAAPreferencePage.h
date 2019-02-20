@@ -1,35 +1,33 @@
 /*===================================================================
 
-The Medical Imaging Interaction Toolkit (MITK)
+ The Medical Imaging Interaction Toolkit (MITK)
 
-Copyright (c) German Cancer Research Center,
-Division of Medical and Biological Informatics.
-All rights reserved.
+ Copyright (c) German Cancer Research Center,
+ Division of Medical and Biological Informatics.
+ All rights reserved.
 
-This software is distributed WITHOUT ANY WARRANTY; without
-even the implied warranty of MERCHANTABILITY or FITNESS FOR
-A PARTICULAR PURPOSE.
+ This software is distributed WITHOUT ANY WARRANTY; without
+ even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ A PARTICULAR PURPOSE.
 
-See LICENSE.txt or http://www.mitk.org for details.
+ See LICENSE.txt or http://www.mitk.org for details.
 
-===================================================================*/
+ ===================================================================*/
 
 #ifndef QmitkNvidiaAIAAPreferencePage_h
 #define QmitkNvidiaAIAAPreferencePage_h
 
 #include <berryIQtPreferencePage.h>
 
-namespace Ui
-{
-  class QmitkNvidiaAIAAPreferencePage;
+namespace Ui {
+class QmitkNvidiaAIAAPreferencePage;
 }
 
-class QmitkNvidiaAIAAPreferencePage : public QObject, public berry::IQtPreferencePage
-{
+class QmitkNvidiaAIAAPreferencePage : public QObject, public berry::IQtPreferencePage {
   Q_OBJECT
   Q_INTERFACES(berry::IPreferencePage)
 
-public:
+ public:
   static const QString SERVER_URI;
   static const QString NEIGHBORHOOD_SIZE;
   static const QString FLIP_POLY;
@@ -49,7 +47,7 @@ public:
   void CreateQtControl(QWidget* parent) override;
   QWidget* GetQtControl() const override;
 
-private:
+ private:
   QWidget* m_Widget;
   Ui::QmitkNvidiaAIAAPreferencePage* m_Ui;
   berry::IPreferences::Pointer m_Preferences;

@@ -56,6 +56,7 @@ protected slots:
 protected:
   NvidiaDextrSegTool3DGUI();
   ~NvidiaDextrSegTool3DGUI() override;
+  void updateConfigs();
 
 private:
   QScopedPointer<Ui::NvidiaDextrSegTool3DGUI> m_Ui;

@@ -101,8 +101,6 @@ void NvidiaDextrSegTool3D::Deactivated() {
 }
 
 void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI) {
-  MITK_INFO("nvidia") << "aiaa::server Previous URI: " << m_AIAAServerUri
-      << "; New URI: " << serverURI;
   m_AIAAServerUri = serverURI;
 }
 
@@ -115,14 +113,11 @@ void NvidiaDextrSegTool3D::ConfirmPoints() {
   MITK_INFO("nvidia") << "+++++++++= ConfirmPoints";
 
   if (m_ToolManager->GetWorkingData(0)->GetData()) {
-    mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode
-        ->GetData());
+    mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData());
     if (image) {
-      if (m_PointSet->GetSize()
-          < nvidia::aiaa::Client::MIN_POINTS_FOR_DEXTR3D) {
+      if (m_PointSet->GetSize() < nvidia::aiaa::Client::MIN_POINTS_FOR_DEXTR3D) {
         Tool::GeneralMessage(
-            "Please set at least '"
-                + std::to_string(nvidia::aiaa::Client::MIN_POINTS_FOR_DEXTR3D)
+            "Please set at least '" + std::to_string(nvidia::aiaa::Client::MIN_POINTS_FOR_DEXTR3D)
                 + "' seed points in the image first (hold Shift key and click left mouse button on the image)");
         return;
       }
@@ -133,14 +128,12 @@ void NvidiaDextrSegTool3D::ConfirmPoints() {
 }
 
 template<typename TPixel, unsigned int VImageDimension>
-nvidia::aiaa::Point3DSet NvidiaDextrSegTool3D::getPoint3DSet(
-    mitk::BaseGeometry *imageGeometry) {
+nvidia::aiaa::Point3DSet NvidiaDextrSegTool3D::getPoint3DSet(mitk::BaseGeometry *imageGeometry) {
   using ImageType = itk::Image<TPixel, VImageDimension>;
 
   nvidia::aiaa::Point3DSet point3DSet;
   auto points = m_PointSet->GetPointSet()->GetPoints();
-  for (auto pointsIterator = points->Begin(); pointsIterator != points->End();
-      ++pointsIterator) {
+  for (auto pointsIterator = points->Begin(); pointsIterator != points->End(); ++pointsIterator) {
     if (!imageGeometry->IsInside(pointsIterator.Value())) {
       continue;
     }
@@ -158,38 +151,31 @@ nvidia::aiaa::Point3DSet NvidiaDextrSegTool3D::getPoint3DSet(
 }
 
 template<typename TPixel, unsigned int VImageDimension>
-void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(
-    itk::Image<TPixel, VImageDimension> *itkImage,
-    mitk::BaseGeometry *imageGeometry) {
+void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage,
+                                                  mitk::BaseGeometry *imageGeometry) {
   using ImageType = itk::Image<TPixel, VImageDimension>;
   using WriterType = itk::ImageFileWriter<ImageType>;
 
-  nvidia::aiaa::Point3DSet point3DSet = getPoint3DSet<TPixel, VImageDimension>(
-      imageGeometry);
+  nvidia::aiaa::Point3DSet point3DSet = getPoint3DSet<TPixel, VImageDimension>(imageGeometry);
   MITK_INFO("nvidia") << "Point3DSet: " << point3DSet.toJson();
 
   // Collect information for working segmentation label
-  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager
-      ->GetWorkingData(0)->GetData());
-  std::string labelName = labelSetImage->GetActiveLabel(
-      labelSetImage->GetActiveLayer())->GetName();
+  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+  std::string labelName = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetName();
   MITK_INFO("nvidia") << "Organ name: " << labelName;
 
   // Save current Image to Temp
-  std::string tmpImageFileName = nvidia::aiaa::Utils::tempfilename()
-      + ".nii.gz";
+  std::string tmpImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
   typename WriterType::Pointer writer = WriterType::New();
   writer->SetFileName(tmpImageFileName);
   writer->SetInput(itkImage);
   writer->Update();
   MITK_INFO("nvidia") << "Input Image: " << tmpImageFileName;
 
-  std::string tmpSampleImageFileName = nvidia::aiaa::Utils::tempfilename()
-      + ".nii.gz";
+  std::string tmpSampleImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
   MITK_INFO("nvidia") << "Sample Image: " << tmpSampleImageFileName;
 
-  std::string tmpResultFileName = nvidia::aiaa::Utils::tempfilename()
-      + ".nii.gz";
+  std::string tmpResultFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
   MITK_INFO("nvidia") << "Output Image: " << tmpResultFileName;
 
   std::string aiaaServerUri = m_AIAAServerUri;
@@ -204,48 +190,36 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(
     nvidia::aiaa::Client client(aiaaServerUri);
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::ModelList models = client.models();
-    MITK_INFO("nvidia") << "aiaa::models (Supported Models): "
-        << models.toJson();
+    MITK_INFO("nvidia") << "aiaa::models (Supported Models): " << models.toJson();
 
     nvidia::aiaa::Model model = models.getMatchingModel(labelName);
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds
-        > (end - begin).count();
-    MITK_INFO("nvidia") << "API Latency for aiaa::client::model() = " << ms
-        << " milli sec";
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    MITK_INFO("nvidia") << "API Latency for aiaa::client::model() = " << ms << " milli sec";
 
-    MITK_INFO("nvidia") << "AIAA Selected Model for [" << labelName << "]: "
-        << model.toJson();
+    MITK_INFO("nvidia") << "AIAA Selected Model for [" << labelName << "]: " << model.toJson();
 
-    int ret = client.dextr3d(model, point3DSet, tmpImageFileName,
-                             tmpResultFileName);
+    int ret = client.dextr3d(model, point3DSet, tmpImageFileName, tmpResultFileName);
     end = std::chrono::high_resolution_clock::now();
-    ms = std::chrono::duration_cast < std::chrono::milliseconds
-        > (end - begin).count();
-    MITK_INFO("nvidia") << "API Latency for aiaa::client::dextr3d() = " << ms
-        << " milli sec";
+    ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    MITK_INFO("nvidia") << "API Latency for aiaa::client::dextr3d() = " << ms << " milli sec";
 
     if (ret) {
-      Tool::GeneralMessage(
-          "Failed to execute segmentation on Nvidia AIAA Server");
+      Tool::GeneralMessage("Failed to execute segmentation on Nvidia AIAA Server");
     } else {
       MITK_INFO("nvidia") << "aiaa::dextr3d SUCCESSFUL";
 
       // Generate Sample Image for adding bounding box
       nvidia::aiaa::Image3DInfo imageInfo;
-      client.sampling3d(model, point3DSet, tmpImageFileName,
-                        tmpSampleImageFileName, imageInfo);
+      client.sampling3d(model, point3DSet, tmpImageFileName, tmpSampleImageFileName, imageInfo);
 
-      boundingBoxRender<TPixel, VImageDimension>(tmpSampleImageFileName,
-                                                 labelName);
+      boundingBoxRender<TPixel, VImageDimension>(tmpSampleImageFileName, labelName);
       displayResult<TPixel, VImageDimension>(tmpResultFileName);
       MITK_INFO("nvidia") << "Added Bounding Box for sampled 3D Image";
     }
   } catch (nvidia::aiaa::exception &e) {
-    std::string msg = "nvidia.aiaa.error." + std::to_string(e.id)
-        + "\ndescription: " + e.name();
-    Tool::GeneralMessage(
-        "Failed to execute 'dextr3d' on Nvidia AIAA Server\n\n" + msg);
+    std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
+    Tool::GeneralMessage("Failed to execute 'dextr3d' on Nvidia AIAA Server\n\n" + msg);
   }
 
   std::remove(tmpImageFileName.c_str());
@@ -254,12 +228,10 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(
 }
 
 template<class TImageType>
-typename TImageType::Pointer NvidiaDextrSegTool3D::getLargestConnectedComponent(
-    TImageType *itkImage) {
+typename TImageType::Pointer NvidiaDextrSegTool3D::getLargestConnectedComponent(TImageType *itkImage) {
   typedef itk::ConnectedComponentImageFilter<TImageType, TImageType> ConnectedComponentImageFilterType;
 
-  typename ConnectedComponentImageFilterType::Pointer connected =
-      ConnectedComponentImageFilterType::New();
+  typename ConnectedComponentImageFilterType::Pointer connected = ConnectedComponentImageFilterType::New();
   connected->SetInput(itkImage);
   connected->Update();
 
@@ -290,20 +262,16 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   reader->Update();
 
   // select largest connected component (TODO:: May be not required)
-  typename LabelImageType::Pointer itk_resultImage =
-      getLargestConnectedComponent < LabelImageType > (reader->GetOutput());
+  auto itk_resultImage = getLargestConnectedComponent < LabelImageType > (reader->GetOutput());
 
   // add the ROI segmentation to data tree just for rendering
   // set to helper object making it invisible in Data manager
   mitk::Image::Pointer resultImage;
   mitk::CastToMitkImage(itk_resultImage, resultImage);
 
-  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager
-      ->GetWorkingData(0)->GetData());
-  std::string labelName = labelSetImage->GetActiveLabel(
-      labelSetImage->GetActiveLayer())->GetName();
-  mitk::Color labelColor = labelSetImage->GetActiveLabel(
-      labelSetImage->GetActiveLayer())->GetColor();
+  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+  std::string labelName = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetName();
+  mitk::Color labelColor = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetColor();
 
   std::string labelNameSurf = labelName + "Surface3D";
   mitk::DataNode::Pointer newNode = mitk::DataNode::New();
@@ -316,8 +284,7 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
 
   // check if node with same name exist already, if so, update instead of adding new
   auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
-  for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End();
-      ++itNodes) {
+  for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
     std::string nodeNameCheck = itNodes.Value()->GetName();
     if (labelNameSurf == nodeNameCheck) {
       // if already exist, delete the current and update with the new one
@@ -333,8 +300,7 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   unsigned int layerTotal = labelSetImage->GetNumberOfLayers();
   unsigned int layerToReplace = labelSetImage->GetActiveLayer();
 
-  MITK_INFO("nvidia") << "Total Layers: " << layerTotal
-      << "; Layer To Replace: " << layerToReplace;
+  MITK_INFO("nvidia") << "Total Layers: " << layerTotal << "; Layer To Replace: " << layerToReplace;
 
   mitk::Image::Pointer recoverImage = mitk::Image::New();
   mitk::CastToMitkImage < LabelImageType > (reader->GetOutput(), recoverImage);
@@ -349,8 +315,7 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
       labelSetImage->AddLayer(recoverImage);
     }
 
-    labelSetImage->GetLabelSet(labelSetImage->GetActiveLayer())->AddLabel(
-        updateLabel);
+    labelSetImage->GetLabelSet(labelSetImage->GetActiveLayer())->AddLabel(updateLabel);
 
     // Now remove the first layer
     labelSetImage->SetActiveLayer(0);
@@ -363,8 +328,7 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
 }
 
 template<typename TPixel, unsigned int VImageDimension>
-void NvidiaDextrSegTool3D::boundingBoxRender(
-    const std::string &tmpResultFileName, const std::string &organName) {
+void NvidiaDextrSegTool3D::boundingBoxRender(const std::string &tmpResultFileName, const std::string &organName) {
   typedef itk::Image<TPixel, VImageDimension> InputImageType;
   typedef itk::ImageFileReader<InputImageType> DextrReaderType;
 
@@ -419,15 +383,13 @@ void NvidiaDextrSegTool3D::boundingBoxRender(
   boundingBoxNode->SetProperty("binary", mitk::BoolProperty::New(true));
   boundingBoxNode->SetProperty("name", mitk::StringProperty::New(nodeName));
   boundingBoxNode->SetProperty("color", mitk::ColorProperty::New(r, g, b));
-  boundingBoxNode->SetProperty("volumerendering",
-                               mitk::BoolProperty::New(true));
+  boundingBoxNode->SetProperty("volumerendering", mitk::BoolProperty::New(true));
   boundingBoxNode->SetProperty("opacity", mitk::FloatProperty::New(0));
   // boundingBoxNode->SetProperty("helper object", mitk::BoolProperty::New(true));
   // boundingBoxNode->SetProperty("visible", mitk::BoolProperty::New(false));
 
   // check if node with same name exist already, if so, update instead of adding new
-  mitk::DataStorage::SetOfObjects::ConstPointer allNodes = m_ToolManager
-      ->GetDataStorage()->GetAll();
+  mitk::DataStorage::SetOfObjects::ConstPointer allNodes = m_ToolManager->GetDataStorage()->GetAll();
   mitk::DataStorage::SetOfObjects::ConstIterator itNodes;
   std::string nodeNameCheck;
   for (itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {

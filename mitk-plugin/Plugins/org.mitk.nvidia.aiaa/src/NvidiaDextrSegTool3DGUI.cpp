@@ -54,23 +54,25 @@ void NvidiaDextrSegTool3DGUI::OnClearPoints() {
   }
 }
 
+void NvidiaDextrSegTool3DGUI::updateConfigs() {
+  if (m_NvidiaDextrSegTool3D.IsNotNull()) {
+    auto preferencesService = berry::Platform::GetPreferencesService();
+    auto systemPreferences = preferencesService->GetSystemPreferences();
+    auto preferences = systemPreferences->Node("/org.mitk.preferences.nvidia.aiaa");
+    auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI,
+                                      QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
+
+    m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString());
+  }
+}
+
 void NvidiaDextrSegTool3DGUI::OnConfirmPoints() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
+    updateConfigs();
     m_NvidiaDextrSegTool3D->ConfirmPoints();
   }
 }
 
 void NvidiaDextrSegTool3DGUI::OnNewToolAssociated(mitk::Tool *tool) {
   m_NvidiaDextrSegTool3D = dynamic_cast<NvidiaDextrSegTool3D *>(tool);
-
-  if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    auto preferencesService = berry::Platform::GetPreferencesService();
-    auto systemPreferences = preferencesService->GetSystemPreferences();
-    auto preferences = systemPreferences->Node(
-        "/org.mitk.preferences.nvidia.aiaa");
-    auto serverURI = preferences->Get(
-        QmitkNvidiaAIAAPreferencePage::SERVER_URI,
-        QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
-    m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString());
-  }
 }

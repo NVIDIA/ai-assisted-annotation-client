@@ -36,8 +36,7 @@ NvidiaPointSetDataInteractor::NvidiaPointSetDataInteractor()
 NvidiaPointSetDataInteractor::~NvidiaPointSetDataInteractor() {
 }
 
-void NvidiaPointSetDataInteractor::setNvidiaSmartPolySegTool2D(
-    NvidiaSmartPolySegTool2D *smartPoly) {
+void NvidiaPointSetDataInteractor::setNvidiaSmartPolySegTool2D(NvidiaSmartPolySegTool2D *smartPoly) {
   m_NvidiaSmartPolySegTool2D = smartPoly;
 }
 
@@ -46,9 +45,8 @@ void NvidiaPointSetDataInteractor::ConnectActionsAndFunctions() {
   CONNECT_FUNCTION("finishMovement", NvidiaSmartPoly);
 }
 
-void NvidiaPointSetDataInteractor::NvidiaSmartPoly(
-    mitk::StateMachineAction * /*stateMachineAction*/,
-    mitk::InteractionEvent * /*interactionEvent*/) {
+void NvidiaPointSetDataInteractor::NvidiaSmartPoly(mitk::StateMachineAction * /*stateMachineAction*/,
+                                                   mitk::InteractionEvent * /*interactionEvent*/) {
   if (m_NvidiaSmartPolySegTool2D) {
     m_NvidiaSmartPolySegTool2D->PolygonFix();
   }

@@ -58,6 +58,7 @@ protected slots:
 protected:
   NvidiaSmartPolySegTool2DGUI();
   ~NvidiaSmartPolySegTool2DGUI() override;
+  void updateConfigs();
 
 private:
   QScopedPointer<Ui::NvidiaSmartPolySegTool2DGUI> m_Ui;

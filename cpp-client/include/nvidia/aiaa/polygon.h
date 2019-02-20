@@ -46,7 +46,7 @@ namespace aiaa {
  */
 
 struct AIAA_CLIENT_API Polygons {
-	/// Type Definition for Point
+  /// Type Definition for Point
   typedef std::vector<int> Point;
 
   /// Type Definition for Polygon
@@ -104,7 +104,7 @@ struct AIAA_CLIENT_API Polygons {
 
 struct AIAA_CLIENT_API PolygonsList {
 
-	/// List of Polygons
+  /// List of Polygons
   std::vector<Polygons> list;
 
   /// Checks if Polygons list is empty

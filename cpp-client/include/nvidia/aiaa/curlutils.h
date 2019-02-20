@@ -37,7 +37,8 @@ class CurlUtils {
  public:
   static std::string doGet(const std::string &uri);
   static std::string doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath);
-  static std::string doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath, const std::string &resultFileName);
+  static std::string doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath,
+                            const std::string &resultFileName);
 };
 
 }

@@ -55,14 +55,15 @@ ModelList Client::models() const {
   return ModelList::fromJson(CurlUtils::doGet(uri));
 }
 
-int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile) const {
+int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
+                    const std::string &outputImageFile) const {
   ModelList modelList = this->models();
   return dextr3d(modelList.getMatchingModel(label), pointSet, inputImageFile, outputImageFile);
 }
 
 //TODO:: Remove this API once AIAA Server supports PAD, ROI, SIGMA values in Model.json
-int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, double PAD,
-                    const std::string& ROI_SIZE, double SIGMA) const {
+int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
+                    const std::string &outputImageFile, double PAD, const std::string& ROI_SIZE, double SIGMA) const {
   ModelList modelList = this->models();
   Model model = modelList.getMatchingModel(label);
 
@@ -78,12 +79,14 @@ int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const 
   return dextr3d(model, pointSet, inputImageFile, outputImageFile);
 }
 
-Point3DSet Client::sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, Image3DInfo &imageInfo) const {
+Point3DSet Client::sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
+                              const std::string &outputImageFile, Image3DInfo &imageInfo) const {
   // Perform crop/sample and compute point index
   return ITKUtils::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
 }
 
-int Client::dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile) const {
+int Client::dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
+                    const std::string &outputImageFile) const {
   if (pointSet.points.size() < MIN_POINTS_FOR_DEXTR3D) {
     AIAA_LOG_ERROR("Insufficient Points; Minimum Points required for input PointSet: " << MIN_POINTS_FOR_DEXTR3D);
     return -1;
@@ -104,7 +107,8 @@ int Client::dextr3d(const Model &model, const Point3DSet &pointSet, const std::s
 
   // Perform pre-processing of crop/re-sample and re-compute point index
   Image3DInfo imageInfo;
-  Point3DSet pointSetROI = ITKUtils::imagePreProcess(pointSet, inputImageFile, tmpImageFile, imageInfo, model.padding, model.roi);
+  Point3DSet pointSetROI = ITKUtils::imagePreProcess(pointSet, inputImageFile, tmpImageFile, imageInfo, model.padding,
+                                                     model.roi);
 
   // TODO:: Ask AIAA Server to make value of points to JSON Array
   std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + model.name;
@@ -143,7 +147,8 @@ PolygonsList Client::mask2Polygon(int pointRatio, const std::string &inputImageF
   return polygonsList;
 }
 
-Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex, const std::string &inputImageFile,
+Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex,
+                            int vertexIndex, const std::string &inputImageFile,
                             const std::string &outputImageFile) const {
   // NOTE:: Flip Input/Output Polygons to support AIAA server as it currently expects input in (y,x) format
   Polygons p1 = newPoly;

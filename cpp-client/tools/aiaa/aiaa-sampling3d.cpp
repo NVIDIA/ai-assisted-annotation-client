@@ -93,10 +93,11 @@ int main(int argc, char **argv) {
 
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Image3DInfo imageInfo;
-    nvidia::aiaa::Point3DSet resultPointSet = client.sampling3d(m, pointSet, inputImageFile, outputImageFile, imageInfo);
+    nvidia::aiaa::Point3DSet resultPointSet = client.sampling3d(m, pointSet, inputImageFile, outputImageFile,
+                                                                imageInfo);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
     std::cout << "Result PointSet: " << resultPointSet.toJson(jsonSpace) << std::endl;
     std::cout << "Result ImageInfo: " << imageInfo.dump() << std::endl;

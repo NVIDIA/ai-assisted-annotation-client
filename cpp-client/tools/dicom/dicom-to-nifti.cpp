@@ -59,7 +59,9 @@ void trimTrailing(char * str) {
 int main(int argc, char * argv[]) {
   if (argc < 4) {
     std::cerr << "Usage: " << std::endl;
-    std::cerr << argv[0] << " <DicomDirectory> <outputFileName> <Head Option> (Head Options 0:specified; 1:head with pid+date)" << std::endl;
+    std::cerr << argv[0]
+        << " <DicomDirectory> <outputFileName> <Head Option> (Head Options 0:specified; 1:head with pid+date)"
+        << std::endl;
     return EXIT_FAILURE;
   }
 

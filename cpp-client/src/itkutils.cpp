@@ -50,8 +50,9 @@ namespace aiaa {
 const unsigned int DIM3 = 3;
 
 template<typename TPixel, unsigned int VImageDimension>
-typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
-                                                                            typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate) {
+typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(
+    itk::Image<TPixel, VImageDimension> *itkImage, typename itk::Image<TPixel, VImageDimension>::SizeType targetSize,
+    bool linearInterpolate) {
   auto imageSize = itkImage->GetLargestPossibleRegion().GetSize();
   auto imageSpacing = itkImage->GetSpacing();
 
@@ -80,7 +81,8 @@ typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(itk:
   return filter->GetOutput();
 }
 
-Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
+Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName,
+                                     const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
                                      const std::vector<int>& ROI_SIZE) {
   AIAA_LOG_DEBUG("Total Points: " << inputPointSet.points.size());
   AIAA_LOG_DEBUG("PAD: " << PAD);
@@ -91,7 +93,7 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
     typedef itk::Image<int, DIM3> ImageType;
 
     // Instantiate ITK filters
-    auto reader = itk::ImageFileReader < ImageType > ::New();
+    auto reader = itk::ImageFileReader<ImageType>::New();
     reader->SetFileName(inputImageName);
     reader->Update();
     auto itkImage = reader->GetOutput();
@@ -100,7 +102,8 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
     AIAA_LOG_DEBUG("++++ Input Image: " << itkImage->GetLargestPossibleRegion());
 
     typename ImageType::SizeType imageSize = itkImage->GetLargestPossibleRegion().GetSize();
-    typename ImageType::IndexType indexMin = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max(), std::numeric_limits<int>::max() };
+    typename ImageType::IndexType indexMin = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max(),
+        std::numeric_limits<int>::max() };
     typename ImageType::IndexType indexMax = { 0, 0, 0 };
     typename ImageType::SpacingType spacing = itkImage->GetSpacing();
 
@@ -111,15 +114,17 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
       for (unsigned int i = 0; i < DIM3; i++) {
         int vxPad = (int) (spacing[i] > 0 ? (PAD / spacing[i]) : PAD);
         if (pointCount == 1) {
-          AIAA_LOG_DEBUG("[DIM " << i << "] Padding: " << PAD << "; Spacing: " << spacing[i] << "; VOXEL Padding: " << vxPad);
+          AIAA_LOG_DEBUG(
+              "[DIM " << i << "] Padding: " << PAD << "; Spacing: " << spacing[i] << "; VOXEL Padding: " << vxPad);
         }
 
         index[i] = point[i];
         indexMin[i] = std::min(std::max((int) (index[i] - vxPad), 0), (int) (indexMin[i]));
         indexMax[i] = std::max(std::min((int) (index[i] + vxPad), (int) (imageSize[i] - 1)), (int) (indexMax[i]));
 
-        if(indexMin[i] > indexMax[i]) {
-          AIAA_LOG_ERROR("Invalid PointSet w.r.t. input Image; [i=" << i << "] MinIndex: " << indexMin[i] << "; MaxIndex: " << indexMax[i]);
+        if (indexMin[i] > indexMax[i]) {
+          AIAA_LOG_ERROR(
+              "Invalid PointSet w.r.t. input Image; [i=" << i << "] MinIndex: " << indexMin[i] << "; MaxIndex: " << indexMax[i]);
           throw exception(exception::INVALID_ARGS_ERROR, "Invalid PointSet w.r.t. input Image");
         }
       }
@@ -184,7 +189,7 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
     AIAA_LOG_DEBUG("pointSetROI: " << pointSetROI.toJson());
 
     // Write the ROI image out to temp folder
-    auto writer = itk::ImageFileWriter < ImageType > ::New();
+    auto writer = itk::ImageFileWriter<ImageType>::New();
     writer->SetInput(resampledImage);
     writer->SetFileName(outputImageName);
     writer->Update();
@@ -196,12 +201,13 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
   }
 }
 
-void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const Image3DInfo &imageInfo) {
+void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::string &outputImageName,
+                                const Image3DInfo &imageInfo) {
   try {
     typedef itk::Image<unsigned char, DIM3> ImageType;
 
     // Instantiate ITK filters
-    auto reader = itk::ImageFileReader < ImageType > ::New();
+    auto reader = itk::ImageFileReader<ImageType>::New();
     reader->SetFileName(inputImageName);
     reader->Update();
 
@@ -243,7 +249,7 @@ void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::st
     segRecoverImage = padFilter->GetOutput();
     segRecoverImage->SetOrigin(segLocalImage->GetOrigin());
 
-    auto writer = itk::ImageFileWriter < ImageType > ::New();
+    auto writer = itk::ImageFileWriter<ImageType>::New();
     writer->SetInput(segRecoverImage);
     writer->SetFileName(outputImageName);
     writer->Update();

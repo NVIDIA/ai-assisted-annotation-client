@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
     nvidia::aiaa::PolygonsList result = client.mask2Polygon(ratio, inputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
     if (outputJsonFile.empty()) {
       std::cout << result.toJson(jsonSpace) << std::endl;

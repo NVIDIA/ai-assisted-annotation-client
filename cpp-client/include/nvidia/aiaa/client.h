@@ -81,7 +81,8 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  Point3DSet sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, Image3DInfo &imageInfo) const;
+  Point3DSet sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
+                        const std::string &outputImageFile, Image3DInfo &imageInfo) const;
 
   /*!
    @brief 3D image segmentation using DEXTR3D method
@@ -98,7 +99,8 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.102 if case of response parsing
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  int dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile) const;
+  int dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
+              const std::string &outputImageFile) const;
 
   /*!
    @brief 3D image segmentation using DEXTR3D method
@@ -118,8 +120,8 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.102 if case of response parsing
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  int dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, double PAD, const std::string& ROI_SIZE,
-              double SIGMA) const;
+  int dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
+              const std::string &outputImageFile, double PAD, const std::string& ROI_SIZE, double SIGMA) const;
 
   /*!
    @brief 3D image segmentation using DEXTR3D method
@@ -136,7 +138,8 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.102 if case of response parsing
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  int dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile) const;
+  int dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
+              const std::string &outputImageFile) const;
 
   /*!
    @brief 3D binary mask to polygon representation conversion
@@ -165,8 +168,8 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
    */
-  Polygons fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex, const std::string &inputImageFile,
-                      const std::string &outputImageFile) const;
+  Polygons fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex,
+                      int vertexIndex, const std::string &inputImageFile, const std::string &outputImageFile) const;
 
   /// Minimum Number of Points required for dextr3d
   static const int MIN_POINTS_FOR_DEXTR3D = 6;

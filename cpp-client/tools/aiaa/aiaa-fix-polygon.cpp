@@ -81,10 +81,11 @@ int main(int argc, char **argv) {
 
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri);
-    nvidia::aiaa::Polygons result = client.fixPolygon(p1, p2, neighborhoodSize, polygonIndex, vertexIndex, inputImageFile, outputImageFile);
+    nvidia::aiaa::Polygons result = client.fixPolygon(p1, p2, neighborhoodSize, polygonIndex, vertexIndex,
+                                                      inputImageFile, outputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
     std::cout << result.toJson(jsonSpace) << std::endl;
     if (printTs) {

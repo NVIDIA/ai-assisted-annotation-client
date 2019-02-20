@@ -55,7 +55,8 @@ Model Model::fromJson(const std::string &json) {
     Model model;
     model.name = j["name"].get<std::string>();
     model.internal_name = j["internal name"].get<std::string>();
-    model.description = j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
+    model.description =
+        j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
     // TODO:: Ask server to correct the spelling for description
 
     for (auto e : j["labels"]) {

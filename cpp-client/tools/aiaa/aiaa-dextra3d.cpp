@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
       int ret = client.dextr3d(m, pointSet, inputImageFile, outputImageFile);
 
       auto end = std::chrono::high_resolution_clock::now();
-      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+      auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
       if (printTs) {
         std::cout << "API Latency (in milli sec): " << ms << std::endl;
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     }
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
     std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
     if (printTs) {

@@ -40,12 +40,15 @@ namespace aiaa {
 class ITKUtils {
  public:
   template<typename TPixel, unsigned int VImageDimension>
-  static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
-                                                                           typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate);
+  static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(
+      itk::Image<TPixel, VImageDimension> *itkImage, typename itk::Image<TPixel, VImageDimension>::SizeType targetSize,
+      bool linearInterpolate);
 
-  static Point3DSet imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName, const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
+  static Point3DSet imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName,
+                                    const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
                                     const std::vector<int>& ROI_SIZE);
-  static void imagePostProcess(const std::string &inputImageName, const std::string &outputImageName, const Image3DInfo &imageInfo);
+  static void imagePostProcess(const std::string &inputImageName, const std::string &outputImageName,
+                               const Image3DInfo &imageInfo);
 };
 
 }

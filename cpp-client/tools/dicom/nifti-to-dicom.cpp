@@ -102,8 +102,8 @@ int main(int argc, char* argv[]) {
   //std::string frameOfReferenceUID = fuid.Generate();
   std::string studyUID;
   std::string sopClassUID;
-  itk::ExposeMetaData < std::string > (*inputDict, "0020|000d", studyUID);
-  itk::ExposeMetaData < std::string > (*inputDict, "0008|0016", sopClassUID);
+  itk::ExposeMetaData<std::string>(*inputDict, "0020|000d", studyUID);
+  itk::ExposeMetaData<std::string>(*inputDict, "0008|0016", sopClassUID);
   gdcmIO->KeepOriginalUIDOn();
 
   for (unsigned int f = 0; f < size[2]; f++) {
@@ -112,22 +112,22 @@ int main(int argc, char* argv[]) {
     // Copy the dictionary from the first slice
     CopyDictionary(*inputDict, *dict);
     // Set the UID's for the study, series, SOP  and frame of reference
-    itk::EncapsulateMetaData < std::string > (*dict, "0020|000d", studyUID);
-    itk::EncapsulateMetaData < std::string > (*dict, "0020|000e", seriesUID);
+    itk::EncapsulateMetaData<std::string>(*dict, "0020|000d", studyUID);
+    itk::EncapsulateMetaData<std::string>(*dict, "0020|000e", seriesUID);
     //itk::EncapsulateMetaData<std::string>(*dict,"0020|0052", frameOfReferenceUID);
     gdcm::UIDGenerator sopuid;
     std::string sopInstanceUID = sopuid.Generate();
-    itk::EncapsulateMetaData < std::string > (*dict, "0008|0018", sopInstanceUID);
-    itk::EncapsulateMetaData < std::string > (*dict, "0002|0003", sopInstanceUID);
-    itk::EncapsulateMetaData < std::string > (*dict, "0008|0008", "DERIVED\\SECONDARY");
-    itk::EncapsulateMetaData < std::string > (*dict, "0008|103e", "SEGMENTATION");
+    itk::EncapsulateMetaData<std::string>(*dict, "0008|0018", sopInstanceUID);
+    itk::EncapsulateMetaData<std::string>(*dict, "0002|0003", sopInstanceUID);
+    itk::EncapsulateMetaData<std::string>(*dict, "0008|0008", "DERIVED\\SECONDARY");
+    itk::EncapsulateMetaData<std::string>(*dict, "0008|103e", "SEGMENTATION");
     std::ostringstream value;
     value.str("");
     value << f + 1;
-    itk::EncapsulateMetaData < std::string > (*dict, "0020|0013", value.str());
+    itk::EncapsulateMetaData<std::string>(*dict, "0020|0013", value.str());
     value.str("");
     value << 1001;
-    itk::EncapsulateMetaData < std::string > (*dict, "0020|0011", value.str());
+    itk::EncapsulateMetaData<std::string>(*dict, "0020|0011", value.str());
     ImageType::PointType position;
     ImageType::IndexType index;
     index[0] = 0;
@@ -136,16 +136,16 @@ int main(int argc, char* argv[]) {
     readerRef->GetOutput()->TransformIndexToPhysicalPoint(index, position);
     value.str("");
     value << position[0] << "\\" << position[1] << "\\" << position[2];
-    itk::EncapsulateMetaData < std::string > (*dict, "0020|0032", value.str());
+    itk::EncapsulateMetaData<std::string>(*dict, "0020|0032", value.str());
     value.str("");
     value << position[2];
-    itk::EncapsulateMetaData < std::string > (*dict, "0020|1041", value.str());
+    itk::EncapsulateMetaData<std::string>(*dict, "0020|1041", value.str());
     value.str("");
     value << "0";
-    itk::EncapsulateMetaData < std::string > (*dict, "0028|1052", value.str());
+    itk::EncapsulateMetaData<std::string>(*dict, "0028|1052", value.str());
     value.str("");
     value << "1";
-    itk::EncapsulateMetaData < std::string > (*dict, "0028|1053", value.str());
+    itk::EncapsulateMetaData<std::string>(*dict, "0028|1053", value.str());
     outputArray.push_back(dict);
   }
 
@@ -180,7 +180,7 @@ void CopyDictionary(itk::MetaDataDictionary &fromDict, itk::MetaDataDictionary &
     if (entryvalue) {
       std::string tagkey = itr->first;
       std::string tagvalue = entryvalue->GetMetaDataObjectValue();
-      itk::EncapsulateMetaData < std::string > (toDict, tagkey, tagvalue);
+      itk::EncapsulateMetaData<std::string>(toDict, tagkey, tagvalue);
     }
     ++itr;
   }

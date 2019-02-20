@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     nvidia::aiaa::ModelList modelList = client.models();
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
     if (!label.empty()) {
       nvidia::aiaa::Model model = modelList.getMatchingModel(label);

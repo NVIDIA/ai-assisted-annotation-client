@@ -41,6 +41,11 @@
 #include <itkImageFileWriter.h>
 #include <itkLabelShapeKeepNObjectsImageFilter.h>
 
+#include <itkResampleImageFilter.h>
+#include <itkRegionOfInterestImageFilter.h>
+#include <itkLinearInterpolateImageFunction.h>
+#include <itkNearestNeighborInterpolateImageFunction.h>
+
 #include <nvidia/aiaa/utils.h>
 #include <chrono>
 
@@ -164,6 +169,161 @@ nvidia::aiaa::PointSet NvidiaDextrSegTool3D::getPointSet(mitk::BaseGeometry *ima
   return pointSet;
 }
 
+// BEGIN::
+// This is AIAA code borrowed from itkutils.cpp
+// to make MITK faster for pre-processing the different types image and generate sampled input for segmentation
+template<typename TPixel, unsigned int VImageDimension>
+typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
+                                                                  typename itk::Image<TPixel, VImageDimension>::SizeType targetSize,
+                                                                  bool linearInterpolate) {
+
+  auto imageSize = itkImage->GetLargestPossibleRegion().GetSize();
+  auto imageSpacing = itkImage->GetSpacing();
+
+  typedef itk::Image<TPixel, VImageDimension> ImageType;
+  typename ImageType::SpacingType targetSpacing;
+  for (unsigned int i = 0; i < VImageDimension; i++) {
+    targetSpacing[i] = imageSpacing[i] * (static_cast<double>(imageSize[i]) / static_cast<double>(targetSize[i]));
+  }
+
+  auto filter = itk::ResampleImageFilter<ImageType, ImageType>::New();
+  filter->SetInput(itkImage);
+
+  filter->SetSize(targetSize);
+  filter->SetOutputSpacing(targetSpacing);
+  filter->SetTransform(itk::IdentityTransform<double, VImageDimension>::New());
+  filter->SetOutputOrigin(itkImage->GetOrigin());
+  filter->SetOutputDirection(itkImage->GetDirection());
+
+  if (linearInterpolate) {
+    filter->SetInterpolator(itk::LinearInterpolateImageFunction<ImageType, double>::New());
+  } else {
+    filter->SetInterpolator(itk::NearestNeighborInterpolateImageFunction<ImageType, double>::New());
+  }
+
+  filter->UpdateLargestPossibleRegion();
+  return filter->GetOutput();
+}
+
+template<typename TPixel, unsigned int VImageDimension>
+nvidia::aiaa::PointSet imagePreProcess(const nvidia::aiaa::PointSet &pointSet, itk::Image<TPixel, VImageDimension> *itkImage,
+                                       const std::string &outputImage, nvidia::aiaa::ImageInfo &imageInfo, double PAD,
+                                       const nvidia::aiaa::Point& ROI) {
+  MITK_DEBUG("nvidia") << "Total Points: " << pointSet.points.size();
+  MITK_DEBUG("nvidia") << "PAD: " << PAD;
+  //MITK_DEBUG("nvidia") << "ROI: " << ROI;
+
+  MITK_DEBUG("nvidia") << "Input Image: " << itkImage;
+  MITK_DEBUG("nvidia") << "Input Image Region: " << itkImage->GetLargestPossibleRegion();
+
+  try {
+    // Preprocessing (crop and resize)
+    typedef itk::Image<TPixel, VImageDimension> ImageType;
+    typename ImageType::SizeType imageSize = itkImage->GetLargestPossibleRegion().GetSize();
+    typename ImageType::IndexType indexMin;
+    typename ImageType::IndexType indexMax;
+    typename ImageType::SpacingType spacing = itkImage->GetSpacing();
+    for (unsigned int i = 0; i < VImageDimension; i++) {
+      indexMin[i] = INT_MAX;
+      indexMax[i] = INT_MIN;
+    }
+
+    typename ImageType::IndexType index;
+    int pointCount = 0;
+    for (auto point : pointSet.points) {
+      pointCount++;
+      for (unsigned int i = 0; i < VImageDimension; i++) {
+        int vxPad = (int) (spacing[i] > 0 ? (PAD / spacing[i]) : PAD);
+        if (pointCount == 1) {
+          MITK_DEBUG("nvidia") << "[DIM " << i << "] Padding: " << PAD << "; Spacing: " << spacing[i] << "; VOXEL Padding: " << vxPad;
+        }
+
+        index[i] = point[i];
+        indexMin[i] = std::min(std::max((int) (index[i] - vxPad), 0), (int) (indexMin[i]));
+        indexMax[i] = std::max(std::min((int) (index[i] + vxPad), (int) (imageSize[i] - 1)), (int) (indexMax[i]));
+
+        if (indexMin[i] > indexMax[i]) {
+          MITK_ERROR("nvidia") << "Invalid PointSet w.r.t. input Image; [i=" << i << "] MinIndex: " << indexMin[i] << "; MaxIndex: " << indexMax[i];
+          throw nvidia::aiaa::exception(nvidia::aiaa::exception::INVALID_ARGS_ERROR, "Invalid PointSet w.r.t. input Image");
+        }
+      }
+    }
+
+    // Output min max index (ROI region)
+    MITK_DEBUG("nvidia") << "Min index: " << indexMin << "; Max index: " << indexMax;
+
+    // Extract ROI image
+    typename ImageType::IndexType cropIndex;
+    typename ImageType::SizeType cropSize;
+    for (int i = 0; i < VImageDimension; i++) {
+      cropIndex[i] = indexMin[i];
+      cropSize[i] = indexMax[i] - indexMin[i];
+
+      imageInfo.cropSize[i] = cropSize[i];
+      imageInfo.imageSize[i] = imageSize[i];
+      imageInfo.cropIndex[i] = cropIndex[i];
+    }
+
+    MITK_DEBUG("nvidia") << "ImageInfo >>>> " << imageInfo.dump();
+
+    auto cropFilter = itk::RegionOfInterestImageFilter<ImageType, ImageType>::New();
+    cropFilter->SetInput(itkImage);
+
+    typename ImageType::RegionType cropRegion(cropIndex, cropSize);
+    cropFilter->SetRegionOfInterest(cropRegion);
+    cropFilter->Update();
+
+    auto croppedItkImage = cropFilter->GetOutput();
+    MITK_DEBUG("nvidia") << "++++ Cropped Image: " << croppedItkImage->GetLargestPossibleRegion();
+
+    // Resize to 128x128x128x128
+    typename ImageType::SizeType roiSize;
+    for (int i = 0; i < VImageDimension; i++) {
+      roiSize[i] = ROI[i];
+    }
+
+    auto resampledImage = resizeImage(cropFilter->GetOutput(), roiSize, true);
+    MITK_DEBUG("nvidia") << "ResampledImage completed";
+
+    // Adjust extreme points index to cropped and resized image
+    nvidia::aiaa::PointSet pointSetROI;
+    for (auto p : pointSet.points) {
+      for (int i = 0; i < VImageDimension; i++) {
+        index[i] = p[i];
+      }
+
+      // First convert to world coordinates within original image
+      // Then convert back to index within resized image
+      typename ImageType::PointType point;
+      itkImage->TransformIndexToPhysicalPoint(index, point);
+      resampledImage->TransformPhysicalPointToIndex(point, index);
+
+      nvidia::aiaa::Point pointROI;
+      for (int i = 0; i < VImageDimension; i++) {
+        pointROI.push_back(index[i]);
+      }
+      pointSetROI.points.push_back(pointROI);
+    }
+
+    MITK_DEBUG("nvidia") << "PointSetROI: " << pointSetROI.toJson();
+
+    // Write the ROI image out to temp folder
+    auto writer = itk::ImageFileWriter<ImageType>::New();
+    writer->SetInput(resampledImage);
+    writer->SetFileName(outputImage);
+    writer->Update();
+
+    return pointSetROI;
+  } catch (itk::ExceptionObject& e) {
+    MITK_ERROR("nvidia") << (e.what());
+    throw nvidia::aiaa::exception(nvidia::aiaa::exception::ITK_PROCESS_ERROR, e.what());
+  }
+}
+
+// END::
+// This is AIAA code borrowed from itkutils.cpp
+// to make MITK faster for pre-processing the different types image and generate sampled input for segmentation
+
 template<typename TPixel, unsigned int VImageDimension>
 void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry) {
   if (VImageDimension != 3) {
@@ -219,7 +379,8 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
     nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(typeid(TPixel).name());
 
     LATENCY_START_API_CALL()
-    nvidia::aiaa::PointSet pointSetROI = client.sampling(model, pointSet, inputImage, pixelType, VImageDimension, tmpSampleFileName, imageInfo);
+    nvidia::aiaa::PointSet pointSetROI = imagePreProcess(pointSet, itkImage, tmpSampleFileName, imageInfo, model.padding, model.roi);
+    //client.sampling(model, pointSet, inputImage, pixelType, VImageDimension, tmpSampleFileName, imageInfo);
 
     currentSteps++;
     mitk::ProgressBar::GetInstance()->Progress(1);

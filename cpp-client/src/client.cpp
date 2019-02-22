@@ -124,6 +124,8 @@ PointSet Client::sampling(const Model &model, const PointSet &pointSet, void *in
       return samplingT<float>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
     case Pixel::DOUBLE:
       return samplingT<double>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::UNKNOWN:
+      throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
   }
   throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
 }
@@ -158,6 +160,8 @@ PointSet Client::sampling(const Model &model, const PointSet &pointSet, const st
       return samplingT<float>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
     case Pixel::DOUBLE:
       return samplingT<double>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::UNKNOWN:
+      throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
   }
   throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
 }

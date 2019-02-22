@@ -375,8 +375,8 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
     MITK_INFO("nvidia") << "++++ typeid(TPixel): " << typeid(TPixel).name() << std::endl;
     MITK_INFO("nvidia") << "++++ VImageDimension: " << VImageDimension << std::endl;
 
-    void* inputImage = itkImage;
-    nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(typeid(TPixel).name());
+    //void* inputImage = itkImage;
+    //nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(typeid(TPixel).name());
 
     LATENCY_START_API_CALL()
     nvidia::aiaa::PointSet pointSetROI = imagePreProcess(pointSet, itkImage, tmpSampleFileName, imageInfo, model.padding, model.roi);

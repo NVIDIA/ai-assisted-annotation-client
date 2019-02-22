@@ -37,30 +37,30 @@ namespace aiaa {
 
 // [[70,172,86],[105,161,180],[125,147,164],[56,174,124],[91,119,143],[77,219,120]]
 
-bool Point3DSet::empty() const {
+bool PointSet::empty() const {
   return points.empty();
 }
 
-size_t Point3DSet::size() const {
+size_t PointSet::size() const {
   return points.size();
 }
 
-void Point3DSet::push_back(Point3D point) {
+void PointSet::push_back(Point point) {
   points.push_back(point);
 }
 
-Point3DSet Point3DSet::fromJson(const std::string &json) {
+PointSet PointSet::fromJson(const std::string &json) {
   try {
     nlohmann::json j = nlohmann::json::parse(json);
-    Point3DSet point3DSet;
+    PointSet pointSet;
     for (auto e : j) {
-      Point3DSet::Point3D point;
+      Point point;
       for (auto n : e) {
         point.push_back(n);
       }
-      point3DSet.push_back(point);
+      pointSet.push_back(point);
     }
-    return point3DSet;
+    return pointSet;
   } catch (nlohmann::json::parse_error& e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
@@ -70,7 +70,7 @@ Point3DSet Point3DSet::fromJson(const std::string &json) {
   }
 }
 
-std::string Point3DSet::toJson(int space) const {
+std::string PointSet::toJson(int space) const {
   nlohmann::json j = points;
   return space ? j.dump(space) : j.dump();
 }

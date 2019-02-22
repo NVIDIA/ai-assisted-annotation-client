@@ -55,84 +55,177 @@ ModelList Client::models() const {
   return ModelList::fromJson(CurlUtils::doGet(uri));
 }
 
-int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
-                    const std::string &outputImageFile) const {
-  ModelList modelList = this->models();
-  return dextr3d(modelList.getMatchingModel(label), pointSet, inputImageFile, outputImageFile);
+template<typename TPixel>
+PointSet samplingT(const Model &model, const PointSet &pointSet, void *inputImage, int dimension, const std::string &outputImageFile,
+                   ImageInfo &imageInfo) {
+  switch (dimension) {
+    case 2: {
+      typedef itk::Image<TPixel, 2> ImageType;
+      ImageType *itkImage = static_cast<ImageType*>(inputImage);
+      return ITKUtils<TPixel, 2>::imagePreProcess(pointSet, itkImage, outputImageFile, imageInfo, model.padding, model.roi);
+    }
+    case 3: {
+      typedef itk::Image<TPixel, 3> ImageType;
+      ImageType *itkImage = static_cast<ImageType*>(inputImage);
+      return ITKUtils<TPixel, 3>::imagePreProcess(pointSet, itkImage, outputImageFile, imageInfo, model.padding, model.roi);
+    }
+    case 4: {
+      typedef itk::Image<TPixel, 4> ImageType;
+      ImageType *itkImage = static_cast<ImageType*>(inputImage);
+      return ITKUtils<TPixel, 4>::imagePreProcess(pointSet, itkImage, outputImageFile, imageInfo, model.padding, model.roi);
+    }
+  }
+  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 2D/3D/4D are supported)");
 }
 
-//TODO:: Remove this API once AIAA Server supports PAD, ROI, SIGMA values in Model.json
-int Client::dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
-                    const std::string &outputImageFile, double PAD, const std::string& ROI_SIZE, double SIGMA) const {
-  ModelList modelList = this->models();
-  Model model = modelList.getMatchingModel(label);
-
-  model.padding = PAD;
-  model.sigma = SIGMA;
-
-  int xyz[3];
-  Utils::stringToPoint3D(ROI_SIZE, 'x', xyz);
-  model.roi[0] = xyz[0];
-  model.roi[1] = xyz[1];
-  model.roi[2] = xyz[2];
-
-  return dextr3d(model, pointSet, inputImageFile, outputImageFile);
+template<typename TPixel>
+PointSet samplingT(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
+                   ImageInfo &imageInfo) {
+  switch (dimension) {
+    case 2: {
+      return ITKUtils<TPixel, 2>::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
+    }
+    case 3: {
+      return ITKUtils<TPixel, 3>::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
+    }
+    case 4: {
+      return ITKUtils<TPixel, 4>::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
+    }
+  }
+  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 2D/3D/4D are supported)");
 }
 
-Point3DSet Client::sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
-                              const std::string &outputImageFile, Image3DInfo &imageInfo) const {
-  // Perform crop/sample and compute point index
-  return ITKUtils::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
-}
-
-int Client::dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
-                    const std::string &outputImageFile) const {
-  if (pointSet.points.size() < MIN_POINTS_FOR_DEXTR3D) {
-    AIAA_LOG_ERROR("Insufficient Points; Minimum Points required for input PointSet: " << MIN_POINTS_FOR_DEXTR3D);
-    return -1;
+PointSet Client::sampling(const Model &model, const PointSet &pointSet, void *inputImage, Pixel::Type pixelType, int dimension,
+                          const std::string &outputImageFile, ImageInfo &imageInfo) const {
+  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    AIAA_LOG_WARN(msg);
+    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
   }
 
+  switch (pixelType) {
+    case Pixel::CHAR:
+      return samplingT<char>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::UCHAR:
+      return samplingT<unsigned char>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::SHORT:
+      return samplingT<short>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::USHORT:
+      return samplingT<unsigned short>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::INT:
+      return samplingT<int>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::UINT:
+      return samplingT<unsigned int>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::LONG:
+      return samplingT<long>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::ULONG:
+      return samplingT<unsigned long>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::FLOAT:
+      return samplingT<float>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+    case Pixel::DOUBLE:
+      return samplingT<double>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
+  }
+  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
+}
+
+PointSet Client::sampling(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType, int dimension,
+                          const std::string &outputImageFile, ImageInfo &imageInfo) const {
+
+  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    AIAA_LOG_WARN(msg);
+    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
+  }
+
+  switch (pixelType) {
+    case Pixel::CHAR:
+      return samplingT<char>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::UCHAR:
+      return samplingT<unsigned char>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::SHORT:
+      return samplingT<short>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::USHORT:
+      return samplingT<unsigned short>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::INT:
+      return samplingT<int>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::UINT:
+      return samplingT<unsigned int>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::LONG:
+      return samplingT<long>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::ULONG:
+      return samplingT<unsigned long>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::FLOAT:
+      return samplingT<float>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+    case Pixel::DOUBLE:
+      return samplingT<double>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
+  }
+  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
+}
+
+int Client::segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension,
+                      const std::string &outputImageFile, const ImageInfo &imageInfo) const {
+  if (dimension != 3) {
+    throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 3D is supported)");
+  }
   if (model.name.empty()) {
     AIAA_LOG_WARN("Selected model is EMPTY");
     return -2;
   }
+  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    AIAA_LOG_WARN(msg);
+    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
+  }
+
+  bool postProcess = imageInfo.empty() ? false : true;
+  std::string tmpResultFile = postProcess ? (Utils::tempfilename() + IMAGE_FILE_EXTENSION) : outputImageFile;
+  AIAA_LOG_DEBUG("TmpResultFile: " << tmpResultFile << "; PostProcess: " << postProcess);
+
+  std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + model.name;
+  std::string paramStr = "{\"sigma\":" + std::to_string(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
+  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile);
+
+  // Perform post-processing to recover crop and re-sample and save to user-specified location
+  if (postProcess) {
+    ITKUtils3DUChar::imagePostProcess(tmpResultFile, outputImageFile, imageInfo);
+    std::remove(tmpResultFile.c_str());
+  }
+  return 0;
+}
+
+int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType,
+                    const std::string &outputImageFile) const {
+  if (model.name.empty()) {
+    AIAA_LOG_WARN("Selected model is EMPTY");
+    return -2;
+  }
+  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    AIAA_LOG_WARN(msg);
+    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
+  }
+
+  std::string tmpSampleFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
 
   AIAA_LOG_DEBUG("PointSet: " << pointSet.toJson());
   AIAA_LOG_DEBUG("Model: " << model.toJson());
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
+  AIAA_LOG_DEBUG("PixelType: " << pixelType);
+  AIAA_LOG_DEBUG("SampleImageFile: " << tmpSampleFile);
   AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
 
-  std::string tmpImageFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
-  std::string tmpResultFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
-
   // Perform pre-processing of crop/re-sample and re-compute point index
-  Image3DInfo imageInfo;
-  Point3DSet pointSetROI = ITKUtils::imagePreProcess(pointSet, inputImageFile, tmpImageFile, imageInfo, model.padding,
-                                                     model.roi);
-
-  // TODO:: Ask AIAA Server to make value of points to JSON Array
-  std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + model.name;
-  std::string paramStr = "{\"sigma\":" + std::to_string(model.sigma) + ",\"points\":\"" + pointSetROI.toJson() + "\"}";
-
-  AIAA_LOG_DEBUG("URI: " << uri);
-  AIAA_LOG_DEBUG("Parameters: " << paramStr);
-  AIAA_LOG_DEBUG("TmpImageFile: " << tmpImageFile);
-  AIAA_LOG_DEBUG("TmpResultFile: " << tmpResultFile);
-
-  // Inference
-  std::string response = CurlUtils::doPost(uri, paramStr, tmpImageFile, tmpResultFile);
-  AIAA_LOG_DEBUG("Response: \n" << response);
-
-  // Perform post-processing to recover crop and re-sample and save to user-specified location
-  ITKUtils::imagePostProcess(tmpResultFile, outputImageFile, imageInfo);
+  const int dimension = 3;
+  ImageInfo imageInfo;
+  PointSet pointSetROI = sampling(model, pointSet, inputImageFile, pixelType, dimension, tmpSampleFile, imageInfo);
+  segmentation(model, pointSetROI, tmpSampleFile, dimension, outputImageFile, imageInfo);
 
   // Cleanup temporary files
-  std::remove(tmpImageFile.c_str());
-  std::remove(tmpResultFile.c_str());
+  std::remove(tmpSampleFile.c_str());
   return 0;
 }
 
-PolygonsList Client::mask2Polygon(int pointRatio, const std::string &inputImageFile) const {
+PolygonsList Client::maskToPolygon(int pointRatio, const std::string &inputImageFile) const {
   std::string uri = serverUri + EP_MASK_2_POLYGON;
   std::string paramStr = "{\"more_points\":" + std::to_string(pointRatio) + "}";
 
@@ -147,9 +240,8 @@ PolygonsList Client::mask2Polygon(int pointRatio, const std::string &inputImageF
   return polygonsList;
 }
 
-Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex,
-                            int vertexIndex, const std::string &inputImageFile,
-                            const std::string &outputImageFile) const {
+Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex,
+                            const std::string &inputImageFile, const std::string &outputImageFile) const {
   // NOTE:: Flip Input/Output Polygons to support AIAA server as it currently expects input in (y,x) format
   Polygons p1 = newPoly;
   p1.flipXY();

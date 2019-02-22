@@ -37,28 +37,49 @@ namespace nvidia {
 namespace aiaa {
 
 ////////////
-// Image3DInfo //
+// ImageInfo //
 ////////////
 
 /*!
- @brief 3D-Image Info
+ @brief Image Info
 
- This class contains information related to size, crop and crop index for a 3D Image
+ This class contains information related to size, crop and crop index for a 2D/3D/4D Image
  */
 
-struct AIAA_CLIENT_API Image3DInfo {
+struct AIAA_CLIENT_API ImageInfo {
   /// Original Size in [x,y,z] format
-  std::vector<int> imageSize = { 0, 0, 0 };
+  std::vector<int> imageSize = { 0, 0, 0, 0 };
 
   /// Cropped Size in [x,y,z] format
-  std::vector<int> cropSize = { 0, 0, 0 };
+  std::vector<int> cropSize = { 0, 0, 0, 0 };
 
   /// Cropped Index in [x,y,z] format
-  std::vector<int> cropIndex = { 0, 0, 0 };
+  std::vector<int> cropIndex = { 0, 0, 0, 0 };
+
+  /// Check if ImageInfo is empty
+  bool empty() const;
 
   /// Returns string/json version of Image3DInfo
   std::string dump();
 };
+
+namespace Pixel {
+enum Type {
+  CHAR,
+  UCHAR,
+  SHORT,
+  USHORT,
+  INT,
+  UINT,
+  LONG,
+  ULONG,
+  FLOAT,
+  DOUBLE,
+  UNKNOWN
+};
+}
+
+AIAA_CLIENT_API Pixel::Type getPixelType(const std::string &type);
 
 }
 }

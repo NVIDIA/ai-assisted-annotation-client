@@ -29,6 +29,8 @@
 #pragma once
 
 #include "common.h"
+#include "pointset.h"
+
 #include <string>
 #include <vector>
 
@@ -75,9 +77,9 @@ class AIAA_CLIENT_API Utils {
    @brief 3D point
    @param[in] str input string
    @param[in] delim delimiter character
-   @param[in,out] point3D size which represents x,y,z
+   @param[in,out] point size which represents x,y,z
    */
-  static void stringToPoint3D(const std::string &str, char delim, int point3D[3]);
+  static Point stringToPoint(const std::string &str, char delim);
 };
 
 }

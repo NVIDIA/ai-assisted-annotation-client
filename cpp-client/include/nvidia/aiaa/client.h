@@ -72,63 +72,44 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief This API is used to sample the input image
    @param[in] model  Model to be used
-   @param[in] pointSet  Point3DSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
-   @param[in] inputImageFile  Input image filename where image is stored in 3D format
-   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server
+   @param[in] pointSet  PointSet object which represents a set of points in 2D/3D/4D for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] inputImageFile  Input image filename where image is stored in 2D/3D/4D format
+   @param[in] pixelType  Pixel::Type for Input Image
+   @param[in] dimension  Dimension for Input Image
+   @param[in] outputImageFile  Sampled Output Imaged stored in itk::Image<unsigned short, *> format
    @param[out] imageInfo  ImageInfo for sampled image
-   @return Point3DSet object representing new PointSet for sampled image
+   @return PointSet object representing new PointSet for sampled image
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  Point3DSet sampling3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
-                        const std::string &outputImageFile, Image3DInfo &imageInfo) const;
+  PointSet sampling(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType, int dimension,
+                    const std::string &outputImageFile, ImageInfo &imageInfo) const;
 
   /*!
-   @brief 3D image segmentation using DEXTR3D method
-   @param[in] label  The organ name
-   @param[in] pointSet  Point3DSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
-   @param[in] inputImageFile  Input image filename where image is stored in 3D format
-   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server
-
-   @retval 0 Success
-   @retval -1 Insufficient Points in the input
-   @retval -2 Can not find correct model for the input label
-
-   @throw nvidia.aiaa.error.101 in case of connect error
-   @throw nvidia.aiaa.error.102 if case of response parsing
-   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
-   */
-  int dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
-              const std::string &outputImageFile) const;
-
-  /*!
-   @brief 3D image segmentation using DEXTR3D method
-   @param[in] label  The organ name
-   @param[in] pointSet  Point3DSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
-   @param[in] inputImageFile  Input image filename where image is stored in 3D format
-   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server
-   @param[in] PAD  Padding to be used for image sampling (example: 20.0)
-   @param[in] ROI_SIZE  image sample size to be sent to AIAA server in (X-coordinate x Y-coordinate x Z-coordinate) format (example: 128x128x128)
-   @param[in] SIGMA  Sigma value for inference (example: 3.0)
-
-   @retval 0 Success
-   @retval -1 Insufficient Points in the input
-   @retval -2 Can not find correct model for the input label
-
-   @throw nvidia.aiaa.error.101 in case of connect error
-   @throw nvidia.aiaa.error.102 if case of response parsing
-   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
-   */
-  int dextr3d(const std::string &label, const Point3DSet &pointSet, const std::string &inputImageFile,
-              const std::string &outputImageFile, double PAD, const std::string& ROI_SIZE, double SIGMA) const;
-
-  /*!
-   @brief 3D image segmentation using DEXTR3D method
+   @brief This API is used to sample the input image
    @param[in] model  Model to be used
-   @param[in] pointSet  Point3DSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
-   @param[in] inputImageFile  Input image filename where image is stored in 3D format
-   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] inputImage  Input image pointer 2D/3D/4D format which is itk::Image<?, *> to avoid extra copy at client side
+   @param[in] pixelType  Pixel::Type for Input Image
+   @param[in] dimension  Dimension for Input Image
+   @param[in] outputImageFile  Sampled Output Imaged stored in itk::Image<unsigned short, *> format
+   @param[out] imageInfo  ImageInfo for sampled image
+   @return PointSet object representing new PointSet for sampled image
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
+   */
+  PointSet sampling(const Model &model, const PointSet &pointSet, void *inputImage, Pixel::Type pixelType, int dimension,
+                    const std::string &outputImageFile, ImageInfo &imageInfo) const;
+
+  /*!
+   @brief 3D image segmentation over sampled input image and PointSet
+   @param[in] model  Model to be used
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] dimension  Dimension for Input Image
+   @param[in] inputImageFile  Sampled Input image filename where image is stored in itk::Image<unsigned short, *> format
+   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, *> format
 
    @retval 0 Success
    @retval -1 Insufficient Points in the input
@@ -138,20 +119,39 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.102 if case of response parsing
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  int dextr3d(const Model &model, const Point3DSet &pointSet, const std::string &inputImageFile,
+  int segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
+                const ImageInfo &imageInfo) const;
+
+  /*!
+   @brief 3D image segmentation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)
+   @param[in] model  Model to be used
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] inputImageFile  Input image filename where image is stored in itk::Image<?, 3> format
+   @param[in] pixelType  PixelType for Input Image
+   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, 3> format
+
+   @retval 0 Success
+   @retval -1 Insufficient Points in the input
+   @retval -2 Input Model name is empty
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
+   */
+  int dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType,
               const std::string &outputImageFile) const;
 
   /*!
    @brief 3D binary mask to polygon representation conversion
    @param[in] pointRatio  Point Ratio
-   @param[in] inputImageFile  Input image filename where image is stored in 3D format
+   @param[in] inputImageFile  Input image filename where image is stored in itk::Image<unsigned char, *> format
 
    @return PolygonsList object representing a list of Polygons across each image slice
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
    */
-  PolygonsList mask2Polygon(int pointRatio, const std::string &inputImageFile) const;
+  PolygonsList maskToPolygon(int pointRatio, const std::string &inputImageFile) const;
 
   /*!
    @brief 2D polygon update with single point edit
@@ -160,19 +160,19 @@ class AIAA_CLIENT_API Client {
    @param[in] neighborhoodSize  NeighborHood Size for propagation
    @param[in] polyIndex  Polygon index among new Poly which needs an update
    @param[in] vertexIndex  Vertex among the polygon which needs an update
-   @param[in] inputImageFile  Input 2D Slice Image File
-   @param[in] outputImageFile  Output Image File
+   @param[in] inputImageFile  Input 2D Slice Image File in PNG format
+   @param[in] outputImageFile  Output Image File in PNG format
 
    @return Polygons object representing set of updated polygons
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
    */
-  Polygons fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex,
-                      int vertexIndex, const std::string &inputImageFile, const std::string &outputImageFile) const;
+  Polygons fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex,
+                      const std::string &inputImageFile, const std::string &outputImageFile) const;
 
-  /// Minimum Number of Points required for dextr3d
-  static const int MIN_POINTS_FOR_DEXTR3D = 6;
+  /// Minimum Number of Points required for segmentation/sampling
+  static const int MIN_POINTS_FOR_SEGMENTATION = 6;
 
  private:
   /// Server URI

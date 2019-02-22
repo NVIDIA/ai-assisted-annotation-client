@@ -63,7 +63,7 @@ struct AIAA_CLIENT_API Model {
   /// Padding used while training images;  This shall be used for dextr3d API
   double padding;
 
-  /// Image ROI size used while training [x,y,z] Format;  This shall be used for dextr3d API
+  /// Image ROI size used while training [x,y,z,w] Format;  This shall be used for dextr3D API
   std::vector<int> roi;
 
   /*!

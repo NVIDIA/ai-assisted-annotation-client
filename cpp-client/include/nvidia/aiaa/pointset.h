@@ -37,19 +37,20 @@ namespace nvidia {
 namespace aiaa {
 
 ////////////
-// Point3DSet //
+// PointSet //
 ////////////
 
 /*!
- @brief AIAA Point3DSet
+ @brief AIAA PointSet
  */
 
-struct AIAA_CLIENT_API Point3DSet {
-  /// Type Definition for 3D Point
-  typedef std::vector<int> Point3D;
+/// Type Definition for 2D/3D/4D Point
+typedef std::vector<int> Point;
 
-  /// Array of 3D Points to represent [[x,y,z]+]
-  std::vector<Point3D> points;
+struct AIAA_CLIENT_API PointSet {
+
+  /// Array of 2D/3D/4D Points to represent [[x,y,z,w]+]
+  std::vector<Point> points;
 
   /// Checks if points is empty
   bool empty() const;
@@ -57,24 +58,24 @@ struct AIAA_CLIENT_API Point3DSet {
   /// Count of points
   size_t size() const;
 
-  /// Append new Point3D to points list
-  void push_back(Point3D point);
+  /// Append new Point to points list
+  void push_back(Point point);
 
   /*!
    @brief create Model from JSON String
    @param[in] json  JSON String
 
-   Example:
+   3D Example:
    @code
    [[70,172,86],[105,161,180],[125,147,164],[56,174,124],[91,119,143],[77,219,120]]
    @endcode
 
-   @return Point3DSet object
+   @return PointSet object
    */
-  static Point3DSet fromJson(const std::string &json);
+  static PointSet fromJson(const std::string &json);
 
   /*!
-   @brief convert Point3DSet to JSON String
+   @brief convert PointSet to JSON String
    @param[in] space  If space > 0; then JSON string will be formatted accordingly
    @return JSON String
    */

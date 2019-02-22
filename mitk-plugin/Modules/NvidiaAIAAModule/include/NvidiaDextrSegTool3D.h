@@ -78,7 +78,7 @@ private:
   void ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry);
 
   template <typename TPixel, unsigned int VImageDimension>
-  nvidia::aiaa::Point3DSet getPoint3DSet(mitk::BaseGeometry *imageGeometry);
+  nvidia::aiaa::PointSet getPointSet(mitk::BaseGeometry *imageGeometry);
 
   template <class TImageType>
   typename TImageType::Pointer getLargestConnectedComponent(TImageType *itkImage);

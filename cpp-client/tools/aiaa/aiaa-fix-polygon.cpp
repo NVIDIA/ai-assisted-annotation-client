@@ -33,17 +33,17 @@
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-        "  |-h            (Help) Print this information                                            |\n"
-        "  |-server       Server URI  {default: http://10.110.45.66:5000/v1}                       |\n"
-        "  |-neighbor     NeighborHood Size for propagation {default: 1}                           |\n"
-        " *|-poly         New Polygons Array [[[x,y]+]] Example: [[[70,172,86],...,[125,147,164]]] |\n"
-        " *|-ppoly        Old Polygons Array [[[x,y]+]]                                            |\n"
-        " *|-pindex       Polygon Index which needs to be updated                                  |\n"
-        " *|-vindex       Vertext Index which needs to be updated                                  |\n"
-        " *|-image        Input 2D Slice Image File                                                |\n"
-        " *|-output       Output Image File                                                        |\n"
-        "  |-format       Format Output Json                                                       |\n"
-        "  |-ts           Print API Latency                                                        |\n";
+              "  |-h            (Help) Print this information                                            |\n"
+              "  |-server       Server URI  {default: http://10.110.45.66:5000/v1}                       |\n"
+              "  |-neighbor     NeighborHood Size for propagation {default: 1}                           |\n"
+              " *|-poly         New Polygons Array [[[x,y]+]] Example: [[[70,172,86],...,[125,147,164]]] |\n"
+              " *|-ppoly        Old Polygons Array [[[x,y]+]]                                            |\n"
+              " *|-pindex       Polygon Index which needs to be updated                                  |\n"
+              " *|-vindex       Vertext Index which needs to be updated                                  |\n"
+              " *|-image        Input 2D Slice Image File                                                |\n"
+              " *|-output       Output Image File                                                        |\n"
+              "  |-format       Format Output Json                                                       |\n"
+              "  |-ts           Print API Latency                                                        |\n";
     return 0;
   }
 
@@ -81,11 +81,10 @@ int main(int argc, char **argv) {
 
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri);
-    nvidia::aiaa::Polygons result = client.fixPolygon(p1, p2, neighborhoodSize, polygonIndex, vertexIndex,
-                                                      inputImageFile, outputImageFile);
+    nvidia::aiaa::Polygons result = client.fixPolygon(p1, p2, neighborhoodSize, polygonIndex, vertexIndex, inputImageFile, outputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     std::cout << result.toJson(jsonSpace) << std::endl;
     if (printTs) {

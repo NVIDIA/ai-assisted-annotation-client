@@ -47,22 +47,20 @@
 namespace nvidia {
 namespace aiaa {
 
-const unsigned int DIM3 = 3;
-
 template<typename TPixel, unsigned int VImageDimension>
-typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(
-    itk::Image<TPixel, VImageDimension> *itkImage, typename itk::Image<TPixel, VImageDimension>::SizeType targetSize,
-    bool linearInterpolate) {
+typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils<TPixel, VImageDimension>::resizeImage(
+    itk::Image<TPixel, VImageDimension> *itkImage, typename itk::Image<TPixel, VImageDimension>::SizeType targetSize, bool linearInterpolate) {
+
   auto imageSize = itkImage->GetLargestPossibleRegion().GetSize();
   auto imageSpacing = itkImage->GetSpacing();
 
-  typedef itk::Image<TPixel, VImageDimension> InputImageType;
-  typename InputImageType::SpacingType targetSpacing;
+  typedef itk::Image<TPixel, VImageDimension> ImageType;
+  typename ImageType::SpacingType targetSpacing;
   for (unsigned int i = 0; i < VImageDimension; i++) {
     targetSpacing[i] = imageSpacing[i] * (static_cast<double>(imageSize[i]) / static_cast<double>(targetSize[i]));
   }
 
-  auto filter = itk::ResampleImageFilter<InputImageType, InputImageType>::New();
+  auto filter = itk::ResampleImageFilter<ImageType, ImageType>::New();
   filter->SetInput(itkImage);
 
   filter->SetSize(targetSize);
@@ -72,50 +70,45 @@ typename itk::Image<TPixel, VImageDimension>::Pointer ITKUtils::resizeImage(
   filter->SetOutputDirection(itkImage->GetDirection());
 
   if (linearInterpolate) {
-    filter->SetInterpolator(itk::LinearInterpolateImageFunction<InputImageType, double>::New());
+    filter->SetInterpolator(itk::LinearInterpolateImageFunction<ImageType, double>::New());
   } else {
-    filter->SetInterpolator(itk::NearestNeighborInterpolateImageFunction<InputImageType, double>::New());
+    filter->SetInterpolator(itk::NearestNeighborInterpolateImageFunction<ImageType, double>::New());
   }
 
   filter->UpdateLargestPossibleRegion();
   return filter->GetOutput();
 }
 
-Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName,
-                                     const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
-                                     const std::vector<int>& ROI_SIZE) {
-  AIAA_LOG_DEBUG("Total Points: " << inputPointSet.points.size());
+template<typename TPixel, unsigned int VImageDimension>
+PointSet ITKUtils<TPixel, VImageDimension>::imagePreProcess(const PointSet &pointSet, itk::Image<TPixel, VImageDimension> *itkImage,
+                                                            const std::string &outputImage, ImageInfo &imageInfo, double PAD, const Point& ROI) {
+  AIAA_LOG_DEBUG("Total Points: " << pointSet.points.size());
   AIAA_LOG_DEBUG("PAD: " << PAD);
-  AIAA_LOG_DEBUG("ROI_SIZE: " << ROI_SIZE[0] << " x " << ROI_SIZE[1] << " x " << ROI_SIZE[2]);
+  //AIAA_LOG_DEBUG("ROI: " << ROI);
+
+  AIAA_LOG_DEBUG("Input Image: " << itkImage);
+  AIAA_LOG_DEBUG("Input Image Region: " << itkImage->GetLargestPossibleRegion());
 
   try {
     // Preprocessing (crop and resize)
-    typedef itk::Image<int, DIM3> ImageType;
-
-    // Instantiate ITK filters
-    auto reader = itk::ImageFileReader<ImageType>::New();
-    reader->SetFileName(inputImageName);
-    reader->Update();
-    auto itkImage = reader->GetOutput();
-
-    AIAA_LOG_DEBUG("Reading File completed: " << inputImageName);
-    AIAA_LOG_DEBUG("++++ Input Image: " << itkImage->GetLargestPossibleRegion());
-
+    typedef itk::Image<TPixel, VImageDimension> ImageType;
     typename ImageType::SizeType imageSize = itkImage->GetLargestPossibleRegion().GetSize();
-    typename ImageType::IndexType indexMin = { std::numeric_limits<int>::max(), std::numeric_limits<int>::max(),
-        std::numeric_limits<int>::max() };
-    typename ImageType::IndexType indexMax = { 0, 0, 0 };
+    typename ImageType::IndexType indexMin;
+    typename ImageType::IndexType indexMax;
     typename ImageType::SpacingType spacing = itkImage->GetSpacing();
+    for (unsigned int i = 0; i < VImageDimension; i++) {
+      indexMin[i] = INT_MAX;
+      indexMax[i] = INT_MIN;
+    }
 
     typename ImageType::IndexType index;
     int pointCount = 0;
-    for (auto point : inputPointSet.points) {
+    for (auto point : pointSet.points) {
       pointCount++;
-      for (unsigned int i = 0; i < DIM3; i++) {
+      for (unsigned int i = 0; i < VImageDimension; i++) {
         int vxPad = (int) (spacing[i] > 0 ? (PAD / spacing[i]) : PAD);
         if (pointCount == 1) {
-          AIAA_LOG_DEBUG(
-              "[DIM " << i << "] Padding: " << PAD << "; Spacing: " << spacing[i] << "; VOXEL Padding: " << vxPad);
+          AIAA_LOG_DEBUG("[DIM " << i << "] Padding: " << PAD << "; Spacing: " << spacing[i] << "; VOXEL Padding: " << vxPad);
         }
 
         index[i] = point[i];
@@ -123,8 +116,7 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
         indexMax[i] = std::max(std::min((int) (index[i] + vxPad), (int) (imageSize[i] - 1)), (int) (indexMax[i]));
 
         if (indexMin[i] > indexMax[i]) {
-          AIAA_LOG_ERROR(
-              "Invalid PointSet w.r.t. input Image; [i=" << i << "] MinIndex: " << indexMin[i] << "; MaxIndex: " << indexMax[i]);
+          AIAA_LOG_ERROR("Invalid PointSet w.r.t. input Image; [i=" << i << "] MinIndex: " << indexMin[i] << "; MaxIndex: " << indexMax[i]);
           throw exception(exception::INVALID_ARGS_ERROR, "Invalid PointSet w.r.t. input Image");
         }
       }
@@ -136,7 +128,7 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
     // Extract ROI image
     typename ImageType::IndexType cropIndex;
     typename ImageType::SizeType cropSize;
-    for (int i = 0; i < DIM3; i++) {
+    for (int i = 0; i < VImageDimension; i++) {
       cropIndex[i] = indexMin[i];
       cropSize[i] = indexMax[i] - indexMin[i];
 
@@ -148,7 +140,7 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
     AIAA_LOG_DEBUG("ImageInfo >>>> " << imageInfo.dump());
 
     auto cropFilter = itk::RegionOfInterestImageFilter<ImageType, ImageType>::New();
-    cropFilter->SetInput(reader->GetOutput());
+    cropFilter->SetInput(itkImage);
 
     typename ImageType::RegionType cropRegion(cropIndex, cropSize);
     cropFilter->SetRegionOfInterest(cropRegion);
@@ -157,41 +149,41 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
     auto croppedItkImage = cropFilter->GetOutput();
     AIAA_LOG_DEBUG("++++ Cropped Image: " << croppedItkImage->GetLargestPossibleRegion());
 
-    // Resize to 128x128x128
+    // Resize to 128x128x128x128
     typename ImageType::SizeType roiSize;
-    for (int i = 0; i < DIM3; i++) {
-      roiSize[i] = ROI_SIZE[i];
+    for (int i = 0; i < VImageDimension; i++) {
+      roiSize[i] = ROI[i];
     }
 
-    auto resampledImage = ITKUtils::resizeImage<int, DIM3>(cropFilter->GetOutput(), roiSize, true);
+    auto resampledImage = resizeImage(cropFilter->GetOutput(), roiSize, true);
     AIAA_LOG_DEBUG("ResampledImage completed");
 
     // Adjust extreme points index to cropped and resized image
-    Point3DSet pointSetROI;
-    for (auto p : inputPointSet.points) {
-      for (int i = 0; i < DIM3; i++) {
+    PointSet pointSetROI;
+    for (auto p : pointSet.points) {
+      for (int i = 0; i < VImageDimension; i++) {
         index[i] = p[i];
       }
 
       // First convert to world coordinates within original image
       // Then convert back to index within resized image
       typename ImageType::PointType point;
-      reader->GetOutput()->TransformIndexToPhysicalPoint(index, point);
+      itkImage->TransformIndexToPhysicalPoint(index, point);
       resampledImage->TransformPhysicalPointToIndex(point, index);
 
-      Point3DSet::Point3D pointROI;
-      for (int i = 0; i < DIM3; i++) {
+      Point pointROI;
+      for (int i = 0; i < VImageDimension; i++) {
         pointROI.push_back(index[i]);
       }
       pointSetROI.points.push_back(pointROI);
     }
 
-    AIAA_LOG_DEBUG("pointSetROI: " << pointSetROI.toJson());
+    AIAA_LOG_DEBUG("PointSetROI: " << pointSetROI.toJson());
 
     // Write the ROI image out to temp folder
     auto writer = itk::ImageFileWriter<ImageType>::New();
     writer->SetInput(resampledImage);
-    writer->SetFileName(outputImageName);
+    writer->SetFileName(outputImage);
     writer->Update();
 
     return pointSetROI;
@@ -201,10 +193,29 @@ Point3DSet ITKUtils::imagePreProcess(const Point3DSet &inputPointSet, const std:
   }
 }
 
-void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::string &outputImageName,
-                                const Image3DInfo &imageInfo) {
+template<typename TPixel, unsigned int VImageDimension>
+PointSet ITKUtils<TPixel, VImageDimension>::imagePreProcess(const PointSet &inputPointSet, const std::string &inputImageName,
+                                                            const std::string &outputImageName, ImageInfo &imageInfo, double PAD, const Point& ROI) {
+  // Preprocessing (crop and resize)
+  typedef itk::Image<TPixel, VImageDimension> ImageType;
+
+  // Instantiate ITK filters
+  auto reader = itk::ImageFileReader<ImageType>::New();
+  reader->SetFileName(inputImageName);
+  reader->Update();
+  auto itkImage = reader->GetOutput();
+
+  AIAA_LOG_DEBUG("Reading File completed: " << inputImageName);
+  AIAA_LOG_DEBUG("++++ Input Image: " << itkImage->GetLargestPossibleRegion());
+
+  return imagePreProcess(inputPointSet, itkImage, outputImageName, imageInfo, PAD, ROI);
+}
+
+template<typename TPixel, unsigned int VImageDimension>
+void ITKUtils<TPixel, VImageDimension>::imagePostProcess(const std::string &inputImageName, const std::string &outputImageName,
+                                                         const ImageInfo &imageInfo) {
   try {
-    typedef itk::Image<unsigned char, DIM3> ImageType;
+    typedef itk::Image<TPixel, VImageDimension> ImageType;
 
     // Instantiate ITK filters
     auto reader = itk::ImageFileReader<ImageType>::New();
@@ -217,19 +228,19 @@ void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::st
     // Reverse the resize and crop operation for result image
     // Reverse the resizing by resizing
     typename ImageType::SizeType recoverSize;
-    for (unsigned int i = 0; i < DIM3; i++) {
+    for (unsigned int i = 0; i < VImageDimension; i++) {
       recoverSize[i] = imageInfo.cropSize[i];
     }
 
     AIAA_LOG_DEBUG("Recover resizing... ");
     typename ImageType::Pointer segLocalResizeImage;
-    segLocalResizeImage = ITKUtils::resizeImage<ImageType::PixelType, DIM3>(segLocalImage, recoverSize, false);
+    segLocalResizeImage = resizeImage(segLocalImage, recoverSize, false);
 
     // Reverse the cropping by adding proper padding
     typename ImageType::Pointer segRecoverImage = ImageType::New();
     typename ImageType::SizeType padLowerBound;
     typename ImageType::SizeType padUpperBound;
-    for (unsigned int i = 0; i < DIM3; i++) {
+    for (unsigned int i = 0; i < VImageDimension; i++) {
       padLowerBound[i] = imageInfo.cropIndex[i];
       padUpperBound[i] = imageInfo.imageSize[i] - imageInfo.cropSize[i] - imageInfo.cropIndex[i];
     }
@@ -258,6 +269,37 @@ void ITKUtils::imagePostProcess(const std::string &inputImageName, const std::st
     throw exception(exception::ITK_PROCESS_ERROR, e.what());
   }
 }
+
+template class ITKUtils<char, 2> ;
+template class ITKUtils<char, 3> ;
+template class ITKUtils<char, 4> ;
+template class ITKUtils<unsigned char, 2> ;
+template class ITKUtils<unsigned char, 3> ;
+template class ITKUtils<unsigned char, 4> ;
+template class ITKUtils<short, 2> ;
+template class ITKUtils<short, 3> ;
+template class ITKUtils<short, 4> ;
+template class ITKUtils<unsigned short, 2> ;
+template class ITKUtils<unsigned short, 3> ;
+template class ITKUtils<unsigned short, 4> ;
+template class ITKUtils<int, 2> ;
+template class ITKUtils<int, 3> ;
+template class ITKUtils<int, 4> ;
+template class ITKUtils<unsigned int, 2> ;
+template class ITKUtils<unsigned int, 3> ;
+template class ITKUtils<unsigned int, 4> ;
+template class ITKUtils<long, 2> ;
+template class ITKUtils<long, 3> ;
+template class ITKUtils<long, 4> ;
+template class ITKUtils<unsigned long, 2> ;
+template class ITKUtils<unsigned long, 3> ;
+template class ITKUtils<unsigned long, 4> ;
+template class ITKUtils<float, 2> ;
+template class ITKUtils<float, 3> ;
+template class ITKUtils<float, 4> ;
+template class ITKUtils<double, 2> ;
+template class ITKUtils<double, 3> ;
+template class ITKUtils<double, 4> ;
 
 }
 }

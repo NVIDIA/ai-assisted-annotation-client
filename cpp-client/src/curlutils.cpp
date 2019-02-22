@@ -77,8 +77,7 @@ std::string CurlUtils::doGet(const std::string &uri) {
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
 
-    AIAA_LOG_DEBUG(
-        "Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
+    AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
     Poco::StreamCopier::copyStream(is, response);
 
     AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
@@ -122,8 +121,7 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
 
-    AIAA_LOG_DEBUG(
-        "Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
+    AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
     Poco::StreamCopier::copyStream(is, response);
 
     AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
@@ -168,8 +166,7 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
 
-    AIAA_LOG_DEBUG(
-        "Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
+    AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
     std::stringstream response;
     Poco::StreamCopier::copyStream(is, response);
 
@@ -188,8 +185,7 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
       bool isText = true;
       for (auto it = h.begin(); it != h.end(); it++) {
         AIAA_LOG_DEBUG("PART-" << i << ":: Header >>>> " << it->first << ": " << it->second);
-        if (it->second.find("filename=\"") != std::string::npos
-            || it->second.find("octet-stream") != std::string::npos) {
+        if (it->second.find("filename=\"") != std::string::npos || it->second.find("octet-stream") != std::string::npos) {
           isText = false;
         }
       }

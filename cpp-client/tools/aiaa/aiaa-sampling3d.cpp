@@ -35,16 +35,18 @@
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-        "  |-h        (Help) Print this information                                                |\n"
-        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
-        "  |-label    Input Label Name (Use fetch roi, padding from Model)                         |\n"
-        " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
-        "  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
-        "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
-        "  |-format   Format Output Json                                                           |\n"
-        " *|-image    Input Image File                                                             |\n"
-        " *|-output   Output Image File                                                            |\n"
-        "  |-ts       Print API Latency                                                            |\n";
+              "  |-h        (Help) Print this information                                                |\n"
+              "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+              "  |-label    Input Label Name (Use fetch roi, padding from Model)                         |\n"
+              " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
+              "  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
+              "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
+              "  |-format   Format Output Json                                                           |\n"
+              " *|-image    Input Image File                                                             |\n"
+              "  |-pixel    Input Image Pixel Type {default: short}                                      |\n"
+              "  |-dim      Input Image Dimension {default: 3}                                           |\n"
+              " *|-output   Output Image File                                                            |\n"
+              "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
@@ -54,6 +56,8 @@ int main(int argc, char **argv) {
   double pad = ::atof(getCmdOption(argv, argv + argc, "-pad", "20.0").c_str());
   std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
+  int dim = ::atoi(getCmdOption(argv, argv + argc, "-dim", "3").c_str());
+  nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(getCmdOption(argv, argv + argc, "-pixel", "unsigned short"));
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
@@ -72,7 +76,7 @@ int main(int argc, char **argv) {
   }
 
   try {
-    nvidia::aiaa::Point3DSet pointSet = nvidia::aiaa::Point3DSet::fromJson(points);
+    nvidia::aiaa::PointSet pointSet = nvidia::aiaa::PointSet::fromJson(points);
     nvidia::aiaa::Client client(serverUri);
     nvidia::aiaa::Model m;
     if (!label.empty()) {
@@ -81,23 +85,18 @@ int main(int argc, char **argv) {
 
     int ret = 0;
     if (cmdOptionExists(argv, argv + argc, "-roi")) {
-      int xyz[3];
-      nvidia::aiaa::Utils::stringToPoint3D(roi, 'x', xyz);
-      m.roi[0] = xyz[0];
-      m.roi[1] = xyz[1];
-      m.roi[2] = xyz[2];
+      m.roi = nvidia::aiaa::Utils::stringToPoint(roi, 'x');
     }
     if (cmdOptionExists(argv, argv + argc, "-pad")) {
       m.padding = pad;
     }
 
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::Image3DInfo imageInfo;
-    nvidia::aiaa::Point3DSet resultPointSet = client.sampling3d(m, pointSet, inputImageFile, outputImageFile,
-                                                                imageInfo);
+    nvidia::aiaa::ImageInfo imageInfo;
+    nvidia::aiaa::PointSet resultPointSet = client.sampling(m, pointSet, inputImageFile, pixelType, dim, outputImageFile, imageInfo);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     std::cout << "Result PointSet: " << resultPointSet.toJson(jsonSpace) << std::endl;
     std::cout << "Result ImageInfo: " << imageInfo.dump() << std::endl;

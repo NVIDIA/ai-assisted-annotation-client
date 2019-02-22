@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include <gdcmGlobal.h>
 
+#pragma warning(push, 0)
+
 //The program converts Dicom series to Nifti format with capability of multiple series read and get patient name as output  
 void trimTrailing(char * str) {
   int index, i;
@@ -59,9 +61,7 @@ void trimTrailing(char * str) {
 int main(int argc, char * argv[]) {
   if (argc < 4) {
     std::cerr << "Usage: " << std::endl;
-    std::cerr << argv[0]
-        << " <DicomDirectory> <outputFileName> <Head Option> (Head Options 0:specified; 1:head with pid+date)"
-        << std::endl;
+    std::cerr << argv[0] << " <DicomDirectory> <outputFileName> <Head Option> (Head Options 0:specified; 1:head with pid+date)" << std::endl;
     return EXIT_FAILURE;
   }
 
@@ -178,3 +178,5 @@ int main(int argc, char * argv[]) {
 
   return EXIT_SUCCESS;
 }
+
+#pragma warning(pop)

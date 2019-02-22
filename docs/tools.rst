@@ -76,6 +76,7 @@ Following are the options available
    -model,Model Name,,-model Dextr3DLiver
    -points,"JSON Array of 3D Points (Image Indices) in [[x,y,z]+] format",,"-points [[70,172,86],...,[105,161,180]]"
    -image,Input image filename where image is stored in 3D format,,-image image.nii.gz
+   -pixel,Input Image Pixel Type,short,short, unsigned int etc..
    -output,File name to store 3D binary mask image result from AIAA server,,-output result.nii.gz
    -pad,Padding size for input Image,20,-pad 20
    -roi,ROI Image size in XxYxZ format which is used while training the AIAA Model,128x128x128,-roi 96x96x96

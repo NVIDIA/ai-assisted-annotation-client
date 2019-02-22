@@ -54,7 +54,7 @@ std::string Utils::tempfilename() {
 }
 
 std::vector<std::string> Utils::split(const std::string &str, char delim) {
-  std::vector < std::string > strings;
+  std::vector<std::string> strings;
   std::istringstream f(str);
 
   std::string s;
@@ -64,15 +64,14 @@ std::vector<std::string> Utils::split(const std::string &str, char delim) {
   return strings;
 }
 
-void Utils::stringToPoint3D(const std::string &str, char delim, int point3D[3]) {
-  std::vector < std::string > xyz = split(str, delim);
-  int x = xyz.size() > 0 ? atoi(xyz[0].c_str()) : 0;
-  int y = xyz.size() > 1 ? atoi(xyz[1].c_str()) : x;
-  int z = xyz.size() > 2 ? atoi(xyz[2].c_str()) : y;
+Point Utils::stringToPoint(const std::string &str, char delim) {
+  std::vector<std::string> pstr = split(str, delim);
+  Point point;
 
-  point3D[0] = x;
-  point3D[1] = y;
-  point3D[2] = z;
+  for (size_t i = 0; i < pstr.size(); i++) {
+    point.push_back(atoi(pstr[i].c_str()));
+  }
+  return point;
 }
 
 }

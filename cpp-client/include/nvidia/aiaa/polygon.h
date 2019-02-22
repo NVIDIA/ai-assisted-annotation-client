@@ -52,7 +52,7 @@ struct AIAA_CLIENT_API Polygons {
   /// Type Definition for Polygon
   typedef std::vector<Point> Polygon;
 
-  /// Array of 2D Points to represent [[x,y]+]
+  /// Array of 2D/3D/4D Points to represent [[x,y,z,w]+]
   std::vector<Polygon> polys;
 
   /// Checks if polys is empty

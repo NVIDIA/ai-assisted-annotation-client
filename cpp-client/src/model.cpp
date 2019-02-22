@@ -43,7 +43,7 @@ const int DEFAULT_ROI = 128;
 Model::Model() {
   sigma = DEFAULT_SIGMA;
   padding = DEFAULT_PADDING;
-  roi = {DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI};
+  roi = {DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI};  // support up-to 4-Dimension
 }
 
 // {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0}
@@ -55,8 +55,7 @@ Model Model::fromJson(const std::string &json) {
     Model model;
     model.name = j["name"].get<std::string>();
     model.internal_name = j["internal name"].get<std::string>();
-    model.description =
-        j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
+    model.description = j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
     // TODO:: Ask server to correct the spelling for description
 
     for (auto e : j["labels"]) {
@@ -75,7 +74,8 @@ Model Model::fromJson(const std::string &json) {
     if (model.roi.empty()) {
       model.roi.push_back(DEFAULT_ROI);
     }
-    while (model.roi.size() < 3) {
+    // Support up-to 4-Dimension
+    while (model.roi.size() < 4) {
       model.roi.push_back(model.roi[model.roi.size() - 1]);
     }
 
@@ -142,7 +142,7 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
   // Exact Match (first preference)
   for (auto model : models) {
     for (auto label : model.labels) {
-      AIAA_LOG_DEBUG("Exact Match: " << label << " and " << labelName);
+      AIAA_LOG_DEBUG("Exact Match: [" << label << "] vs [" << labelName << "]");
       if (Utils::iequals(labelName, label)) {
         return model;
       }
@@ -154,7 +154,7 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
   for (auto model : models) {
     for (auto label : model.labels) {
       std::string l2 = Utils::to_lower(label);
-      AIAA_LOG_DEBUG("Prefix Match: " << l2 << " and " << labelName);
+      AIAA_LOG_DEBUG("Exact Match: [" << l2 << "] vs [" << l1 << "]");
       if (l1.find(l2) != std::string::npos || l2.find(l1) != std::string::npos) {
         return model;
       }

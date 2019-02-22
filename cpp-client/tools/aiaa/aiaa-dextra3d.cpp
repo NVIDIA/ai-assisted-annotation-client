@@ -35,17 +35,18 @@
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-        "  |-h        (Help) Print this information                                                |\n"
-        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
-        " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
-        " *|-model    Model Name        [either -label or -model is required]                      |\n"
-        " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
-        "  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
-        "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
-        "  |-sigma    Sigma Value for inference {default: 3.0}                                     |\n"
-        " *|-image    Input Image File                                                             |\n"
-        " *|-output   Output Image File                                                            |\n"
-        "  |-ts       Print API Latency                                                            |\n";
+              "  |-h        (Help) Print this information                                                |\n"
+              "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+              " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
+              " *|-model    Model Name        [either -label or -model is required]                      |\n"
+              " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
+              "  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
+              "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
+              "  |-sigma    Sigma Value for inference {default: 3.0}                                     |\n"
+              " *|-image    Input Image File                                                             |\n"
+              "  |-pixel    Input Image Pixel Type {default: short}                                      |\n"
+              " *|-output   Output Image File                                                            |\n"
+              "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
@@ -57,6 +58,7 @@ int main(int argc, char **argv) {
   std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
   double sigma = ::atof(getCmdOption(argv, argv + argc, "-sigma", "3.0").c_str());
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
+  nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(getCmdOption(argv, argv + argc, "-pixel", "unsigned short"));
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
@@ -78,43 +80,31 @@ int main(int argc, char **argv) {
   }
 
   try {
-    nvidia::aiaa::Point3DSet pointSet = nvidia::aiaa::Point3DSet::fromJson(points);
+    nvidia::aiaa::PointSet pointSet = nvidia::aiaa::PointSet::fromJson(points);
     nvidia::aiaa::Client client(serverUri);
 
+    nvidia::aiaa::ModelList models = client.models();
+    nvidia::aiaa::Model m = models.getMatchingModel(label);
+
+    // overrides
     if (!model.empty()) {
-      nvidia::aiaa::Model m;
       m.name = model;
+    }
+    if (cmdOptionExists(argv, argv + argc, "-pad")) {
       m.padding = pad;
+    }
+    if (cmdOptionExists(argv, argv + argc, "-sigma")) {
       m.sigma = sigma;
-
-      int xyz[3];
-      nvidia::aiaa::Utils::stringToPoint3D(roi, 'x', xyz);
-      m.roi[0] = xyz[0];
-      m.roi[1] = xyz[1];
-      m.roi[2] = xyz[2];
-
-      auto begin = std::chrono::high_resolution_clock::now();
-      int ret = client.dextr3d(m, pointSet, inputImageFile, outputImageFile);
-
-      auto end = std::chrono::high_resolution_clock::now();
-      auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
-
-      if (printTs) {
-        std::cout << "API Latency (in milli sec): " << ms << std::endl;
-      }
-      return ret;
+    }
+    if (cmdOptionExists(argv, argv + argc, "-roi")) {
+      m.roi = nvidia::aiaa::Utils::stringToPoint(roi, 'x');
     }
 
-    int ret = 0;
     auto begin = std::chrono::high_resolution_clock::now();
-    if (cmdOptionExists(argv, argv + argc, "-roi") || cmdOptionExists(argv, argv + argc, "-pad")) {
-      ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile, pad, roi, sigma);
-    } else {
-      ret = client.dextr3d(label, pointSet, inputImageFile, outputImageFile);
-    }
+    int ret = client.dextr3D(m, pointSet, inputImageFile, pixelType, outputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
     if (printTs) {

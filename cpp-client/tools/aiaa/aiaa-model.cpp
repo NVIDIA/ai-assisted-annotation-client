@@ -33,12 +33,12 @@
 int main(int argc, char **argv) {
   if (cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-        "  |-h        (Help) Print this information                                                |\n"
-        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
-        "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
-        "  |-output   Output File Name to store result                                             |\n"
-        "  |-format   Format Output Json                                                           |\n"
-        "  |-ts       Print API Latency                                                            |\n";
+              "  |-h        (Help) Print this information                                                |\n"
+              "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+              "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
+              "  |-output   Output File Name to store result                                             |\n"
+              "  |-format   Format Output Json                                                           |\n"
+              "  |-ts       Print API Latency                                                            |\n";
 
     return 0;
   }
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
     nvidia::aiaa::ModelList modelList = client.models();
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     if (!label.empty()) {
       nvidia::aiaa::Model model = modelList.getMatchingModel(label);

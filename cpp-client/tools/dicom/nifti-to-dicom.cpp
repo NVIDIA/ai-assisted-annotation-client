@@ -42,6 +42,8 @@
 #include <iostream>
 #include <string>
 
+#pragma warning(push, 0)
+
 static void CopyDictionary(itk::MetaDataDictionary &fromDict, itk::MetaDataDictionary &toDict);
 
 int main(int argc, char* argv[]) {
@@ -185,3 +187,5 @@ void CopyDictionary(itk::MetaDataDictionary &fromDict, itk::MetaDataDictionary &
     ++itr;
   }
 }
+
+#pragma warning(pop)

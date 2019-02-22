@@ -30,6 +30,7 @@
 
 #include <mitkImageAccessByItk.h>
 #include <mitkImageCast.h>
+#include <mitkProgressBar.h>
 #include <mitkToolManager.h>
 #include <usGetModuleContext.h>
 #include <usModuleResource.h>
@@ -44,6 +45,19 @@
 #include <chrono>
 
 MITK_TOOL_MACRO(MITKNVIDIAAIAAMODULE_EXPORT, NvidiaDextrSegTool3D, "NVIDIA Segmentation tool");
+
+#define LATENCY_INIT_API_CALL() \
+    auto api_start_time = std::chrono::high_resolution_clock::now(); \
+    auto api_end_time = std::chrono::high_resolution_clock::now(); \
+    auto api_latency_ms = std::chrono::duration_cast < std::chrono::milliseconds > (api_end_time - api_start_time).count();
+
+#define LATENCY_START_API_CALL() \
+    api_start_time = std::chrono::high_resolution_clock::now(); \
+
+#define LATENCY_END_API_CALL(api) \
+    api_end_time = std::chrono::high_resolution_clock::now(); \
+    api_latency_ms = std::chrono::duration_cast < std::chrono::milliseconds > (api_end_time - api_start_time).count(); \
+    MITK_INFO("nvidia") << "API Latency for aiaa::client::" << api << "() = " << api_latency_ms << " milli sec"; \
 
 NvidiaDextrSegTool3D::NvidiaDextrSegTool3D() {
   m_PointSet = mitk::PointSet::New();
@@ -115,9 +129,9 @@ void NvidiaDextrSegTool3D::ConfirmPoints() {
   if (m_ToolManager->GetWorkingData(0)->GetData()) {
     mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData());
     if (image) {
-      if (m_PointSet->GetSize() < nvidia::aiaa::Client::MIN_POINTS_FOR_DEXTR3D) {
+      if (m_PointSet->GetSize() < nvidia::aiaa::Client::MIN_POINTS_FOR_SEGMENTATION) {
         Tool::GeneralMessage(
-            "Please set at least '" + std::to_string(nvidia::aiaa::Client::MIN_POINTS_FOR_DEXTR3D)
+            "Please set at least '" + std::to_string(nvidia::aiaa::Client::MIN_POINTS_FOR_SEGMENTATION)
                 + "' seed points in the image first (hold Shift key and click left mouse button on the image)");
         return;
       }
@@ -128,10 +142,10 @@ void NvidiaDextrSegTool3D::ConfirmPoints() {
 }
 
 template<typename TPixel, unsigned int VImageDimension>
-nvidia::aiaa::Point3DSet NvidiaDextrSegTool3D::getPoint3DSet(mitk::BaseGeometry *imageGeometry) {
+nvidia::aiaa::PointSet NvidiaDextrSegTool3D::getPointSet(mitk::BaseGeometry *imageGeometry) {
   using ImageType = itk::Image<TPixel, VImageDimension>;
 
-  nvidia::aiaa::Point3DSet point3DSet;
+  nvidia::aiaa::PointSet pointSet;
   auto points = m_PointSet->GetPointSet()->GetPoints();
   for (auto pointsIterator = points->Begin(); pointsIterator != points->End(); ++pointsIterator) {
     if (!imageGeometry->IsInside(pointsIterator.Value())) {
@@ -141,68 +155,85 @@ nvidia::aiaa::Point3DSet NvidiaDextrSegTool3D::getPoint3DSet(mitk::BaseGeometry 
     typename ImageType::IndexType index;
     imageGeometry->WorldToIndex(pointsIterator.Value(), index);
 
-    nvidia::aiaa::Point3DSet::Point3D point3D;
+    nvidia::aiaa::Point point;
     for (unsigned int i = 0; i < VImageDimension; i++) {
-      point3D.push_back(index[i]);
+      point.push_back(index[i]);
     }
-    point3DSet.points.push_back(point3D);
+    pointSet.points.push_back(point);
   }
-  return point3DSet;
+  return pointSet;
 }
 
 template<typename TPixel, unsigned int VImageDimension>
-void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage,
-                                                  mitk::BaseGeometry *imageGeometry) {
-  using ImageType = itk::Image<TPixel, VImageDimension>;
-  using WriterType = itk::ImageFileWriter<ImageType>;
+void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry) {
+  if (VImageDimension != 3) {
+    Tool::GeneralMessage("Currently 3D Images are only supported for Nvidia Segmentation");
+    return;
+  }
 
-  nvidia::aiaa::Point3DSet point3DSet = getPoint3DSet<TPixel, VImageDimension>(imageGeometry);
-  MITK_INFO("nvidia") << "Point3DSet: " << point3DSet.toJson();
+  MITK_INFO("nvidia") << "++++++++ Nvidia Segmentation begins";
+
+  using ImageType = itk::Image<TPixel, VImageDimension>;
+  nvidia::aiaa::PointSet pointSet = getPointSet<TPixel, VImageDimension>(imageGeometry);
+  MITK_INFO("nvidia") << "PointSet: " << pointSet.toJson();
 
   // Collect information for working segmentation label
   auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
   std::string labelName = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetName();
-  MITK_INFO("nvidia") << "Organ name: " << labelName;
-
-  // Save current Image to Temp
-  std::string tmpImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
-  typename WriterType::Pointer writer = WriterType::New();
-  writer->SetFileName(tmpImageFileName);
-  writer->SetInput(itkImage);
-  writer->Update();
-  MITK_INFO("nvidia") << "Input Image: " << tmpImageFileName;
-
-  std::string tmpSampleImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
-  MITK_INFO("nvidia") << "Sample Image: " << tmpSampleImageFileName;
-
+  std::string tmpSampleFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
   std::string tmpResultFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
-  MITK_INFO("nvidia") << "Output Image: " << tmpResultFileName;
 
-  std::string aiaaServerUri = m_AIAAServerUri;
-  if (aiaaServerUri.empty()) {
+  MITK_INFO("nvidia") << "Organ name: " << labelName;
+  MITK_INFO("nvidia") << "Sample Image: " << tmpSampleFileName;
+  MITK_INFO("nvidia") << "Output Image: " << tmpResultFileName;
+  MITK_INFO("nvidia") << "aiaa::server URI >>> " << m_AIAAServerUri;
+
+  if (m_AIAAServerUri.empty()) {
     Tool::GeneralMessage("aiaa::server URI is not set");
     return;
   }
-  MITK_INFO("nvidia") << "aiaa::server URI >>> " << aiaaServerUri;
 
-  // Call AIAA segmentationDEXTR3D
+  // Call AIAA segmentation DEXTR3D
+  int totalSteps = 4;
+  int currentSteps = 0;
+  mitk::ProgressBar::GetInstance()->AddStepsToDo(totalSteps);
   try {
-    nvidia::aiaa::Client client(aiaaServerUri);
-    auto begin = std::chrono::high_resolution_clock::now();
+    LATENCY_INIT_API_CALL()
+    nvidia::aiaa::Client client(m_AIAAServerUri);
+
+    LATENCY_START_API_CALL()
     nvidia::aiaa::ModelList models = client.models();
-    MITK_INFO("nvidia") << "aiaa::models (Supported Models): " << models.toJson();
-
     nvidia::aiaa::Model model = models.getMatchingModel(labelName);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
-    MITK_INFO("nvidia") << "API Latency for aiaa::client::model() = " << ms << " milli sec";
 
+    currentSteps++;
+    mitk::ProgressBar::GetInstance()->Progress(1);
+    LATENCY_END_API_CALL("models")
+    MITK_INFO("nvidia") << "aiaa::models (Supported Models): " << models.toJson();
     MITK_INFO("nvidia") << "AIAA Selected Model for [" << labelName << "]: " << model.toJson();
 
-    int ret = client.dextr3d(model, point3DSet, tmpImageFileName, tmpResultFileName);
-    end = std::chrono::high_resolution_clock::now();
-    ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
-    MITK_INFO("nvidia") << "API Latency for aiaa::client::dextr3d() = " << ms << " milli sec";
+    // Do Sampling
+    nvidia::aiaa::ImageInfo imageInfo;
+    MITK_INFO("nvidia") << "++++ typeid(TPixel): " << typeid(TPixel).name() << std::endl;
+    MITK_INFO("nvidia") << "++++ VImageDimension: " << VImageDimension << std::endl;
+
+    void* inputImage = itkImage;
+    nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(typeid(TPixel).name());
+
+    LATENCY_START_API_CALL()
+    nvidia::aiaa::PointSet pointSetROI = client.sampling(model, pointSet, inputImage, pixelType, VImageDimension, tmpSampleFileName, imageInfo);
+
+    currentSteps++;
+    mitk::ProgressBar::GetInstance()->Progress(1);
+    LATENCY_END_API_CALL("sampling")
+    MITK_INFO("nvidia") << "PointSetROI (sampled): " << pointSetROI.toJson();
+
+    // Call Inference
+    LATENCY_START_API_CALL()
+    int ret = client.segmentation(model, pointSetROI, tmpSampleFileName, VImageDimension, tmpResultFileName, imageInfo);
+
+    currentSteps++;
+    mitk::ProgressBar::GetInstance()->Progress(1);
+    LATENCY_END_API_CALL("segmentation")
 
     if (ret) {
       Tool::GeneralMessage("Failed to execute segmentation on Nvidia AIAA Server");
@@ -210,21 +241,19 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
       MITK_INFO("nvidia") << "aiaa::dextr3d SUCCESSFUL";
 
       // Generate Sample Image for adding bounding box
-      nvidia::aiaa::Image3DInfo imageInfo;
-      client.sampling3d(model, point3DSet, tmpImageFileName, tmpSampleImageFileName, imageInfo);
-
-      boundingBoxRender<TPixel, VImageDimension>(tmpSampleImageFileName, labelName);
+      boundingBoxRender<TPixel, VImageDimension>(tmpSampleFileName, labelName);
       displayResult<TPixel, VImageDimension>(tmpResultFileName);
-      MITK_INFO("nvidia") << "Added Bounding Box for sampled 3D Image";
+      MITK_INFO("nvidia") << "Added Bounding Box for sampled Image";
     }
   } catch (nvidia::aiaa::exception &e) {
     std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
     Tool::GeneralMessage("Failed to execute 'dextr3d' on Nvidia AIAA Server\n\n" + msg);
   }
 
-  std::remove(tmpImageFileName.c_str());
-  std::remove(tmpSampleImageFileName.c_str());
+  std::remove(tmpSampleFileName.c_str());
   std::remove(tmpResultFileName.c_str());
+  mitk::ProgressBar::GetInstance()->Progress(totalSteps - currentSteps);
+  MITK_INFO("nvidia") << "++++++++ Nvidia Segmentation ends";
 }
 
 template<class TImageType>
@@ -238,13 +267,11 @@ typename TImageType::Pointer NvidiaDextrSegTool3D::getLargestConnectedComponent(
   MITK_INFO("nvidia") << "Number of objects: " << connected->GetObjectCount();
 
   typedef itk::LabelShapeKeepNObjectsImageFilter<TImageType> LabelShapeKeepNObjectsImageFilterType;
-  typename LabelShapeKeepNObjectsImageFilterType::Pointer labelShapeKeepNObjectsImageFilter =
-      LabelShapeKeepNObjectsImageFilterType::New();
+  typename LabelShapeKeepNObjectsImageFilterType::Pointer labelShapeKeepNObjectsImageFilter = LabelShapeKeepNObjectsImageFilterType::New();
   labelShapeKeepNObjectsImageFilter->SetInput(connected->GetOutput());
   labelShapeKeepNObjectsImageFilter->SetBackgroundValue(0);
   labelShapeKeepNObjectsImageFilter->SetNumberOfObjects(1);
-  labelShapeKeepNObjectsImageFilter->SetAttribute(
-      LabelShapeKeepNObjectsImageFilterType::LabelObjectType::NUMBER_OF_PIXELS);
+  labelShapeKeepNObjectsImageFilter->SetAttribute(LabelShapeKeepNObjectsImageFilterType::LabelObjectType::NUMBER_OF_PIXELS);
   labelShapeKeepNObjectsImageFilter->Update();
 
   return labelShapeKeepNObjectsImageFilter->GetOutput();

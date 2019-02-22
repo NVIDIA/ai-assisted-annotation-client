@@ -170,8 +170,7 @@ std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
   double curLevel = 0;
   double curWindow = 0;
   if (lw->LoadPreset()) {
-    mitk::LabelSetImage::Pointer labelSetImageTemp = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(
-        0)->GetData());
+    mitk::LabelSetImage::Pointer labelSetImageTemp = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
     std::string organName = labelSetImageTemp->GetActiveLabel(labelSetImageTemp->GetActiveLayer())->GetName();
     curLevel = lw->getLevel(organName);
     curWindow = lw->getWindow(organName);
@@ -309,11 +308,11 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
 
   try {
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::Polygons polygonsUpdated = client.fixPolygon(polygonsNew, polygonsOld, m_NeighborhoodSize, polyIndex,
-                                                               vertexIndex, tmpImage2DFileName, outputImageFile);
+    nvidia::aiaa::Polygons polygonsUpdated = client.fixPolygon(polygonsNew, polygonsOld, m_NeighborhoodSize, polyIndex, vertexIndex,
+                                                               tmpImage2DFileName, outputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     MITK_INFO("nvidia") << "API Latency for aiaa::client::fixPolygon() = " << ms << " milli sec";
 
     MITK_INFO("nvidia") << "aiaa::fixPolygon (Updated Polygons): " << polygonsUpdated.toJson();
@@ -363,13 +362,13 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
   try {
     int pointRatio = 10;
-    m_polygonsList = client.mask2Polygon(pointRatio, tmpImageFileName);
+    m_polygonsList = client.maskToPolygon(pointRatio, tmpImageFileName);
     if (m_FlipPoly) {
       m_polygonsList.flipXY();
     }
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
     MITK_INFO("nvidia") << "API Latency for aiaa::client::mask2Polygon() = " << ms << " milli sec";
 
     MITK_INFO("nvidia") << "aiaa::mask2Polygon: " << m_polygonsList.toJson();
@@ -400,7 +399,7 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
   }
 
   // Remove existing Polygon_x for the current slice
-  std::set < std::string > polygonNames1To100;
+  std::set<std::string> polygonNames1To100;
   for (int i = 0; i < 100; i++) {
     polygonNames1To100.insert("Polygon_" + std::to_string(i));
   }

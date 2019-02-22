@@ -29,19 +29,35 @@
 #include "../include/nvidia/aiaa/imageinfo.h"
 
 #include <sstream>
+#include <map>
 
 namespace nvidia {
 namespace aiaa {
 
-std::string Image3DInfo::dump() {
+bool ImageInfo::empty() const {
+  return imageSize[0] == 0 && imageSize[1] == 0 && imageSize[2] == 0 && imageSize[3] == 0;
+}
+
+std::string ImageInfo::dump() {
   std::stringstream ss;
   ss << "{";
-  ss << "\"imageSize\": [" << imageSize[0] << "," << imageSize[1] << "," << imageSize[2] << "], ";
-  ss << "\"cropSize\": [" << cropSize[0] << "," << cropSize[1] << "," << cropSize[2] << "], ";
-  ss << "\"cropIndex\": [" << cropIndex[0] << "," << cropIndex[1] << "," << cropIndex[2] << "]";
+  ss << "\"imageSize\": [" << imageSize[0] << "," << imageSize[1] << "," << imageSize[2] << "," << imageSize[3] << "], ";
+  ss << "\"cropSize\": [" << cropSize[0] << "," << cropSize[1] << "," << cropSize[2] << "," << cropSize[3] << "], ";
+  ss << "\"cropIndex\": [" << cropIndex[0] << "," << cropIndex[1] << "," << cropIndex[2] << "," << cropIndex[3] << "]";
   ss << "}";
 
   return ss.str();
+}
+
+Pixel::Type getPixelType(const std::string &type) {
+  static std::map<std::string, Pixel::Type> PIXEL_TYPES = { { "char", Pixel::CHAR }, { "unsigned char", Pixel::UCHAR }, { "short", Pixel::SHORT }, {
+      "unsigned short", Pixel::USHORT }, { "int", Pixel::INT }, { "unsigned int", Pixel::UINT }, { "long", Pixel::ULONG }, { "unsigned long",
+      Pixel::ULONG }, { "float", Pixel::FLOAT }, { "double", Pixel::DOUBLE } };
+  auto it = PIXEL_TYPES.find(type);
+  if (it == PIXEL_TYPES.end()) {
+    return Pixel::UNKNOWN;
+  }
+  return it->second;
 }
 
 }

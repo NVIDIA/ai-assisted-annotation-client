@@ -37,19 +37,56 @@
 namespace nvidia {
 namespace aiaa {
 
+template<typename TPixel, unsigned int VImageDimension>
 class ITKUtils {
  public:
-  template<typename TPixel, unsigned int VImageDimension>
-  static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(
-      itk::Image<TPixel, VImageDimension> *itkImage, typename itk::Image<TPixel, VImageDimension>::SizeType targetSize,
-      bool linearInterpolate);
+  /// Pre Process wrt input image
+  static PointSet imagePreProcess(const PointSet &pointSet, itk::Image<TPixel, VImageDimension> *itkImage, const std::string &outputImage,
+                                  ImageInfo &imageInfo, double PAD, const Point& ROI);
 
-  static Point3DSet imagePreProcess(const Point3DSet &inputPointSet, const std::string &inputImageName,
-                                    const std::string &outputImageName, Image3DInfo &imageInfo, double PAD,
-                                    const std::vector<int>& ROI_SIZE);
-  static void imagePostProcess(const std::string &inputImageName, const std::string &outputImageName,
-                               const Image3DInfo &imageInfo);
+  // Pre Process wrt input file
+  static PointSet imagePreProcess(const PointSet &pointSet, const std::string &inputImage, const std::string &outputImage, ImageInfo &imageInfo,
+                                  double PAD, const Point& ROI);
+
+  /// Post Process
+  static void imagePostProcess(const std::string &inputImage, const std::string &outputImage, const ImageInfo &imageInfo);
+
+ private:
+  static typename itk::Image<TPixel, VImageDimension>::Pointer resizeImage(itk::Image<TPixel, VImageDimension> *itkImage,
+                                                                           typename itk::Image<TPixel, VImageDimension>::SizeType targetSize,
+                                                                           bool linearInterpolate);
 };
+
+typedef ITKUtils<char, 2> ITKUtils2DChar;
+typedef ITKUtils<char, 3> ITKUtils3DChar;
+typedef ITKUtils<char, 4> ITKUtils4DChar;
+typedef ITKUtils<unsigned char, 2> ITKUtils2DUChar;
+typedef ITKUtils<unsigned char, 3> ITKUtils3DUChar;
+typedef ITKUtils<unsigned char, 4> ITKUtils4DUChar;
+typedef ITKUtils<short, 2> ITKUtils2DShort;
+typedef ITKUtils<short, 3> ITKUtils3DShort;
+typedef ITKUtils<short, 4> ITKUtils4DShort;
+typedef ITKUtils<unsigned short, 2> ITKUtils2DUShort;
+typedef ITKUtils<unsigned short, 3> ITKUtils3DUShort;
+typedef ITKUtils<unsigned short, 4> ITKUtils4DUShort;
+typedef ITKUtils<int, 2> ITKUtils2DInt;
+typedef ITKUtils<int, 3> ITKUtils3DInt;
+typedef ITKUtils<int, 4> ITKUtils4DInt;
+typedef ITKUtils<unsigned int, 2> ITKUtils2DUInt;
+typedef ITKUtils<unsigned int, 3> ITKUtils3DUInt;
+typedef ITKUtils<unsigned int, 4> ITKUtils4DUInt;
+typedef ITKUtils<long, 2> ITKUtils2DLong;
+typedef ITKUtils<long, 3> ITKUtils3DLong;
+typedef ITKUtils<long, 4> ITKUtils4DLong;
+typedef ITKUtils<unsigned long, 2> ITKUtils2DULong;
+typedef ITKUtils<unsigned long, 3> ITKUtils3DULong;
+typedef ITKUtils<unsigned long, 4> ITKUtils4DULong;
+typedef ITKUtils<float, 2> ITKUtils2DFloat;
+typedef ITKUtils<float, 3> ITKUtils3DFloat;
+typedef ITKUtils<float, 4> ITKUtils4DFloat;
+typedef ITKUtils<double, 2> ITKUtils2DDouble;
+typedef ITKUtils<double, 3> ITKUtils3DDouble;
+typedef ITKUtils<double, 4> ITKUtils4DDouble;
 
 }
 }

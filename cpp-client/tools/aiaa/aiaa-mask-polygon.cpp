@@ -33,13 +33,13 @@
 int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-        "  |-h        (Help) Print this information                                                |\n"
-        "  |-server   Server URI  {default: http://10.110.45.66:5000/v1}                           |\n"
-        "  |-ratio    Point Ratio {default: 10}                                                    |\n"
-        " *|-image    Input Image File                                                             |\n"
-        "  |-output   Output File Name to store result                                             |\n"
-        "  |-format   Format Output Json                                                           |\n"
-        "  |-ts       Print API Latency                                                            |\n";
+              "  |-h        (Help) Print this information                                                |\n"
+              "  |-server   Server URI  {default: http://10.110.45.66:5000/v1}                           |\n"
+              "  |-ratio    Point Ratio {default: 10}                                                    |\n"
+              " *|-image    Input Image File                                                             |\n"
+              "  |-output   Output File Name to store result                                             |\n"
+              "  |-format   Format Output Json                                                           |\n"
+              "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
@@ -62,10 +62,10 @@ int main(int argc, char **argv) {
   try {
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri);
-    nvidia::aiaa::PolygonsList result = client.mask2Polygon(ratio, inputImageFile);
+    nvidia::aiaa::PolygonsList result = client.maskToPolygon(ratio, inputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
     if (outputJsonFile.empty()) {
       std::cout << result.toJson(jsonSpace) << std::endl;

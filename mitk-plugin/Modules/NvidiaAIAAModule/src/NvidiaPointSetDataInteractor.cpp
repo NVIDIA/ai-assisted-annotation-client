@@ -45,8 +45,7 @@ void NvidiaPointSetDataInteractor::ConnectActionsAndFunctions() {
   CONNECT_FUNCTION("finishMovement", NvidiaSmartPoly);
 }
 
-void NvidiaPointSetDataInteractor::NvidiaSmartPoly(mitk::StateMachineAction * /*stateMachineAction*/,
-                                                   mitk::InteractionEvent * /*interactionEvent*/) {
+void NvidiaPointSetDataInteractor::NvidiaSmartPoly(mitk::StateMachineAction * /*stateMachineAction*/, mitk::InteractionEvent * /*interactionEvent*/) {
   if (m_NvidiaSmartPolySegTool2D) {
     m_NvidiaSmartPolySegTool2D->PolygonFix();
   }

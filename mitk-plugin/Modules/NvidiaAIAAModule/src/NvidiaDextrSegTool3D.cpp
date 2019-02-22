@@ -173,7 +173,6 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
 
   MITK_INFO("nvidia") << "++++++++ Nvidia Segmentation begins";
 
-  using ImageType = itk::Image<TPixel, VImageDimension>;
   nvidia::aiaa::PointSet pointSet = getPointSet<TPixel, VImageDimension>(imageGeometry);
   MITK_INFO("nvidia") << "PointSet: " << pointSet.toJson();
 

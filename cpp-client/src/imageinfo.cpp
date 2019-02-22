@@ -49,6 +49,17 @@ std::string ImageInfo::dump() {
   return ss.str();
 }
 
+std::string getPixelTypeStr(Pixel::Type t) {
+  static std::map<Pixel::Type, std::string> PIXEL_TYPESTR = { { Pixel::CHAR, "char" }, { Pixel::UCHAR, "unsigned char" }, { Pixel::SHORT, "short" }, {
+      Pixel::USHORT, "unsigned short" }, { Pixel::INT, "int" }, { Pixel::UINT, "unsigned int" }, { Pixel::LONG, "long" }, { Pixel::ULONG,
+      "unsigned long" }, { Pixel::FLOAT, "float" }, { Pixel::DOUBLE, "double" } };
+  auto it = PIXEL_TYPESTR.find(t);
+  if (it == PIXEL_TYPESTR.end()) {
+    return "unknown";
+  }
+  return it->second;
+}
+
 Pixel::Type getPixelType(const std::string &type) {
   static std::map<std::string, Pixel::Type> PIXEL_TYPES = { { "char", Pixel::CHAR }, { "unsigned char", Pixel::UCHAR }, { "short", Pixel::SHORT }, {
       "unsigned short", Pixel::USHORT }, { "int", Pixel::INT }, { "unsigned int", Pixel::UINT }, { "long", Pixel::ULONG }, { "unsigned long",

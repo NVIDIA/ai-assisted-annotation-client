@@ -79,6 +79,7 @@ enum Type {
 };
 }
 
+AIAA_CLIENT_API std::string getPixelTypeStr(const Pixel::Type type);
 AIAA_CLIENT_API Pixel::Type getPixelType(const std::string &type);
 
 }

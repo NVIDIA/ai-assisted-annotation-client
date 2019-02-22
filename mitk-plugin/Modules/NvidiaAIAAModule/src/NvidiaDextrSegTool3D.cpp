@@ -49,6 +49,23 @@
 #include <nvidia/aiaa/utils.h>
 #include <chrono>
 
+#ifdef __GNUG__ // gnu C++ compiler
+#include <cxxabi.h>
+
+std::string demangle(const char* mangled_name) {
+  std::size_t len = 0;
+  int status = 0;
+  std::unique_ptr< char, decltype(&std::free) > ptr(
+      __cxxabiv1::__cxa_demangle( mangled_name, nullptr, &len, &status ), &std::free );
+  return ptr.get();
+}
+
+#else
+std::string demangle(const char* name) {
+  return name;
+}
+#endif
+
 MITK_TOOL_MACRO(MITKNVIDIAAIAAMODULE_EXPORT, NvidiaDextrSegTool3D, "NVIDIA Segmentation tool");
 
 #define LATENCY_INIT_API_CALL() \
@@ -372,14 +389,14 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
 
     // Do Sampling
     nvidia::aiaa::ImageInfo imageInfo;
-    MITK_INFO("nvidia") << "++++ typeid(TPixel): " << typeid(TPixel).name() << std::endl;
-    MITK_INFO("nvidia") << "++++ VImageDimension: " << VImageDimension << std::endl;
-
-    //void* inputImage = itkImage;
-    //nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(typeid(TPixel).name());
+    nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(demangle(typeid(TPixel).name()));
+    MITK_INFO("nvidia") << "++++ typeid(TPixel): " << typeid(TPixel).name() << "; demangle(typeid(TPixel)): " << demangle(typeid(TPixel).name())
+        << "; PixelType: " << nvidia::aiaa::getPixelTypeStr(pixelType);
+    MITK_INFO("nvidia") << "++++ VImageDimension: " << VImageDimension;
 
     LATENCY_START_API_CALL()
     nvidia::aiaa::PointSet pointSetROI = imagePreProcess(pointSet, itkImage, tmpSampleFileName, imageInfo, model.padding, model.roi);
+    //void* inputImage = itkImage;
     //client.sampling(model, pointSet, inputImage, pixelType, VImageDimension, tmpSampleFileName, imageInfo);
 
     currentSteps++;

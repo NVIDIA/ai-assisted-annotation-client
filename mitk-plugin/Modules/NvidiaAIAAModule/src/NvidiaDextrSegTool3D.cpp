@@ -255,7 +255,7 @@ nvidia::aiaa::PointSet imagePreProcess(const nvidia::aiaa::PointSet &pointSet, i
     // Extract ROI image
     typename ImageType::IndexType cropIndex;
     typename ImageType::SizeType cropSize;
-    for (int i = 0; i < VImageDimension; i++) {
+    for (unsigned int i = 0; i < VImageDimension; i++) {
       cropIndex[i] = indexMin[i];
       cropSize[i] = indexMax[i] - indexMin[i];
 
@@ -278,7 +278,7 @@ nvidia::aiaa::PointSet imagePreProcess(const nvidia::aiaa::PointSet &pointSet, i
 
     // Resize to 128x128x128x128
     typename ImageType::SizeType roiSize;
-    for (int i = 0; i < VImageDimension; i++) {
+    for (unsigned int i = 0; i < VImageDimension; i++) {
       roiSize[i] = ROI[i];
     }
 
@@ -288,7 +288,7 @@ nvidia::aiaa::PointSet imagePreProcess(const nvidia::aiaa::PointSet &pointSet, i
     // Adjust extreme points index to cropped and resized image
     nvidia::aiaa::PointSet pointSetROI;
     for (auto p : pointSet.points) {
-      for (int i = 0; i < VImageDimension; i++) {
+      for (unsigned int i = 0; i < VImageDimension; i++) {
         index[i] = p[i];
       }
 
@@ -299,7 +299,7 @@ nvidia::aiaa::PointSet imagePreProcess(const nvidia::aiaa::PointSet &pointSet, i
       resampledImage->TransformPhysicalPointToIndex(point, index);
 
       nvidia::aiaa::Point pointROI;
-      for (int i = 0; i < VImageDimension; i++) {
+      for (unsigned int i = 0; i < VImageDimension; i++) {
         pointROI.push_back(index[i]);
       }
       pointSetROI.points.push_back(pointROI);

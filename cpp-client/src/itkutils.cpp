@@ -128,7 +128,7 @@ PointSet ITKUtils<TPixel, VImageDimension>::imagePreProcess(const PointSet &poin
     // Extract ROI image
     typename ImageType::IndexType cropIndex;
     typename ImageType::SizeType cropSize;
-    for (int i = 0; i < VImageDimension; i++) {
+    for (unsigned int i = 0; i < VImageDimension; i++) {
       cropIndex[i] = indexMin[i];
       cropSize[i] = indexMax[i] - indexMin[i];
 
@@ -151,7 +151,7 @@ PointSet ITKUtils<TPixel, VImageDimension>::imagePreProcess(const PointSet &poin
 
     // Resize to 128x128x128x128
     typename ImageType::SizeType roiSize;
-    for (int i = 0; i < VImageDimension; i++) {
+    for (unsigned int i = 0; i < VImageDimension; i++) {
       roiSize[i] = ROI[i];
     }
 
@@ -161,7 +161,7 @@ PointSet ITKUtils<TPixel, VImageDimension>::imagePreProcess(const PointSet &poin
     // Adjust extreme points index to cropped and resized image
     PointSet pointSetROI;
     for (auto p : pointSet.points) {
-      for (int i = 0; i < VImageDimension; i++) {
+      for (unsigned int i = 0; i < VImageDimension; i++) {
         index[i] = p[i];
       }
 
@@ -172,7 +172,7 @@ PointSet ITKUtils<TPixel, VImageDimension>::imagePreProcess(const PointSet &poin
       resampledImage->TransformPhysicalPointToIndex(point, index);
 
       Point pointROI;
-      for (int i = 0; i < VImageDimension; i++) {
+      for (unsigned int i = 0; i < VImageDimension; i++) {
         pointROI.push_back(index[i]);
       }
       pointSetROI.points.push_back(pointROI);

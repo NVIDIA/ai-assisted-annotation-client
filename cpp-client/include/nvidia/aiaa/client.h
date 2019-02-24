@@ -72,7 +72,7 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief This API is used to sample the input image
    @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 2D/3D/4D for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] pointSet  PointSet object which represents a set of points in 2D/3D/4D for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
    @param[in] inputImageFile  Input image filename where image is stored in 2D/3D/4D format
    @param[in] pixelType  Pixel::Type for Input Image
    @param[in] dimension  Dimension for Input Image
@@ -89,7 +89,7 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief This API is used to sample the input image
    @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
    @param[in] inputImage  Input image pointer 2D/3D/4D format which is itk::Image<?, *> to avoid extra copy at client side
    @param[in] pixelType  Pixel::Type for Input Image
    @param[in] dimension  Dimension for Input Image
@@ -106,7 +106,7 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief 3D image segmentation over sampled input image and PointSet
    @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
    @param[in] dimension  Dimension for Input Image
    @param[in] inputImageFile  Sampled Input image filename where image is stored in itk::Image<unsigned short, *> format
    @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, *> format
@@ -125,7 +125,7 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief 3D image segmentation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)
    @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_DEXTR3D are expected
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
    @param[in] inputImageFile  Input image filename where image is stored in itk::Image<?, 3> format
    @param[in] pixelType  PixelType for Input Image
    @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, 3> format

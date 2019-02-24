@@ -39,3 +39,4 @@ install
 *.exe
 *.out
 *.app
+*.pyc

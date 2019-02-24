@@ -80,9 +80,6 @@ private:
   template <typename TPixel, unsigned int VImageDimension>
   nvidia::aiaa::PointSet getPointSet(mitk::BaseGeometry *imageGeometry);
 
-  template <class TImageType>
-  typename TImageType::Pointer getLargestConnectedComponent(TImageType *itkImage);
-
   template <typename TPixel, unsigned int VImageDimension>
   void boundingBoxRender(const std::string &tmpResultFileName, const std::string &organName);
 

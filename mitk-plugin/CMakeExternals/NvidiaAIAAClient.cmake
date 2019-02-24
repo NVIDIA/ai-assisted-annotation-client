@@ -61,7 +61,7 @@ if(NOT DEFINED NvidiaAIAAClient_DIR)
   ExternalProject_Add(${proj}
      SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/../../
      DOWNLOAD_COMMAND ""
-     BUILD_ALWAYS 1
+     #BUILD_ALWAYS 1
 
      CMAKE_GENERATOR ${gen}
      CMAKE_ARGS

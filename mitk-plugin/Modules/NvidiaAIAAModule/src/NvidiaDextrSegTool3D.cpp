@@ -373,8 +373,8 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
   mitk::Color labelColor = labelActive->GetColor();
   MITK_INFO("nvidia") << "labelColor: " << labelColor;
 
-  std::string tmpSampleFileName = "C:/Projects/sample.nii.gz"; //nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
-  std::string tmpResultFileName = "C:/Projects/result.nii.gz"; //nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
+  std::string tmpSampleFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
+  std::string tmpResultFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
 
   MITK_INFO("nvidia") << "Sample Image: " << tmpSampleFileName;
   MITK_INFO("nvidia") << "Output Image: " << tmpResultFileName;
@@ -443,8 +443,8 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
     Tool::GeneralMessage("Failed to execute 'dextr3d' on Nvidia AIAA Server\n\n" + msg);
   }
 
-  //std::remove(tmpSampleFileName.c_str());
-  //std::remove(tmpResultFileName.c_str());
+  std::remove(tmpSampleFileName.c_str());
+  std::remove(tmpResultFileName.c_str());
   mitk::ProgressBar::GetInstance()->Progress(totalSteps - currentSteps);
   MITK_INFO("nvidia") << "++++++++ Nvidia Segmentation ends";
 }

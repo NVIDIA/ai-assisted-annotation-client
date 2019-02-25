@@ -521,6 +521,7 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
     }
   }
   m_ToolManager->GetDataStorage()->Add(newNode, m_WorkingData);
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 
   // Record the just-created layer ID
   unsigned int layerTotal = labelSetImage->GetNumberOfLayers();
@@ -530,8 +531,9 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
 
   // labelSetImage can only push a new layer at the end, so need to reload whole image for change
   for (unsigned int layerID = 0; layerID < layerTotal; layerID++) {
-    auto tempLayerImage = labelSetImage->GetLayerImage(layerID);
-    auto updateLabelSet = labelSetImage->GetLabelSet(layerID);
+    // Always working on first layer-id (append, and delete moves the layer one-by-one)
+    auto tempLayerImage = labelSetImage->GetLayerImage(0);
+    auto updateLabelSet = labelSetImage->GetLabelSet(0);
     if (layerID != layerToReplace) {
       labelSetImage->AddLayer(tempLayerImage);
     } else {

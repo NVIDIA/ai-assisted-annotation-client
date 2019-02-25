@@ -476,7 +476,7 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   MITK_INFO("nvidia") << "(display) labelColor: " << labelColor;
 
   // Multi-Label support
-  bool multiLabelSupport = true;
+  bool multiLabelSupport = false;
   if (multiLabelSupport) {
     typedef itk::MinimumMaximumImageCalculator<LabelImageType> MinimumMaximumImageCalculatorType;
     auto minMaxImageCalculator = MinimumMaximumImageCalculatorType::New();

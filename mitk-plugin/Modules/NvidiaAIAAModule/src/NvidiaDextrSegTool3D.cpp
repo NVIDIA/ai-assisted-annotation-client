@@ -46,6 +46,9 @@
 #include <itkLinearInterpolateImageFunction.h>
 #include <itkNearestNeighborInterpolateImageFunction.h>
 
+#include <itkMinimumMaximumImageCalculator.h>
+#include <itkBinaryThresholdImageFilter.h>
+
 #include <nvidia/aiaa/utils.h>
 #include <chrono>
 
@@ -355,11 +358,24 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
 
   // Collect information for working segmentation label
   auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
-  std::string labelName = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetName();
+  auto labelActiveLayerId = labelSetImage->GetActiveLayer();
+  MITK_INFO("nvidia") << "labelActiveLayerId: " << labelActiveLayerId;
+
+  auto labelSetActive = labelSetImage->GetActiveLabelSet();
+  MITK_INFO("nvidia") << "labelSetActive: " << labelSetActive;
+
+  auto labelActive = labelSetImage->GetActiveLabel(labelActiveLayerId);
+  MITK_INFO("nvidia") << "labelActive: " << labelActive;
+
+  std::string labelName = labelActive->GetName();
+  MITK_INFO("nvidia") << "labelName: " << labelName;
+
+  mitk::Color labelColor = labelActive->GetColor();
+  MITK_INFO("nvidia") << "labelColor: " << labelColor;
+
   std::string tmpSampleFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
   std::string tmpResultFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
 
-  MITK_INFO("nvidia") << "Organ name: " << labelName;
   MITK_INFO("nvidia") << "Sample Image: " << tmpSampleFileName;
   MITK_INFO("nvidia") << "Output Image: " << tmpResultFileName;
   MITK_INFO("nvidia") << "aiaa::server URI >>> " << m_AIAAServerUri;
@@ -433,40 +449,15 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
   MITK_INFO("nvidia") << "++++++++ Nvidia Segmentation ends";
 }
 
-template<class TImageType>
-typename TImageType::Pointer NvidiaDextrSegTool3D::getLargestConnectedComponent(TImageType *itkImage) {
-  typedef itk::ConnectedComponentImageFilter<TImageType, TImageType> ConnectedComponentImageFilterType;
-
-  typename ConnectedComponentImageFilterType::Pointer connected = ConnectedComponentImageFilterType::New();
-  connected->SetInput(itkImage);
-  connected->Update();
-
-  MITK_INFO("nvidia") << "Number of objects: " << connected->GetObjectCount();
-
-  typedef itk::LabelShapeKeepNObjectsImageFilter<TImageType> LabelShapeKeepNObjectsImageFilterType;
-  typename LabelShapeKeepNObjectsImageFilterType::Pointer labelShapeKeepNObjectsImageFilter = LabelShapeKeepNObjectsImageFilterType::New();
-  labelShapeKeepNObjectsImageFilter->SetInput(connected->GetOutput());
-  labelShapeKeepNObjectsImageFilter->SetBackgroundValue(0);
-  labelShapeKeepNObjectsImageFilter->SetNumberOfObjects(1);
-  labelShapeKeepNObjectsImageFilter->SetAttribute(LabelShapeKeepNObjectsImageFilterType::LabelObjectType::NUMBER_OF_PIXELS);
-  labelShapeKeepNObjectsImageFilter->Update();
-
-  return labelShapeKeepNObjectsImageFilter->GetOutput();
-}
-
 template<typename TPixel, unsigned int VImageDimension>
 void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   typedef itk::Image<mitk::Label::PixelType, VImageDimension> LabelImageType;
   typedef itk::ImageFileReader<LabelImageType> DextrReaderType;
 
-  typename DextrReaderType::Pointer reader = DextrReaderType::New();
-
-  // Read result and display with current settings
+  auto reader = DextrReaderType::New();
   reader->SetFileName(tmpResultFileName);
   reader->Update();
-
-  // select largest connected component (TODO:: May be not required)
-  auto itk_resultImage = getLargestConnectedComponent < LabelImageType > (reader->GetOutput());
+  auto itk_resultImage = reader->GetOutput();
 
   // add the ROI segmentation to data tree just for rendering
   // set to helper object making it invisible in Data manager
@@ -474,8 +465,40 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   mitk::CastToMitkImage(itk_resultImage, resultImage);
 
   auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
-  std::string labelName = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetName();
-  mitk::Color labelColor = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer())->GetColor();
+  auto labelSetActive = labelSetImage->GetActiveLabelSet();
+  auto labelActive = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer());
+  std::string labelName = labelActive->GetName();
+  mitk::Color labelColor = labelActive->GetColor();
+
+  MITK_INFO("nvidia") << "(display) labelSetActive: " << labelSetActive;
+  MITK_INFO("nvidia") << "(display) labelActive: " << labelActive;
+  MITK_INFO("nvidia") << "(display) labelName: " << labelName;
+  MITK_INFO("nvidia") << "(display) labelColor: " << labelColor;
+
+  // Multi-Label support
+  bool multiLabelSupport = true;
+  if (multiLabelSupport) {
+    typedef itk::MinimumMaximumImageCalculator<LabelImageType> MinimumMaximumImageCalculatorType;
+    auto minMaxImageCalculator = MinimumMaximumImageCalculatorType::New();
+    minMaxImageCalculator->SetImage(itk_resultImage);
+    minMaxImageCalculator->Compute();
+    MITK_INFO("nvidia") << "MinLabel: " << minMaxImageCalculator->GetMinimum() << "; MaxLabel: " << minMaxImageCalculator->GetMaximum();
+
+    // Add labels for class labels higher than 1
+    for (unsigned int classID = 2; classID <= minMaxImageCalculator->GetMaximum(); classID++) {
+      std::string multiLabelName = labelName + std::to_string(classID);
+      MITK_INFO("nvidia") << "adding multi-class " << multiLabelName;
+
+      auto multiLabel = mitk::Label::New();
+      multiLabel->SetName(multiLabelName);
+      multiLabel->SetValue(classID);
+      labelSetActive->AddLabel(multiLabel);
+
+      // Set back previously active label
+      labelSetActive->SetActiveLabel(labelActive->GetValue());
+    }
+  }
+  // Multi-Label support
 
   std::string labelNameSurf = labelName + "Surface3D";
   mitk::DataNode::Pointer newNode = mitk::DataNode::New();
@@ -498,7 +521,6 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
     }
   }
   m_ToolManager->GetDataStorage()->Add(newNode, m_WorkingData);
-  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 
   // Record the just-created layer ID
   unsigned int layerTotal = labelSetImage->GetNumberOfLayers();
@@ -506,22 +528,20 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
 
   MITK_INFO("nvidia") << "Total Layers: " << layerTotal << "; Layer To Replace: " << layerToReplace;
 
-  mitk::Image::Pointer recoverImage = mitk::Image::New();
-  mitk::CastToMitkImage < LabelImageType > (reader->GetOutput(), recoverImage);
-
   // labelSetImage can only push a new layer at the end, so need to reload whole image for change
   for (unsigned int layerID = 0; layerID < layerTotal; layerID++) {
-    mitk::Image::Pointer tempLayerImage = labelSetImage->GetLayerImage(0);
-    mitk::Label::Pointer updateLabel = labelSetImage->GetActiveLabel(0);
+    auto tempLayerImage = labelSetImage->GetLayerImage(layerID);
+    auto updateLabelSet = labelSetImage->GetLabelSet(layerID);
     if (layerID != layerToReplace) {
       labelSetImage->AddLayer(tempLayerImage);
     } else {
-      labelSetImage->AddLayer(recoverImage);
+      labelSetImage->AddLayer(resultImage);
     }
 
-    labelSetImage->GetLabelSet(labelSetImage->GetActiveLayer())->AddLabel(updateLabel);
+    // Copy LabelSet to Newly added Layer
+    labelSetImage->AddLabelSetToLayer(labelSetImage->GetActiveLayer(), updateLabelSet);
 
-    // Now remove the first layer
+    // Now remove the first layer (which also removes its LabelSet)
     labelSetImage->SetActiveLayer(0);
     labelSetImage->RemoveLayer();
   }

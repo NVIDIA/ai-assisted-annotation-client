@@ -63,6 +63,7 @@ NvidiaSmartPolySegTool2D::NvidiaSmartPolySegTool2D()
   m_PointInteractor->SetDataNode(m_PointSetPolygonNode);
   m_PointInteractor->setNvidiaSmartPolySegTool2D(this);
 
+  m_imageSize = nullptr;
   m_currentSlice = 0;
 }
 
@@ -233,6 +234,11 @@ std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
 }
 
 void NvidiaSmartPolySegTool2D::PolygonFix() {
+  if (!m_imageSize) {
+    MITK_INFO("nvidia") << "ImageSize is NULL; Something is wrong";
+    return;
+  }
+
   std::string aiaaServerUri = m_AIAAServerUri;
   if (aiaaServerUri.empty()) {
     Tool::GeneralMessage("aiaa::server URI is not set");
@@ -383,6 +389,10 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
 void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
   if (m_polygonsList.empty()) {
+    return;
+  }
+  if (!m_imageSize) {
+    MITK_INFO("nvidia") << "ImageSize is NULL; Something is wrong; Current Slice = " << slice;
     return;
   }
 

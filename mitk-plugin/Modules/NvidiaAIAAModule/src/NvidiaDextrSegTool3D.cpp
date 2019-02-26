@@ -434,9 +434,10 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
       MITK_INFO("nvidia") << "aiaa::dextr3d SUCCESSFUL";
 
       // Generate Sample Image for adding bounding box
-      boundingBoxRender<TPixel, VImageDimension>(tmpSampleFileName, labelName);
+      //boundingBoxRender<TPixel, VImageDimension>(tmpSampleFileName, labelName);
+      //MITK_INFO("nvidia") << "Added Bounding Box for sampled Image";
+
       displayResult<TPixel, VImageDimension>(tmpResultFileName);
-      MITK_INFO("nvidia") << "Added Bounding Box for sampled Image";
     }
   } catch (nvidia::aiaa::exception &e) {
     std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
@@ -615,11 +616,9 @@ void NvidiaDextrSegTool3D::boundingBoxRender(const std::string &tmpResultFileNam
   // boundingBoxNode->SetProperty("visible", mitk::BoolProperty::New(false));
 
   // check if node with same name exist already, if so, update instead of adding new
-  mitk::DataStorage::SetOfObjects::ConstPointer allNodes = m_ToolManager->GetDataStorage()->GetAll();
-  mitk::DataStorage::SetOfObjects::ConstIterator itNodes;
-  std::string nodeNameCheck;
-  for (itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
-    nodeNameCheck = itNodes.Value()->GetName();
+  auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+  for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
+    std::string nodeNameCheck = itNodes.Value()->GetName();
     if (nodeName == nodeNameCheck) {
       // if already exist, delete the current and update with the new one
       mitk::DataNode::Pointer nodeToDelete = itNodes.Value();

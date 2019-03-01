@@ -6,7 +6,7 @@ This is the plugin source for MITK which integrates AIAA client with MITK Workbe
  - NVIDIA Smart Polygon Fix *(2D Tool)*
 
 ## Quick Start
-The project template follows the template recommended by MITK to fit the extension mechanism of MITK v2018.04. 
+The project follows the template recommended by MITK to fit the extension mechanism of MITK v2018.04. 
 Here's how it basically works:
 
 1. Clone MITK

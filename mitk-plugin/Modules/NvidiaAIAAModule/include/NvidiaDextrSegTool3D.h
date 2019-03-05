@@ -53,7 +53,7 @@ public:
   const char *GetName() const override;
   const char **GetXPM() const override;
 
-  void SetServerURI(const std::string &serverURI);
+  void SetServerURI(const std::string &serverURI, const int serverTimeout);
   void ClearPoints();
   void ConfirmPoints();
 
@@ -66,6 +66,7 @@ protected:
 
 private:
   std::string m_AIAAServerUri;
+  int m_AIAAServerTimeout;
 
   mitk::PointSet::Pointer m_PointSet;
   mitk::DataNode::Pointer m_PointSetNode;

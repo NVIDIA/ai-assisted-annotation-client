@@ -142,8 +142,9 @@ void NvidiaSmartPolySegTool2D::Deactivated() {
   Superclass::Deactivated();
 }
 
-void NvidiaSmartPolySegTool2D::SetServerURI(const std::string &serverURI) {
+void NvidiaSmartPolySegTool2D::SetServerURI(const std::string &serverURI, const int serverTimeout) {
   m_AIAAServerUri = serverURI;
+  m_AIAAServerTimeout = serverTimeout;
 }
 
 void NvidiaSmartPolySegTool2D::SetNeighborhoodSize(int neighborhoodSize) {
@@ -239,12 +240,11 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
     return;
   }
 
-  std::string aiaaServerUri = m_AIAAServerUri;
-  if (aiaaServerUri.empty()) {
+  if (m_AIAAServerUri.empty()) {
     Tool::GeneralMessage("aiaa::server URI is not set");
     return;
   }
-  MITK_INFO("nvidia") << "aiaa::server URI >>> " << aiaaServerUri;
+  MITK_INFO("nvidia") << "aiaa::server URI >>> " << m_AIAAServerUri << "; Timeout: " << m_AIAAServerTimeout;
   MITK_INFO("nvidia") << "aiaa::server NeighborhoodSize >>> " << m_NeighborhoodSize;
 
   std::string tmpImage2DFileName = create2DSliceImage();
@@ -309,7 +309,7 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
   MITK_INFO("nvidia") << "FirstNonMatching Polygon (polyIndex" << polyIndex << "; vertexIndex: " << vertexIndex << ")";
 
   // Call AIAA maskToPolygonConversion
-  nvidia::aiaa::Client client(aiaaServerUri);
+  nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
   std::string outputImageFile = nvidia::aiaa::Utils::tempfilename() + ".png";  // updated_image_2D.png
 
   try {
@@ -346,12 +346,11 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
 }
 
 void NvidiaSmartPolySegTool2D::Mask2Polygon() {
-  std::string aiaaServerUri = m_AIAAServerUri;
-  if (aiaaServerUri.empty()) {
+  if (m_AIAAServerUri.empty()) {
     Tool::GeneralMessage("aiaa::server URI is not set");
     return;
   }
-  MITK_INFO("nvidia") << "aiaa::server URI >>> " << aiaaServerUri;
+  MITK_INFO("nvidia") << "aiaa::server URI >>> " << m_AIAAServerUri << "; Timeout: " << m_AIAAServerTimeout;
 
   // Save Label Image to TempFile
   std::string tmpImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
@@ -364,7 +363,7 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
   // Call AIAA maskToPolygonConversion
   auto begin = std::chrono::high_resolution_clock::now();
-  nvidia::aiaa::Client client(aiaaServerUri);
+  nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
 
   try {
     int pointRatio = 10;

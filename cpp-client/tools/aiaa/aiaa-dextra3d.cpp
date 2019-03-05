@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
               " *|-image    Input Image File                                                             |\n"
               "  |-pixel    Input Image Pixel Type {default: short}                                      |\n"
               " *|-output   Output Image File                                                            |\n"
+              "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
@@ -60,6 +61,7 @@ int main(int argc, char **argv) {
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(getCmdOption(argv, argv + argc, "-pixel", "unsigned short"));
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
+  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (label.empty() && model.empty()) {
@@ -81,7 +83,7 @@ int main(int argc, char **argv) {
 
   try {
     nvidia::aiaa::PointSet pointSet = nvidia::aiaa::PointSet::fromJson(points);
-    nvidia::aiaa::Client client(serverUri);
+    nvidia::aiaa::Client client(serverUri, timeout);
 
     nvidia::aiaa::ModelList models = client.models();
     nvidia::aiaa::Model m = models.getMatchingModel(label);

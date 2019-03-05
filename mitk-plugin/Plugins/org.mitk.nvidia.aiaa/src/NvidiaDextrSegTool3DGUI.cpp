@@ -59,10 +59,10 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
     auto preferencesService = berry::Platform::GetPreferencesService();
     auto systemPreferences = preferencesService->GetSystemPreferences();
     auto preferences = systemPreferences->Node("/org.mitk.preferences.nvidia.aiaa");
-    auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI,
-                                      QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
+    auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
+    auto serverTimeout = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::SERVER_TIMEOUT, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT);
 
-    m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString());
+    m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString(), serverTimeout);
   }
 }
 

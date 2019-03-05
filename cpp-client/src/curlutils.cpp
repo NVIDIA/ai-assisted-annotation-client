@@ -49,19 +49,18 @@
 namespace nvidia {
 namespace aiaa {
 
-const int CURL_TIMEOUT_IN_SEC = 60;
 const int CURL_CONNECT_TIMEOUT_IN_SEC = 5;
 
-std::string CurlUtils::doGet(const std::string &uri) {
-  AIAA_LOG_DEBUG("GET: " << uri);
+std::string CurlUtils::doGet(const std::string &uri, int timeoutInSec) {
+  AIAA_LOG_DEBUG("GET: " << uri << "; Timeout: " << timeoutInSec);
   std::stringstream response;
 
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0),
-                       Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0));
+    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0),
+                       Poco::Timespan(timeoutInSec, 0));
 
     std::string path(u.getPathAndQuery());
     if (path.empty()) {
@@ -89,16 +88,16 @@ std::string CurlUtils::doGet(const std::string &uri) {
   return response.str();
 }
 
-std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath) {
-  AIAA_LOG_DEBUG("POST: " << uri);
+std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath, int timeoutInSec) {
+  AIAA_LOG_DEBUG("POST: " << uri << "; Timeout: " << timeoutInSec);
   std::stringstream response;
 
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0),
-                       Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0));
+    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0),
+                       Poco::Timespan(timeoutInSec, 0));
 
     std::string path(u.getPathAndQuery());
     if (path.empty()) {
@@ -134,16 +133,16 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
 }
 
 std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath,
-                              const std::string &resultFileName) {
-  AIAA_LOG_DEBUG("POST: " << uri);
+                              const std::string &resultFileName, int timeoutInSec) {
+  AIAA_LOG_DEBUG("POST: " << uri << "; Timeout: " << timeoutInSec);
   std::string textReponse;
 
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0),
-                       Poco::Timespan(CURL_TIMEOUT_IN_SEC, 0));
+    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0),
+                       Poco::Timespan(timeoutInSec, 0));
 
     std::string path(u.getPathAndQuery());
     if (path.empty()) {

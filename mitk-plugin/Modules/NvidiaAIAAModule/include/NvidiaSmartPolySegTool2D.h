@@ -60,7 +60,7 @@ public:
   void Mask2Polygon();
 
   void SetCurrentSlice(unsigned int slice);
-  void SetServerURI(const std::string &serverURI);
+  void SetServerURI(const std::string &serverURI, const int serverTimeout);
   void SetNeighborhoodSize(int neighborhoodSize);
   void SetFlipPoly(bool flipPoly);
 
@@ -73,6 +73,7 @@ protected:
 
 private:
   std::string m_AIAAServerUri;
+  int m_AIAAServerTimeout;
   int m_NeighborhoodSize;
   bool m_FlipPoly;
 

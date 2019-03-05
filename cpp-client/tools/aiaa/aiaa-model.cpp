@@ -38,6 +38,7 @@ int main(int argc, char **argv) {
               "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
               "  |-output   Output File Name to store result                                             |\n"
               "  |-format   Format Output Json                                                           |\n"
+              "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";
 
     return 0;
@@ -47,11 +48,12 @@ int main(int argc, char **argv) {
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   try {
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::Client client(serverUri);
+    nvidia::aiaa::Client client(serverUri, timeout);
     nvidia::aiaa::ModelList modelList = client.models();
 
     auto end = std::chrono::high_resolution_clock::now();

@@ -56,9 +56,10 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief create AIAA Client object
    @param[in] serverUri  AIAA Server end-point. For example: "http://10.110.45.66:5000/v1"
+   @param[in] serverUri  AIAA Server operation timeout. Default is 60 seconds
    @return Client object
    */
-  Client(const std::string& serverUri);
+  Client(const std::string& serverUri, const int timeoutInSec = 60);
 
   /*!
    @brief This API is used to fetch all the possible Models support by AIAA Server
@@ -177,6 +178,7 @@ class AIAA_CLIENT_API Client {
  private:
   /// Server URI
   std::string serverUri;
+  int timeoutInSec;
 };
 
 }

@@ -39,6 +39,7 @@ int main(int argc, char **argv) {
               " *|-image    Input Image File                                                             |\n"
               "  |-output   Output File Name to store result                                             |\n"
               "  |-format   Format Output Json                                                           |\n"
+              "  |-timeout      Timeout In Seconds {default: 60}                                         |\n"
               "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
@@ -48,6 +49,7 @@ int main(int argc, char **argv) {
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (ratio < 1) {
@@ -61,7 +63,7 @@ int main(int argc, char **argv) {
 
   try {
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::Client client(serverUri);
+    nvidia::aiaa::Client client(serverUri, timeout);
     nvidia::aiaa::PolygonsList result = client.maskToPolygon(ratio, inputImageFile);
 
     auto end = std::chrono::high_resolution_clock::now();

@@ -139,8 +139,9 @@ void NvidiaDextrSegTool3D::Deactivated() {
   Superclass::Deactivated();
 }
 
-void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI) {
+void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI, const int serverTimeout) {
   m_AIAAServerUri = serverURI;
+  m_AIAAServerTimeout = serverTimeout;
 }
 
 void NvidiaDextrSegTool3D::ClearPoints() {
@@ -378,7 +379,7 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
 
   MITK_INFO("nvidia") << "Sample Image: " << tmpSampleFileName;
   MITK_INFO("nvidia") << "Output Image: " << tmpResultFileName;
-  MITK_INFO("nvidia") << "aiaa::server URI >>> " << m_AIAAServerUri;
+  MITK_INFO("nvidia") << "aiaa::server URI >>> " << m_AIAAServerUri << "; Timeout: " << m_AIAAServerTimeout;
 
   if (m_AIAAServerUri.empty()) {
     Tool::GeneralMessage("aiaa::server URI is not set");
@@ -391,7 +392,7 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
   mitk::ProgressBar::GetInstance()->AddStepsToDo(totalSteps);
   try {
     LATENCY_INIT_API_CALL()
-    nvidia::aiaa::Client client(m_AIAAServerUri);
+    nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
 
     LATENCY_START_API_CALL()
     nvidia::aiaa::ModelList models = client.models();

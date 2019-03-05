@@ -41,8 +41,9 @@ const std::string EP_MASK_2_POLYGON = "/mask2polygon";
 const std::string EP_FIX_POLYGON = "/fixpolygon";
 const std::string IMAGE_FILE_EXTENSION = ".nii.gz";
 
-Client::Client(const std::string& uri)
-    : serverUri(uri) {
+Client::Client(const std::string& uri, int timeout)
+    : serverUri(uri),
+      timeoutInSec(timeout) {
   if (serverUri.back() == '/') {
     serverUri.pop_back();
   }
@@ -52,7 +53,7 @@ ModelList Client::models() const {
   std::string uri = serverUri + EP_MODELS;
   AIAA_LOG_DEBUG("URI: " << uri);
 
-  return ModelList::fromJson(CurlUtils::doGet(uri));
+  return ModelList::fromJson(CurlUtils::doGet(uri, timeoutInSec));
 }
 
 template<typename TPixel>
@@ -167,7 +168,7 @@ PointSet Client::sampling(const Model &model, const PointSet &pointSet, const st
 }
 
 int Client::segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension,
-                      const std::string &outputImageFile, const ImageInfo &imageInfo) const {
+                         const std::string &outputImageFile, const ImageInfo &imageInfo) const {
   if (dimension != 3) {
     throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 3D is supported)");
   }
@@ -187,7 +188,7 @@ int Client::segmentation(const Model &model, const PointSet &pointSet, const std
 
   std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + model.name;
   std::string paramStr = "{\"sigma\":" + std::to_string(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
-  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile);
+  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile, timeoutInSec);
 
   // Perform post-processing to recover crop and re-sample and save to user-specified location
   if (postProcess) {
@@ -237,7 +238,7 @@ PolygonsList Client::maskToPolygon(int pointRatio, const std::string &inputImage
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
 
-  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile);
+  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, timeoutInSec);
   AIAA_LOG_DEBUG("Response: \n" << response);
 
   PolygonsList polygonsList = PolygonsList::fromJson(response);
@@ -264,7 +265,7 @@ Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, in
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
   AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
 
-  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, outputImageFile);
+  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
   AIAA_LOG_DEBUG("Response: \n" << response);
 
   // TODO:: Ask AIAA Server to remove redundant [] to return the updated Polygons (same as input)

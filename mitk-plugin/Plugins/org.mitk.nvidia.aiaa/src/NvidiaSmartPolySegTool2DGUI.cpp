@@ -52,14 +52,13 @@ void NvidiaSmartPolySegTool2DGUI::updateConfigs() {
     auto preferencesService = berry::Platform::GetPreferencesService();
     auto systemPreferences = preferencesService->GetSystemPreferences();
     auto preferences = systemPreferences->Node("/org.mitk.preferences.nvidia.aiaa");
-    auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI,
-                                      QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
+    auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
+    auto serverTimeout = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::SERVER_TIMEOUT, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT);
     auto neighborhoodSize = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::NEIGHBORHOOD_SIZE,
                                                 QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE);
-    auto flipPoly = preferences->GetBool(QmitkNvidiaAIAAPreferencePage::FLIP_POLY,
-                                         QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY);
+    auto flipPoly = preferences->GetBool(QmitkNvidiaAIAAPreferencePage::FLIP_POLY, QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY);
 
-    m_NvidiaSmartPolySegTool2D->SetServerURI(serverURI.toStdString());
+    m_NvidiaSmartPolySegTool2D->SetServerURI(serverURI.toStdString(), serverTimeout);
     m_NvidiaSmartPolySegTool2D->SetNeighborhoodSize(neighborhoodSize);
     m_NvidiaSmartPolySegTool2D->SetFlipPoly(flipPoly);
   }
@@ -71,8 +70,7 @@ void NvidiaSmartPolySegTool2DGUI::OnNewToolAssociated(mitk::Tool *tool) {
   if (m_NvidiaSmartPolySegTool2D.IsNotNull()) {
     updateConfigs();
 
-    mitk::BaseRenderer::Pointer renderer = mitk::BaseRenderer::GetInstance(
-        mitk::BaseRenderer::GetRenderWindowByName("stdmulti.widget1"));
+    mitk::BaseRenderer::Pointer renderer = mitk::BaseRenderer::GetInstance(mitk::BaseRenderer::GetRenderWindowByName("stdmulti.widget1"));
     if (renderer.IsNotNull() && !m_SliceIsConnected) {
       new QmitkStepperAdapter(this, renderer->GetSliceNavigationController()->GetSlice(), "stepper");
       m_SliceIsConnected = true;

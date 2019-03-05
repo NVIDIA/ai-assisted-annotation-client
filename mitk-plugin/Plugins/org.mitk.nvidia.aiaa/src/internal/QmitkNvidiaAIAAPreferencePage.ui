@@ -26,24 +26,7 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="serverURILineEdit">
-       <property name="text">
-        <string>http://io-xterm-16.nvidia.com:7800/v1</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="neighborhoodSizeLabel">
-       <property name="text">
-        <string>SmartPoly Neighborhood Size</string>
-       </property>
-       <property name="buddy">
-        <cstring>neighborhoodSizeSpinBox</cstring>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
+     <item row="2" column="1">
       <widget class="QSpinBox" name="neighborhoodSizeSpinBox">
        <property name="maximum">
         <number>100</number>
@@ -53,7 +36,24 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="serverURILineEdit">
+       <property name="text">
+        <string>http://io-xterm-16.nvidia.com:7800/v1</string>
+       </property>
+      </widget>
+     </item>
      <item row="2" column="0">
+      <widget class="QLabel" name="neighborhoodSizeLabel">
+       <property name="text">
+        <string>SmartPoly Neighborhood Size</string>
+       </property>
+       <property name="buddy">
+        <cstring>neighborhoodSizeSpinBox</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
       <widget class="QLabel" name="flipPolyLabel">
        <property name="text">
         <string>Transpose Polygon</string>
@@ -63,10 +63,30 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="3" column="1">
       <widget class="QCheckBox" name="flipPolyCheckBox">
        <property name="checked">
         <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="serverTimeoutLabel">
+       <property name="text">
+        <string>Server Timeout (In Sec)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QSpinBox" name="serverTimeoutSpinBox">
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>600</number>
+       </property>
+       <property name="value">
+        <number>60</number>
        </property>
       </widget>
      </item>

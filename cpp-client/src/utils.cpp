@@ -69,7 +69,7 @@ Point Utils::stringToPoint(const std::string &str, char delim) {
   Point point;
 
   for (size_t i = 0; i < pstr.size(); i++) {
-    point.push_back(atoi(pstr[i].c_str()));
+    point.push_back(lexical_cast<int>(pstr[i]));
   }
   return point;
 }

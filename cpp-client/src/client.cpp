@@ -99,7 +99,8 @@ PointSet samplingT(const Model &model, const PointSet &pointSet, const std::stri
 PointSet Client::sampling(const Model &model, const PointSet &pointSet, void *inputImage, Pixel::Type pixelType, int dimension,
                           const std::string &outputImageFile, ImageInfo &imageInfo) const {
   if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
+        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
     AIAA_LOG_WARN(msg);
     throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
   }
@@ -135,7 +136,8 @@ PointSet Client::sampling(const Model &model, const PointSet &pointSet, const st
                           const std::string &outputImageFile, ImageInfo &imageInfo) const {
 
   if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
+        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
     AIAA_LOG_WARN(msg);
     throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
   }
@@ -177,7 +179,8 @@ int Client::segmentation(const Model &model, const PointSet &pointSet, const std
     return -2;
   }
   if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
+        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
     AIAA_LOG_WARN(msg);
     throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
   }
@@ -187,7 +190,7 @@ int Client::segmentation(const Model &model, const PointSet &pointSet, const std
   AIAA_LOG_DEBUG("TmpResultFile: " << tmpResultFile << "; PostProcess: " << postProcess);
 
   std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + model.name;
-  std::string paramStr = "{\"sigma\":" + std::to_string(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
+  std::string paramStr = "{\"sigma\":" + Utils::lexical_cast<std::string>(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
   std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile, timeoutInSec);
 
   // Perform post-processing to recover crop and re-sample and save to user-specified location
@@ -205,7 +208,8 @@ int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::str
     return -2;
   }
   if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: " + std::to_string(MIN_POINTS_FOR_SEGMENTATION);
+    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
+        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
     AIAA_LOG_WARN(msg);
     throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
   }
@@ -232,7 +236,7 @@ int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::str
 
 PolygonsList Client::maskToPolygon(int pointRatio, const std::string &inputImageFile) const {
   std::string uri = serverUri + EP_MASK_2_POLYGON;
-  std::string paramStr = "{\"more_points\":" + std::to_string(pointRatio) + "}";
+  std::string paramStr = "{\"more_points\":" + Utils::lexical_cast<std::string>(pointRatio) + "}";
 
   AIAA_LOG_DEBUG("URI: " << uri);
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
@@ -255,9 +259,9 @@ Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, in
   p2.flipXY();
 
   std::string uri = serverUri + EP_FIX_POLYGON;
-  std::string paramStr = "{\"propagate_neighbor\":" + std::to_string(neighborhoodSize) + ",";
-  paramStr = paramStr + "\"polygonIndex\":" + std::to_string(polyIndex) + ",";
-  paramStr = paramStr + "\"vertexIndex\":" + std::to_string(vertexIndex) + ",";
+  std::string paramStr = "{\"propagate_neighbor\":" + Utils::lexical_cast<std::string>(neighborhoodSize) + ",";
+  paramStr = paramStr + "\"polygonIndex\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
+  paramStr = paramStr + "\"vertexIndex\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
   paramStr = paramStr + "\"poly\":" + p1.toJson() + ",\"prev_poly\":" + p2.toJson() + "}";
 
   AIAA_LOG_DEBUG("URI: " << uri);

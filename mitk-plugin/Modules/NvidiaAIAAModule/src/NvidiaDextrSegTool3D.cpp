@@ -134,8 +134,11 @@ void NvidiaDextrSegTool3D::Activated() {
 
 void NvidiaDextrSegTool3D::Deactivated() {
   m_PointSet->Clear();
-  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
+  if (mitk::DataStorage *dataStorage = m_ToolManager->GetDataStorage()) {
+    dataStorage->Remove(m_PointSetNode);
+  }
 
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
   Superclass::Deactivated();
 }
 

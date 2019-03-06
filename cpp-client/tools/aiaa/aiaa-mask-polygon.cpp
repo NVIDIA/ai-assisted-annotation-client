@@ -27,6 +27,7 @@
  */
 
 #include <nvidia/aiaa/client.h>
+#include <nvidia/aiaa/utils.h>
 #include "../commonutils.h"
 #include <chrono>
 
@@ -45,11 +46,11 @@ int main(int argc, char **argv) {
   }
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-  int ratio = ::atoi(getCmdOption(argv, argv + argc, "-ratio", "10").c_str());
+  int ratio = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-ratio", "10"));
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
-  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
+  int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (ratio < 1) {

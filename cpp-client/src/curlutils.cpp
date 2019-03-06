@@ -59,8 +59,7 @@ std::string CurlUtils::doGet(const std::string &uri, int timeoutInSec) {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0),
-                       Poco::Timespan(timeoutInSec, 0));
+    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0), Poco::Timespan(timeoutInSec, 0));
 
     std::string path(u.getPathAndQuery());
     if (path.empty()) {
@@ -90,14 +89,15 @@ std::string CurlUtils::doGet(const std::string &uri, int timeoutInSec) {
 
 std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath, int timeoutInSec) {
   AIAA_LOG_DEBUG("POST: " << uri << "; Timeout: " << timeoutInSec);
+  AIAA_LOG_DEBUG("ParamStr: " << paramStr);
+  AIAA_LOG_DEBUG("UploadFilePath: " << uploadFilePath);
   std::stringstream response;
 
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0),
-                       Poco::Timespan(timeoutInSec, 0));
+    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0), Poco::Timespan(timeoutInSec, 0));
 
     std::string path(u.getPathAndQuery());
     if (path.empty()) {
@@ -135,14 +135,16 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
 std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath,
                               const std::string &resultFileName, int timeoutInSec) {
   AIAA_LOG_DEBUG("POST: " << uri << "; Timeout: " << timeoutInSec);
+  AIAA_LOG_DEBUG("ParamStr: " << paramStr);
+  AIAA_LOG_DEBUG("UploadFilePath: " << uploadFilePath);
+  AIAA_LOG_DEBUG("ResultFileName: " << resultFileName);
   std::string textReponse;
 
   try {
     Poco::URI u(uri);
     Poco::Net::HTTPClientSession session(u.getHost(), u.getPort());
     session.setKeepAlive(true);
-    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0),
-                       Poco::Timespan(timeoutInSec, 0));
+    session.setTimeout(Poco::Timespan(CURL_CONNECT_TIMEOUT_IN_SEC, 0), Poco::Timespan(timeoutInSec, 0), Poco::Timespan(timeoutInSec, 0));
 
     std::string path(u.getPathAndQuery());
     if (path.empty()) {
@@ -171,6 +173,8 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
 
     if (res.getContentType().find("multipart/form-data") == std::string::npos) {
       AIAA_LOG_INFO("Expected Multipart Response but received: " << res.getContentType());
+      AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
+
       textReponse = response.str();
       return textReponse;
     }

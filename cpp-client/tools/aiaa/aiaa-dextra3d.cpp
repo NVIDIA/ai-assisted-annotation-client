@@ -55,13 +55,13 @@ int main(int argc, char **argv) {
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string model = getCmdOption(argv, argv + argc, "-model");
   std::string points = getCmdOption(argv, argv + argc, "-points");
-  double pad = ::atof(getCmdOption(argv, argv + argc, "-pad", "20.0").c_str());
+  double pad = nvidia::aiaa::Utils::lexical_cast<double>(getCmdOption(argv, argv + argc, "-pad", "20.0"));
   std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
-  double sigma = ::atof(getCmdOption(argv, argv + argc, "-sigma", "3.0").c_str());
+  double sigma = nvidia::aiaa::Utils::lexical_cast<double>(getCmdOption(argv, argv + argc, "-sigma", "3.0"));
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(getCmdOption(argv, argv + argc, "-pixel", "unsigned short"));
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
-  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
+  int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (label.empty() && model.empty()) {

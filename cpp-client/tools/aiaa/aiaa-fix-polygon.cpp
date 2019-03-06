@@ -27,6 +27,7 @@
  */
 
 #include <nvidia/aiaa/client.h>
+#include <nvidia/aiaa/utils.h>
 #include "../commonutils.h"
 #include <chrono>
 
@@ -49,15 +50,15 @@ int main(int argc, char **argv) {
   }
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-  int neighborhoodSize = ::atoi(getCmdOption(argv, argv + argc, "-neighbor", "1").c_str());
+  int neighborhoodSize = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-neighbor", "1"));
   std::string polygon = getCmdOption(argv, argv + argc, "-poly");
   std::string prevPoly = getCmdOption(argv, argv + argc, "-ppoly");
-  int polygonIndex = ::atoi(getCmdOption(argv, argv + argc, "-pindex", "0").c_str());
-  int vertexIndex = ::atoi(getCmdOption(argv, argv + argc, "-vindex", "0").c_str());
+  int polygonIndex = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-pindex", "0"));
+  int vertexIndex = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-vindex", "0"));
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
-  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
+  int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (polygon.empty()) {

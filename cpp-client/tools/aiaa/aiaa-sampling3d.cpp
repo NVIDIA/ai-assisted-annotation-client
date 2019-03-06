@@ -54,14 +54,14 @@ int main(int argc, char **argv) {
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string points = getCmdOption(argv, argv + argc, "-points");
-  double pad = ::atof(getCmdOption(argv, argv + argc, "-pad", "20.0").c_str());
+  double pad = nvidia::aiaa::Utils::lexical_cast<double>(getCmdOption(argv, argv + argc, "-pad", "20.0"));
   std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
-  int dim = ::atoi(getCmdOption(argv, argv + argc, "-dim", "3").c_str());
+  int dim = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-dim", "3"));
   nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(getCmdOption(argv, argv + argc, "-pixel", "unsigned short"));
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
-  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
+  int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (points.empty()) {

@@ -27,6 +27,7 @@
  */
 
 #include <nvidia/aiaa/client.h>
+#include <nvidia/aiaa/utils.h>
 #include "../commonutils.h"
 #include <chrono>
 
@@ -48,7 +49,7 @@ int main(int argc, char **argv) {
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
-  int timeout = ::atoi(getCmdOption(argv, argv + argc, "-timeout", "60").c_str());
+  int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   try {

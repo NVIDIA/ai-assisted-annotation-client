@@ -30,9 +30,12 @@
 
 #include "common.h"
 #include "pointset.h"
+#include "exception.h"
 
 #include <string>
 #include <vector>
+#include <locale>
+#include <sstream>
 
 namespace nvidia {
 namespace aiaa {
@@ -80,6 +83,30 @@ class AIAA_CLIENT_API Utils {
    @param[in,out] point size which represents x,y,z
    */
   static Point stringToPoint(const std::string &str, char delim);
+
+  /*!
+   @brief Lexical Cast with locale support
+   @param[in] in input string/numeric
+   @param[in] loc local by default "C"
+   @return numberic/string based for the given locale
+   */
+  template<typename T, typename U>
+  static auto lexical_cast(U const& in, const std::locale& loc = std::locale::classic()) {
+    std::stringstream istr;
+    istr.imbue(loc);
+    istr << in;
+
+    std::string str = istr.str();  // save string in case of exception
+
+    T val;
+    istr >> val;
+
+    if (istr.fail()) {
+      throw exception(exception::INVALID_ARGS_ERROR, str.c_str());
+    }
+
+    return val;
+  }
 };
 
 }

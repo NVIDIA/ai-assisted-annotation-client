@@ -41,6 +41,8 @@ const std::string EP_MASK_2_POLYGON = "/mask2polygon";
 const std::string EP_FIX_POLYGON = "/fixpolygon";
 const std::string IMAGE_FILE_EXTENSION = ".nii.gz";
 
+const int Client::MIN_POINTS_FOR_SEGMENTATION = 6;
+
 Client::Client(const std::string& uri, int timeout)
     : serverUri(uri),
       timeoutInSec(timeout) {

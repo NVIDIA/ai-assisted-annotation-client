@@ -173,7 +173,7 @@ class AIAA_CLIENT_API Client {
                       const std::string &inputImageFile, const std::string &outputImageFile) const;
 
   /// Minimum Number of Points required for segmentation/sampling
-  static const int MIN_POINTS_FOR_SEGMENTATION = 6;
+  static const int MIN_POINTS_FOR_SEGMENTATION;
 
  private:
   /// Server URI

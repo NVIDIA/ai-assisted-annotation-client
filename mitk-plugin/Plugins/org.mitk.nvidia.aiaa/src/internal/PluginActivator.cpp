@@ -17,7 +17,12 @@
 #include "PluginActivator.h"
 #include "QmitkNvidiaAIAAPreferencePage.h"
 
+#include <Poco/Net/IPAddress.h>
+
 void PluginActivator::start(ctkPluginContext* context) {
+  Poco::Net::IPAddress forcePocoNetLinkage;
+  forcePocoNetLinkage.af();
+
   BERRY_REGISTER_EXTENSION_CLASS(QmitkNvidiaAIAAPreferencePage, context)
 }
 

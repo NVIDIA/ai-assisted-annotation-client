@@ -56,6 +56,8 @@ public:
   void SetServerURI(const std::string &serverURI, const int serverTimeout);
   void ClearPoints();
   void ConfirmPoints();
+  void RunAutoSegmentation();
+  void EnableSegmentationFeedback(bool enableSegmentationFeedback);
 
 protected:
   NvidiaDextrSegTool3D();
@@ -67,6 +69,8 @@ protected:
 private:
   std::string m_AIAAServerUri;
   int m_AIAAServerTimeout;
+  nvidia::aiaa::PointSet m_AIAASegmentationPointSet;
+  bool mEnableSegmentationFeedback;
 
   mitk::PointSet::Pointer m_PointSet;
   mitk::DataNode::Pointer m_PointSetNode;
@@ -77,6 +81,9 @@ private:
 
   template <typename TPixel, unsigned int VImageDimension>
   void ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry);
+
+  template <typename TPixel, unsigned int VImageDimension>
+  void ItkImageProcessAutoSegmentation(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry);
 
   template <typename TPixel, unsigned int VImageDimension>
   nvidia::aiaa::PointSet getPointSet(mitk::BaseGeometry *imageGeometry);

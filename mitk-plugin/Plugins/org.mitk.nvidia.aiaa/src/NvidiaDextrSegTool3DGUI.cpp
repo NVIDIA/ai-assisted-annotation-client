@@ -41,6 +41,8 @@ NvidiaDextrSegTool3DGUI::NvidiaDextrSegTool3DGUI() : m_Ui(new Ui::NvidiaDextrSeg
 
   connect(m_Ui->clearPointsBtn, SIGNAL(clicked()), this, SLOT(OnClearPoints()));
   connect(m_Ui->confirmPointsBtn, SIGNAL(clicked()), this, SLOT(OnConfirmPoints()));
+  connect(m_Ui->autoSegmentationBtn, SIGNAL(clicked()), this, SLOT(OnAutoSegmentation()));
+  connect(m_Ui->sendFeedBackCkBox, SIGNAL(toggled(bool)), this, SLOT(OnEnableSegmentationFeedback(bool)));
 
   connect(this, SIGNAL(NewToolAssociated(mitk::Tool *)), this, SLOT(OnNewToolAssociated(mitk::Tool *)));
 }
@@ -63,6 +65,16 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
     auto serverTimeout = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::SERVER_TIMEOUT, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT);
 
     m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString(), serverTimeout);
+
+    m_Ui->modelsLabel->setText("<p>Change server URI in Nvidia AIAA preferences (Ctrl+P).</p>"
+        "<p><a href='" + serverURI + "/models'>Click here</a> to see ALL available Models</p>");
+  }
+}
+
+void NvidiaDextrSegTool3DGUI::OnAutoSegmentation() {
+  if (m_NvidiaDextrSegTool3D.IsNotNull()) {
+    updateConfigs();
+    m_NvidiaDextrSegTool3D->RunAutoSegmentation();
   }
 }
 
@@ -73,6 +85,13 @@ void NvidiaDextrSegTool3DGUI::OnConfirmPoints() {
   }
 }
 
+void NvidiaDextrSegTool3DGUI::OnEnableSegmentationFeedback(bool checked) {
+  if (m_NvidiaDextrSegTool3D.IsNotNull()) {
+    m_NvidiaDextrSegTool3D->EnableSegmentationFeedback(checked);
+  }
+}
+
 void NvidiaDextrSegTool3DGUI::OnNewToolAssociated(mitk::Tool *tool) {
   m_NvidiaDextrSegTool3D = dynamic_cast<NvidiaDextrSegTool3D *>(tool);
+  updateConfigs();
 }

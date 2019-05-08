@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>320</width>
-    <height>240</height>
+    <height>410</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,13 +18,104 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QLabel" name="addPointsLabel">
+    <widget class="QLabel" name="hModelsLabel">
+     <property name="font">
+      <font>
+       <family>DejaVu Sans</family>
+       <pointsize>15</pointsize>
+      </font>
+     </property>
      <property name="text">
-      <string>Shift + left click to add points
-Change server URI in Nvidia AIAA preferences (Ctrl+P)</string>
+      <string>Models</string>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="modelsLabel">
+     <property name="text">
+      <string>&lt;p&gt;Change server URI in Nvidia AIAA preferences (Ctrl+P).&lt;/p&gt;&lt;p&gt;&lt;a href='http://0.0.0.0:5600/v1/models'&gt;Click here&lt;/a&gt; to see ALL available Models&lt;/p&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line1">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="hSegmentationLabel">
+     <property name="font">
+      <font>
+       <family>DejaVu Sans</family>
+       <pointsize>15</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Auto Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="autoSegmentationBtn">
+     <property name="text">
+      <string>Run Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="sendFeedBackCkBox">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>Use Feedback In Annotation</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="hAnnotaitonLabel">
+     <property name="font">
+      <font>
+       <family>DejaVu Sans</family>
+       <pointsize>15</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>Annotation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="addPointsLabel">
+     <property name="text">
+      <string>(Shift + Left click) to add points</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>false</bool>
      </property>
     </widget>
    </item>

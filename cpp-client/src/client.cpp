@@ -37,7 +37,8 @@ namespace aiaa {
 
 const std::string EP_MODELS = "/models";
 const std::string EP_DEXTRA_3D = "/dextr3d";
-const std::string EP_MASK_2_POLYGON = "/mask2polygon";
+const std::string EP_SEGMENTATION = "/segmentation";
+const std::string EP_MASK_TO_POLYGON = "/mask2polygon";
 const std::string EP_FIX_POLYGON = "/fixpolygon";
 const std::string IMAGE_FILE_EXTENSION = ".nii.gz";
 
@@ -53,6 +54,13 @@ Client::Client(const std::string& uri, int timeout)
 
 ModelList Client::models() const {
   std::string uri = serverUri + EP_MODELS;
+  AIAA_LOG_DEBUG("URI: " << uri);
+
+  return ModelList::fromJson(CurlUtils::doGet(uri, timeoutInSec));
+}
+
+ModelList Client::models(const std::string &label, const Model::ModelType type) const {
+  std::string uri = serverUri + EP_MODELS + "?label=" + label + "&type=" + (type == Model::segmentation ? "segmentation" : "annotation");
   AIAA_LOG_DEBUG("URI: " << uri);
 
   return ModelList::fromJson(CurlUtils::doGet(uri, timeoutInSec));
@@ -171,27 +179,21 @@ PointSet Client::sampling(const Model &model, const PointSet &pointSet, const st
   throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
 }
 
-int Client::segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension,
+PointSet Client::segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension,
                          const std::string &outputImageFile, const ImageInfo &imageInfo) const {
   if (dimension != 3) {
     throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 3D is supported)");
   }
   if (model.name.empty()) {
     AIAA_LOG_WARN("Selected model is EMPTY");
-    return -2;
-  }
-  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
-        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
-    AIAA_LOG_WARN(msg);
-    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
+    throw exception(exception::INVALID_ARGS_ERROR, "Model is EMPTY");
   }
 
   bool postProcess = imageInfo.empty() ? false : true;
   std::string tmpResultFile = postProcess ? (Utils::tempfilename() + IMAGE_FILE_EXTENSION) : outputImageFile;
   AIAA_LOG_DEBUG("TmpResultFile: " << tmpResultFile << "; PostProcess: " << postProcess);
 
-  std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + model.name;
+  std::string uri = serverUri + (model.type == Model::segmentation ? EP_SEGMENTATION : EP_DEXTRA_3D) + "?model=" + model.name;
   std::string paramStr = "{\"sigma\":" + Utils::lexical_cast<std::string>(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
   std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile, timeoutInSec);
 
@@ -200,7 +202,7 @@ int Client::segmentation(const Model &model, const PointSet &pointSet, const std
     ITKUtils3DUChar::imagePostProcess(tmpResultFile, outputImageFile, imageInfo);
     std::remove(tmpResultFile.c_str());
   }
-  return 0;
+  return PointSet::fromJson(response);
 }
 
 int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType,
@@ -237,7 +239,7 @@ int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::str
 }
 
 PolygonsList Client::maskToPolygon(int pointRatio, const std::string &inputImageFile) const {
-  std::string uri = serverUri + EP_MASK_2_POLYGON;
+  std::string uri = serverUri + EP_MASK_TO_POLYGON;
   std::string paramStr = "{\"more_points\":" + Utils::lexical_cast<std::string>(pointRatio) + "}";
 
   AIAA_LOG_DEBUG("URI: " << uri);

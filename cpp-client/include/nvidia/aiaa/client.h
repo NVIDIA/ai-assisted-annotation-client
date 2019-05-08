@@ -71,6 +71,15 @@ class AIAA_CLIENT_API Client {
   ModelList models() const;
 
   /*!
+   @brief This API is used to fetch all the possible Models support by AIAA Server for matching label and model type
+   @return ModelList object representing a list of Models
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   */
+  ModelList models(const std::string &label, const Model::ModelType type) const;
+
+  /*!
    @brief This API is used to sample the input image
    @param[in] model  Model to be used
    @param[in] pointSet  PointSet object which represents a set of points in 2D/3D/4D for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
@@ -105,26 +114,24 @@ class AIAA_CLIENT_API Client {
                     const std::string &outputImageFile, ImageInfo &imageInfo) const;
 
   /*!
-   @brief 3D image segmentation over sampled input image and PointSet
-   @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
+   @brief 3D image segmentation/annotation over sampled input image and PointSet depending on input Model
+   @param[in] model  Model to be used (it can be for segmentation or annotation)
+   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ.
    @param[in] dimension  Dimension for Input Image
    @param[in] inputImageFile  Sampled Input image filename where image is stored in itk::Image<unsigned short, *> format
    @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, *> format
 
-   @retval 0 Success
-   @retval -1 Insufficient Points in the input
-   @retval -2 Input Model name is empty
+   @retval New/Updated Pointset in case of segmentation which represents a set of points in 3-Dimensional for the organ.
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  int segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
+  PointSet segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
                 const ImageInfo &imageInfo) const;
 
   /*!
-   @brief 3D image segmentation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)
+   @brief 3D image annotation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)
    @param[in] model  Model to be used
    @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
    @param[in] inputImageFile  Input image filename where image is stored in itk::Image<?, 3> format

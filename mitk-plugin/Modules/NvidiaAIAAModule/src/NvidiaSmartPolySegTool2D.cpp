@@ -61,7 +61,7 @@ NvidiaSmartPolySegTool2D::NvidiaSmartPolySegTool2D()
   m_PointInteractor->LoadStateMachine("PointSet.xml");
   m_PointInteractor->SetEventConfig("PointSetConfig.xml");
   m_PointInteractor->SetDataNode(m_PointSetPolygonNode);
-  m_PointInteractor->setNvidiaSmartPolySegTool2D(this);
+  m_PointInteractor->setNvidiaSmartPolySegTool(this);
 
   m_imageSize = nullptr;
   m_currentSlice = 0;
@@ -153,10 +153,6 @@ void NvidiaSmartPolySegTool2D::SetNeighborhoodSize(int neighborhoodSize) {
 
 void NvidiaSmartPolySegTool2D::SetFlipPoly(bool flipPoly) {
   m_FlipPoly = flipPoly;
-}
-
-void NvidiaSmartPolySegTool2D::ClearPoints() {
-  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
@@ -459,7 +455,7 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     newPointInteractor->LoadStateMachine("PointSet.xml");
     newPointInteractor->SetEventConfig("PointSetConfig.xml");
     newPointInteractor->SetDataNode(newPointSetNode);
-    newPointInteractor->setNvidiaSmartPolySegTool2D(this);
+    newPointInteractor->setNvidiaSmartPolySegTool(this);
 
     // Add the polygon node under control node
     m_ToolManager->GetDataStorage()->Add(newPointSetNode, m_PointSetPolygonNode);

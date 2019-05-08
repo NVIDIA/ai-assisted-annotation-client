@@ -44,6 +44,7 @@ Model::Model() {
   sigma = DEFAULT_SIGMA;
   padding = DEFAULT_PADDING;
   roi = {DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI};  // support up-to 4-Dimension
+  type = ModelType::annotation;
 }
 
 // {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0}
@@ -54,9 +55,8 @@ Model Model::fromJson(const std::string &json) {
 
     Model model;
     model.name = j["name"].get<std::string>();
-    model.internal_name = j["internal name"].get<std::string>();
-    model.description = j.find("description") != j.end() ? j["description"].get<std::string>() : j["decription"].get<std::string>();
-    // TODO:: Ask server to correct the spelling for description
+    model.internal_name = j.find("internal name") != j.end() ? j["internal name"].get<std::string>() : std::string();
+    model.description = j.find("description") != j.end() ? j["description"].get<std::string>() : std::string();
 
     for (auto e : j["labels"]) {
       model.labels.insert(e.get<std::string>());
@@ -79,6 +79,10 @@ Model Model::fromJson(const std::string &json) {
       model.roi.push_back(model.roi[model.roi.size() - 1]);
     }
 
+    std::string type = j.find("type") != j.end() ? j["type"].get<std::string>() : std::string();
+    model.type = type == "segmentation" ? ModelType::segmentation : ModelType::annotation;
+    model.version = j.find("version") != j.end() ? j["version"].get<std::string>() : std::string();
+
     return model;
   } catch (nlohmann::json::parse_error& e) {
     AIAA_LOG_ERROR(e.what());
@@ -98,6 +102,8 @@ std::string Model::toJson(int space) const {
   j["sigma"] = sigma;
   j["padding"] = padding;
   j["roi"] = roi;
+  j["type"] = (type == Model::segmentation ? "segmentation" : "annotation");
+  j["version"] = version;
 
   std::string str = j.dump(space);
   if (!space) {
@@ -138,9 +144,13 @@ std::string ModelList::toJson(int space) const {
   return space ? j.dump(space) : j.dump();
 }
 
-Model ModelList::getMatchingModel(const std::string &labelName) {
+Model ModelList::getMatchingModel(const std::string &labelName, Model::ModelType type/* = Model::annotation*/) {
   // Exact Match (first preference)
   for (auto model : models) {
+    if (model.type != type) {
+      break;
+    }
+
     for (auto label : model.labels) {
       AIAA_LOG_DEBUG("Exact Match: [" << label << "] vs [" << labelName << "]");
       if (Utils::iequals(labelName, label)) {
@@ -152,6 +162,10 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
   // Prefix Match (find as prefix in either)
   std::string l1 = Utils::to_lower(labelName);
   for (auto model : models) {
+    if (model.type != type) {
+      break;
+    }
+
     for (auto label : model.labels) {
       std::string l2 = Utils::to_lower(label);
       AIAA_LOG_DEBUG("Exact Match: [" << l2 << "] vs [" << l1 << "]");
@@ -163,6 +177,15 @@ Model ModelList::getMatchingModel(const std::string &labelName) {
 
   return Model();
 }
+
+bool ModelList::empty() const {
+  return models.empty();
+}
+
+size_t ModelList::size() const {
+  return models.size();
+}
+
 
 }
 }

@@ -29,7 +29,7 @@ const QString QmitkNvidiaAIAAPreferencePage::FLIP_POLY = "flip poly";
 const QString QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI = "http://0.0.0.0:5000/v1";
 const int QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT = 60;
 const int QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE = 1;
-const bool QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY = false;
+const bool QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY = true;
 
 QmitkNvidiaAIAAPreferencePage::QmitkNvidiaAIAAPreferencePage()
     : m_Widget(nullptr),

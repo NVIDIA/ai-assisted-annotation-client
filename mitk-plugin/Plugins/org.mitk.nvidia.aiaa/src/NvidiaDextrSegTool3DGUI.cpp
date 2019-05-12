@@ -42,7 +42,6 @@ NvidiaDextrSegTool3DGUI::NvidiaDextrSegTool3DGUI() : m_Ui(new Ui::NvidiaDextrSeg
   connect(m_Ui->clearPointsBtn, SIGNAL(clicked()), this, SLOT(OnClearPoints()));
   connect(m_Ui->confirmPointsBtn, SIGNAL(clicked()), this, SLOT(OnConfirmPoints()));
   connect(m_Ui->autoSegmentationBtn, SIGNAL(clicked()), this, SLOT(OnAutoSegmentation()));
-  connect(m_Ui->sendFeedBackCkBox, SIGNAL(toggled(bool)), this, SLOT(OnEnableSegmentationFeedback(bool)));
 
   connect(this, SIGNAL(NewToolAssociated(mitk::Tool *)), this, SLOT(OnNewToolAssociated(mitk::Tool *)));
 }
@@ -82,12 +81,6 @@ void NvidiaDextrSegTool3DGUI::OnConfirmPoints() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
     updateConfigs();
     m_NvidiaDextrSegTool3D->ConfirmPoints();
-  }
-}
-
-void NvidiaDextrSegTool3DGUI::OnEnableSegmentationFeedback(bool checked) {
-  if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    m_NvidiaDextrSegTool3D->EnableSegmentationFeedback(checked);
   }
 }
 

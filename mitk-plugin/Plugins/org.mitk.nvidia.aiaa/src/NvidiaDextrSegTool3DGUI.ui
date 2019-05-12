@@ -74,19 +74,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="sendFeedBackCkBox">
-     <property name="enabled">
-      <bool>true</bool>
-     </property>
-     <property name="text">
-      <string>Use Feedback In Annotation</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="Line" name="line2">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

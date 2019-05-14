@@ -32,9 +32,7 @@ from __future__ import print_function
 
 import argparse
 import json
-
-import sys
-sys.path.append('.')
+import os
 import client_api
 
 
@@ -47,11 +45,11 @@ def call_server():
         raise SyntaxError('test config file not specified')
 
     test_config = json.load(open(args.test_config))
-    
+
     server_config = test_config.get('server', None)
     if not server_config:
         raise ValueError('server not configured')
- 
+
     ip = server_config.get('ip', '')
     if not ip:
         raise ValueError('server IP not configured')
@@ -63,7 +61,7 @@ def call_server():
         raise ValueError('server port not configured')
     else:
         print("Port: ", port)
-    
+
     api_version = server_config.get('api_version', '')
     if not api_version:
         raise ValueError('API version not configured')
@@ -85,7 +83,6 @@ def call_server():
         if not api:
             raise ValueError('missing api in test definition')
 
-        temp_folder = test.get('temp_folder') 
         model_name = test.get('model')
         image_path = test.get('image')
         result_prefix = test.get('result_prefix')
@@ -101,8 +98,11 @@ def call_server():
         if not result_prefix:
             raise ValueError('missing result_prefix in test "{}"'.format(name))
 
+        dir_path = os.path.dirname(os.path.realpath(result_prefix))
+        os.makedirs(dir_path, exist_ok=True)
+
         if api == 'models':
-            files = client.model_list(result_prefix)
+            client.model_list(result_prefix)
             continue
 
         if not image_path:
@@ -110,12 +110,16 @@ def call_server():
         if not params:
             raise ValueError('missing params in test "{}"'.format(name))
 
-        if api == 'dextr3d':
+        if api == 'segmentation':
             if not model_name:
                 raise ValueError('missing model name in test "{}"'.format(name))
-            if not temp_folder:
-                raise ValueError('missing temp folder name in test "{}"'.format(name))            
-            files = client.dextr3d(model_name, temp_folder, image_path, result_prefix+"_result_aas.nii.gz", params, pad, roi_size, sigma)
+            files = client.segmentation(model_name, image_path, result_prefix, params)
+        elif api == 'dextr3d':
+            if not model_name:
+                raise ValueError('missing model name in test "{}"'.format(name))
+
+            files = client.dextr3d(model_name, image_path, result_prefix, params,
+                                   pad, roi_size, sigma)
         elif api == 'mask2polygon':
             files = client.mask2polygon(image_path, result_prefix, params)
         elif api == 'fixpolygon':
@@ -124,7 +128,7 @@ def call_server():
             raise ValueError("Invalid API: {}".format(args.api))
 
         print("\nGenerated file for Test '{}':".format(name))
-        print(*files, sep='\n')
+        print('\n'.join(files))
 
 
 if __name__ == '__main__':

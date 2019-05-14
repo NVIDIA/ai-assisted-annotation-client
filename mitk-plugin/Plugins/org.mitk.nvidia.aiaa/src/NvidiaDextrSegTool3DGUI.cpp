@@ -66,7 +66,7 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
     m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString(), serverTimeout);
 
     m_Ui->modelsLabel->setText("<p>Change server URI in Nvidia AIAA preferences (Ctrl+P).</p>"
-        "<p><a href='" + serverURI + "/models?type=*'>Click here</a> to see ALL available Models</p>");
+        "<p><a href='" + serverURI + "/models'>Click here</a> to see ALL available Models</p>");
   }
 }
 

@@ -24,17 +24,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os
-import requests
 import json
+import os
 import re
-import numpy as np
+
 import nibabel as nib
-
-from skimage.transform import resize
-from skimage.measure import label, regionprops
-
+import numpy as np
+import requests
+import skimage.measure as skm
 from requests_toolbelt.multipart import decoder
+from skimage.transform import resize
 
 
 class AIAAClient:
@@ -42,8 +41,8 @@ class AIAAClient:
     The AIAAClient object is constructed with the server information
 
     :param server_ip: AIAA Server IP address
-    :param port: AIAA Server Port
-    :param version: AIAA Serverversion 
+    :param server_port: AIAA Server Port
+    :param api_version: AIAA Serverversion
     """
 
     def __init__(self, server_ip, server_port, api_version='v1'):
@@ -56,7 +55,7 @@ class AIAAClient:
         Compose http message and get response
     
         :param args_dict: for method selection
-        :param parameters: parameters
+        :param params: parameters
         :param files: files to be sent to AIAA Server
         
         :return: It returns response from AIAA Server 
@@ -69,11 +68,9 @@ class AIAAClient:
             for key, value in args_dict.items():
                 url = url + sep + key + "=" + value
                 sep = '&'
-                    
-        data = None
 
         print("Connecting to: ", url)
-        
+
         if not params:
             response = requests.get(url)
         else:
@@ -90,26 +87,27 @@ class AIAAClient:
         """
         Get the current supported model list
         :param result_file_prefix: File name to store the result
-        :return: It returns json containing current supported object names along with their corresponding object model names for DEXTR3D
+        :return: returns json containing list of models and details supported for DEXTR3D
         """
 
         response = self._call_server("models")
         file_names = _process_response(response, result_file_prefix)
         print(file_names)
-        return(file_names)
+        return file_names
 
-    def dextr3d(self, model_name, temp_folder_path, image_file_path, out_image_file_path, point_set, pad=20, roi_size='128x128x128', sigma=3):
+    # noinspection PyUnresolvedReferences
+    def dextr3d(self, model_name, image_file_path, result_file_prefix, point_set, pad=20,
+                roi_size='128x128x128', sigma=3):
         """
         3D image segmentation using DEXTR3D method
-    
+
         :param model_name: model name according to the output of model_list()
-        :param temp_folder_path: temporary folder path, needed for http request/response
         :param image_file_path: input 3D image file name
-        :param point_set: point set json containing the extreme points' indices 
-        :param out_image_file_path: output 3D binary mask image file name 
+        :param point_set: point set json containing the extreme points' indices
+        :param result_file_prefix: output files will be stored under this prefix
         :param pad: padding size (default is 20)
-        :param roi_size:  image resize value (default is 128x128x128) 
-        :param sigma: sigma value to be used for sigma (default is 3) 
+        :param roi_size:  image resize value (default is 128x128x128)
+        :param sigma: sigma value to be used for sigma (default is 3)
 
         Output 3D binary mask will be saved to the specified file
         """
@@ -124,12 +122,11 @@ class AIAAClient:
         for i, pt_str in enumerate(pts_str):
             points[i, ::] = tuple(map(int, pt_str.split(',')))
 
-        assert(np.shape(points)[0] >= 6)  # at least six points
-        assert(np.shape(points)[1] == 3)  # 3D points       
-        
+        assert (np.shape(points)[0] >= 6)  # at least six points
+        assert (np.shape(points)[1] == 3)  # 3D points
+
         # Assign temporary file names
-        tmp_image_file_path = temp_folder_path + "image.nii.gz"
-        result_prefix = temp_folder_path + "dextr3D"
+        tmp_image_file_path = result_file_prefix + "_cropped_input_image.nii.gz"
 
         # Read image
         image = nib.load(image_file_path)
@@ -142,42 +139,63 @@ class AIAAClient:
         points, crop = _image_pre_process(image, tmp_image_file_path, points, pad, roi_size, spacing)
 
         # Compose request message
-        json_data = {}
-        json_data['points'] = str(points.tolist())
-        json_data['sigma'] = sigma
+        json_data = {'points': str(points.tolist()), 'sigma': sigma}
 
         files = _make_files(tmp_image_file_path)
         params = json.dumps(json_data)
         response = self._call_server("dextr3d", {"model": model_name}, params, files)
 
         # Process response
-        file_names = _process_response(response, result_prefix)
+        file_names = _process_response(response, result_file_prefix)
         print(file_names)
 
         # Postprocess - recover resize and crop
+        out_image_file_path = result_file_prefix + "_resized_output_image.nii.gz"
+        roi_image_file_path = None
         for image_name in file_names:
-            if image_name.find(".nii.gz") != -1:
+            if image_name.find("_aas_result.nii.gz") != -1:
                 roi_image_file_path = image_name
 
         result = _image_post_processing(roi_image_file_path, crop, orig_size)
         nib.save(nib.Nifti1Image(result.astype(np.uint8), affine), out_image_file_path)
 
         file_names.append(out_image_file_path)
-        return(file_names)
+        return file_names
 
-    def mask2polygon(self, image_file_path, result_file_prefix, pointRatio):
+    def segmentation(self, model_name, image_file_path, result_file_prefix, params):
+        """
+        3D image segmentation using DEXTR3D method
+    
+        :param model_name: model name according to the output of model_list()
+        :param image_file_path: input 3D image file name
+        :param result_file_prefix: result file from AIAA Server
+        :param params: additional params if applicable for segmentation
+
+        Output 3D binary mask and extreme points will be saved into files with result_file_prefix
+        """
+
+        # Compose request message
+        files = _make_files(image_file_path)
+        response = self._call_server("segmentation", {"model": model_name}, params, files)
+
+        # Process response
+        file_names = _process_response(response, result_file_prefix)
+        print(file_names)
+
+        return file_names
+
+    def mask2polygon(self, image_file_path, result_file_prefix, point_ratio):
         """
         3D binary mask to polygon representation conversion
     
         :param image_file_path: input 3D binary mask image file name
         :param result_file_prefix: result file from AIAA Server
-        :param pointRatio: point ratio controlling how many polygon vertices will be generated
+        :param point_ratio: point ratio controlling how many polygon vertices will be generated
 
         :return: A json containing the indices of all polygon vertices slice by slice.
         """
 
-        json_data = {}
-        json_data['more_points'] = pointRatio
+        json_data = {'more_points': point_ratio}
         params = json.dumps(json_data)
 
         files = _make_files(image_file_path)
@@ -186,7 +204,7 @@ class AIAAClient:
 
         file_names = _process_response(response, result_file_prefix)
         print(file_names)
-        return(file_names)
+        return file_names
 
     def fixpolygon(self, image_file_path, result_file_prefix, params):
         """
@@ -245,16 +263,16 @@ def _image_pre_process(image, tmp_image_file_path, point_set, pad, roi_size, spa
     points[::, 2] = points[::, 2] - z1
     image = image[x1:x2, y1:y2, z1:z2]
     cropped_size = np.shape(image)
-    
+
     # resize
     ratio = np.divide(np.asanyarray(target_size, dtype=np.float), np.asanyarray(cropped_size, dtype=np.float))
     image = resize(image, target_size, preserve_range=True, order=1)  # linear interpolation
-    points[::, 0] = points[::, 0] * ratio[0] 
+    points[::, 0] = points[::, 0] * ratio[0]
     points[::, 1] = points[::, 1] * ratio[1]
     points[::, 2] = points[::, 2] * ratio[2]
 
     nib.save(nib.Nifti1Image(image, np.eye(4)), tmp_image_file_path)
-                    
+
     return points, crop
 
 
@@ -273,27 +291,31 @@ def _image_post_processing(roi_image_file_path, crop, orig_size):
     roi_result = nib.load(roi_image_file_path)
     roi_result = roi_result.dataobj
 
-    orig_crop_size = [crop[0][1] - crop[0][0], \
-                      crop[1][1] - crop[1][0], \
+    orig_crop_size = [crop[0][1] - crop[0][0],
+                      crop[1][1] - crop[1][0],
                       crop[2][1] - crop[2][0]]
 
-    resize_image = resize(roi_result, orig_crop_size, order=0);
+    resize_image = resize(roi_result, orig_crop_size, order=0)
 
-    result[crop[0][0]:crop[0][1], \
-           crop[1][0]:crop[1][1], \
-           crop[2][0]:crop[2][1]] = resize_image
+    result[crop[0][0]:crop[0][1], crop[1][0]:crop[1][1], crop[2][0]:crop[2][1]] = resize_image
+    return _get_largest_cc(result)
 
-    labels = label(result)
 
+def _get_largest_cc(result):
+    """
+    Get Largest Connected Component
+    """
+    labels = skm.label(result)
+
+    largest_label = None
     largest_area = 0
-    for r in regionprops(result):
-        if(r.area > largest_area):
+    for r in skm.regionprops(labels):
+        if r.area > largest_area:
             largest_area = r.area
             largest_label = r.label
 
-    largestCC = labels == largest_label
-
-    return largestCC
+    largest_cc = labels == largest_label
+    return largest_cc
 
 
 def _make_files(image_file_path):
@@ -336,12 +358,12 @@ def _process_response(r, result_prefix):
             header = part.headers[b'Content-Disposition']
 
             header = header.decode('utf-8')
-            headerInfo = header.split(";")
+            header_info = header.split(";")
 
-            if headerInfo[0] != 'form-data':
+            if header_info[0] != 'form-data':
                 continue
 
-            name_header = re.findall("name=\"(.+)\"|$", headerInfo[1])[0]
+            name_header = re.findall("name=\"(.+)\"|$", header_info[1])[0]
 
             result_path = ""
 
@@ -350,8 +372,12 @@ def _process_response(r, result_prefix):
             elif name_header == 'results':
                 result_path = result_prefix + '.json'
             elif name_header == "file":
-                filename_header = re.findall("name=\"(.+)\"|$", headerInfo[2])[0]
+                filename_header = re.findall("name=\"(.+)\"|$", header_info[2])[0]
                 result_path = result_prefix + "_" + filename_header
+                if filename_header.find(".nii.gz") != -1:
+                    result_path = result_prefix + "_aas_result.nii.gz"
+                if filename_header.find(".png") != -1:
+                    result_path = result_prefix + "_aas_result.png"
 
             if result_path:
                 print("Write returned file to ", result_path)
@@ -360,4 +386,3 @@ def _process_response(r, result_prefix):
                     files.append(result_path)
 
     return files
-

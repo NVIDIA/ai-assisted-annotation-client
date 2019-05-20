@@ -180,7 +180,7 @@ PointSet Client::sampling(const Model &model, const PointSet &pointSet, const st
 }
 
 PointSet Client::segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension,
-                         const std::string &outputImageFile, const ImageInfo &imageInfo) const {
+                         const std::string &outputImageFile, const ImageInfo &imageInfo /*= ImageInfo()*/) const {
   if (dimension != 3) {
     throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 3D is supported)");
   }

@@ -120,6 +120,7 @@ class AIAA_CLIENT_API Client {
    @param[in] dimension  Dimension for Input Image
    @param[in] inputImageFile  Sampled Input image filename where image is stored in itk::Image<unsigned short, *> format
    @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, *> format
+   @param[in] imageInfo  Optional Original ImageInfo to recover in case of annotation models after inference
 
    @retval New/Updated Pointset in case of segmentation which represents a set of points in 3-Dimensional for the organ.
 
@@ -128,7 +129,7 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
   PointSet segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
-                const ImageInfo &imageInfo) const;
+                const ImageInfo &imageInfo = ImageInfo()) const;
 
   /*!
    @brief 3D image annotation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)

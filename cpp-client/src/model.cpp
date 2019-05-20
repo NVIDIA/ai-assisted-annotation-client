@@ -148,7 +148,7 @@ Model ModelList::getMatchingModel(const std::string &labelName, Model::ModelType
   // Exact Match (first preference)
   for (auto model : models) {
     if (model.type != type) {
-      break;
+      continue;
     }
 
     for (auto label : model.labels) {
@@ -163,7 +163,7 @@ Model ModelList::getMatchingModel(const std::string &labelName, Model::ModelType
   std::string l1 = Utils::to_lower(labelName);
   for (auto model : models) {
     if (model.type != type) {
-      break;
+      continue;
     }
 
     for (auto label : model.labels) {

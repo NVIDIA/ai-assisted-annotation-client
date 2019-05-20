@@ -52,6 +52,9 @@ target_link_libraries(nvidiaAIAAListModels NvidiaAIAAClient ${CMAKE_DL_LIBS})
 add_executable(nvidiaAIAADEXTR3D aiaa/aiaa-dextra3d.cpp)
 target_link_libraries(nvidiaAIAADEXTR3D NvidiaAIAAClient ${CMAKE_DL_LIBS})
 
+add_executable(nvidiaAIAASegmentation aiaa/aiaa-segmentation.cpp)
+target_link_libraries(nvidiaAIAASegmentation NvidiaAIAAClient ${CMAKE_DL_LIBS})
+
 add_executable(nvidiaAIAASampling3D aiaa/aiaa-sampling3d.cpp)
 target_link_libraries(nvidiaAIAASampling3D NvidiaAIAAClient ${CMAKE_DL_LIBS})
 
@@ -63,10 +66,11 @@ target_link_libraries(nvidiaAIAAMaskPolygon NvidiaAIAAClient ${CMAKE_DL_LIBS})
 
 
 # Install Targets
-install(TARGETS DicomToNifti          DESTINATION bin)
-install(TARGETS NiftiToDicom          DESTINATION bin)
+install(TARGETS DicomToNifti           DESTINATION bin)
+install(TARGETS NiftiToDicom           DESTINATION bin)
 
-install(TARGETS nvidiaAIAAListModels  DESTINATION bin)
-install(TARGETS nvidiaAIAADEXTR3D     DESTINATION bin)
-install(TARGETS nvidiaAIAAFixPolygon  DESTINATION bin)
-install(TARGETS nvidiaAIAAMaskPolygon DESTINATION bin)
+install(TARGETS nvidiaAIAAListModels   DESTINATION bin)
+install(TARGETS nvidiaAIAADEXTR3D      DESTINATION bin)
+install(TARGETS nvidiaAIAASegmentation DESTINATION bin)
+install(TARGETS nvidiaAIAAFixPolygon   DESTINATION bin)
+install(TARGETS nvidiaAIAAMaskPolygon  DESTINATION bin)

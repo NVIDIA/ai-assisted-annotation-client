@@ -58,8 +58,11 @@ int main(int argc, char **argv) {
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri, timeout);
 
-    nvidia::aiaa::Model::ModelType mt = type == "segmentation" ? nvidia::aiaa::Model::segmentation : nvidia::aiaa::Model::annotation;
-    nvidia::aiaa::ModelList modelList = type.empty() ? client.models() : client.models(label, mt);
+    nvidia::aiaa::Model::ModelType mt = nvidia::aiaa::Model::unknown;
+    mt = type == "segmentation" ? nvidia::aiaa::Model::segmentation : mt;
+    mt = type == "annotation" ? nvidia::aiaa::Model::annotation : mt;
+
+    nvidia::aiaa::ModelList modelList = type.empty() && label.empty() ? client.models() : client.models(label, mt);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();

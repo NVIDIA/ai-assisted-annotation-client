@@ -68,7 +68,8 @@ struct AIAA_CLIENT_API Model {
 
   enum ModelType {
     annotation,
-    segmentation
+    segmentation,
+    unknown
   };
 
   /// Type of Model (segmentation/annotation)

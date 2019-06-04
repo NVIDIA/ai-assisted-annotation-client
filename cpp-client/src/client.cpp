@@ -60,7 +60,10 @@ ModelList Client::models() const {
 }
 
 ModelList Client::models(const std::string &label, const Model::ModelType type) const {
-  std::string uri = serverUri + EP_MODELS + "?label=" + label + "&type=" + (type == Model::segmentation ? "segmentation" : "annotation");
+  std::string uri = serverUri + EP_MODELS + "?label=" + label;
+  if (type != Model::unknown) {
+    uri += std::string("&type=") + (type == Model::segmentation ? "segmentation" : "annotation");
+  }
   AIAA_LOG_DEBUG("URI: " << uri);
 
   return ModelList::fromJson(CurlUtils::doGet(uri, timeoutInSec));

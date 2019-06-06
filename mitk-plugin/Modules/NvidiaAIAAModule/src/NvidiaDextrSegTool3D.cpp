@@ -489,6 +489,8 @@ void NvidiaDextrSegTool3D::ItkImageProcessAutoSegmentation(itk::Image<TPixel, VI
   std::remove(tmpResultFileName.c_str());
   mitk::ProgressBar::GetInstance()->Progress(totalSteps - currentSteps);
   MITK_INFO("nvidia") << "++++++++ Nvidia Auto Segmentation ends";
+
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 template<typename TPixel, unsigned int VImageDimension>
@@ -599,6 +601,8 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
   std::remove(tmpResultFileName.c_str());
   mitk::ProgressBar::GetInstance()->Progress(totalSteps - currentSteps);
   MITK_INFO("nvidia") << "++++++++ Nvidia DExtr3D ends";
+
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 template<typename TPixel, unsigned int VImageDimension>

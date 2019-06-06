@@ -329,8 +329,6 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
       MITK_INFO("nvidia") << "PolygonsUpdated: " << polyIndex;
       Tool::GeneralMessage("Failed to fix the polygon.  Empty response received from AIAA");
     }
-
-    mitk::RenderingManager::GetInstance()->RequestUpdateAll();
   } catch (nvidia::aiaa::exception &e) {
     std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
     Tool::GeneralMessage("Failed to execute 'fixPolygon' on Nvidia AIAA Server\n\n" + msg);
@@ -339,6 +337,8 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
   // Remove TempFiles
   std::remove(tmpImage2DFileName.c_str());
   std::remove(outputImageFile.c_str());
+
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 void NvidiaSmartPolySegTool2D::Mask2Polygon() {
@@ -380,6 +380,7 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
   // Remove TempFile
   std::remove(tmpImageFileName.c_str());
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {

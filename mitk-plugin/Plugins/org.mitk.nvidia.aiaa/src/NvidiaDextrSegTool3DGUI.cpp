@@ -65,22 +65,40 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
 
     m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString(), serverTimeout);
 
+    // Update ComboBox for selecting the model
+    m_Ui->segmentationCombo->clear();
+    m_Ui->annotationCombo->clear();
+
+    std::map<std::string, std::string> seg, ann;
+    m_NvidiaDextrSegTool3D->GetModelInfo(seg, ann);
+
+    for (auto it = seg.begin(); it != seg.end(); it++) {
+      m_Ui->segmentationCombo->addItem(QString::fromUtf8(it->first.c_str()));
+      m_Ui->segmentationCombo->setItemData(m_Ui->segmentationCombo->count() - 1, QVariant(it->second.c_str()), Qt::ToolTipRole);
+    }
+
+    for (auto it = ann.begin(); it != ann.end(); it++) {
+      m_Ui->annotationCombo->addItem(QString::fromUtf8(it->first.c_str()));
+      m_Ui->annotationCombo->setItemData(m_Ui->annotationCombo->count() - 1, QVariant(it->second.c_str()), Qt::ToolTipRole);
+    }
+
+    m_Ui->autoSegmentationBtn->setEnabled(m_Ui->segmentationCombo->count() > 0);
+    m_Ui->confirmPointsBtn->setEnabled(m_Ui->annotationCombo->count() > 0);
+
     m_Ui->modelsLabel->setText("<p>Change server URI in Nvidia AIAA preferences (Ctrl+P).</p>"
-        "<p><a href='" + serverURI + "/models'>Click here</a> to see ALL available Models</p>");
+        "<p><a href='" + serverURI + "/models'>Click here</a> to see Details of available Models</p>");
   }
 }
 
 void NvidiaDextrSegTool3DGUI::OnAutoSegmentation() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    updateConfigs();
-    m_NvidiaDextrSegTool3D->RunAutoSegmentation();
+    m_NvidiaDextrSegTool3D->RunAutoSegmentation(m_Ui->segmentationCombo->currentText().toStdString());
   }
 }
 
 void NvidiaDextrSegTool3DGUI::OnConfirmPoints() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    updateConfigs();
-    m_NvidiaDextrSegTool3D->ConfirmPoints();
+    m_NvidiaDextrSegTool3D->ConfirmPoints(m_Ui->annotationCombo->currentText().toStdString());
   }
 }
 

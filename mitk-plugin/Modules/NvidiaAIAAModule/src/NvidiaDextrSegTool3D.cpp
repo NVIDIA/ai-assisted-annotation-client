@@ -32,6 +32,7 @@
 #include <mitkImageCast.h>
 #include <mitkProgressBar.h>
 #include <mitkToolManager.h>
+#include <mitkColorSequenceRainbow.h>
 #include <usGetModuleContext.h>
 #include <usModuleResource.h>
 
@@ -144,6 +145,40 @@ void NvidiaDextrSegTool3D::Deactivated() {
 void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI, const int serverTimeout) {
   m_AIAAServerUri = serverURI;
   m_AIAAServerTimeout = serverTimeout;
+  m_AIAAModelList = nvidia::aiaa::ModelList();
+
+  try {
+    nvidia::aiaa::Client client(serverURI, serverTimeout);
+    m_AIAAModelList = client.models();
+  } catch (nvidia::aiaa::exception &e) {
+    std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
+    Tool::GeneralMessage("Failed to communicate with Nvidia AIAA Server\nFix server URI in Nvidia AIAA preferences (Ctrl+P)\n\n" + msg);
+  }
+}
+
+void NvidiaDextrSegTool3D::GetModelInfo(std::map<std::string, std::string>& seg, std::map<std::string, std::string>& ann) {
+  for (size_t i = 0; i < m_AIAAModelList.size(); i++) {
+    auto &model = m_AIAAModelList.models[i];
+    std::string tooltip = model.description + "<br/><p style='color:#ef2929;'><b>Labels:</b> ";
+
+    size_t j = 0;
+    for (auto jt = model.labels.begin(); jt != model.labels.end(); jt++, j++) {
+      if (j > 0) {
+        tooltip += ", ";
+      }
+      tooltip += *jt;
+    }
+    if (model.type == nvidia::aiaa::Model::segmentation) {
+      seg[model.name] = tooltip;
+    }
+    if (model.type == nvidia::aiaa::Model::annotation) {
+      ann[model.name] = tooltip;
+    }
+    tooltip += "</p>";
+  }
+
+  MITK_INFO("nvidia") << "Total Segmentation Models: " << seg.size();
+  MITK_INFO("nvidia") << "Total Annotation   Models: " << ann.size();
 }
 
 void NvidiaDextrSegTool3D::ClearPoints() {
@@ -151,8 +186,9 @@ void NvidiaDextrSegTool3D::ClearPoints() {
   mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
-void NvidiaDextrSegTool3D::ConfirmPoints() {
-  MITK_INFO("nvidia") << "+++++++++= ConfirmPoints";
+void NvidiaDextrSegTool3D::ConfirmPoints(const std::string &modelName) {
+  MITK_INFO("nvidia") << "+++++++++= Run Annotation using model: " << modelName;
+  m_AIAACurrentModelName = modelName;
 
   if (m_ToolManager->GetWorkingData(0)->GetData()) {
     mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData());
@@ -169,8 +205,10 @@ void NvidiaDextrSegTool3D::ConfirmPoints() {
   }
 }
 
-void NvidiaDextrSegTool3D::RunAutoSegmentation() {
-  MITK_INFO("nvidia") << "+++++++++= RunAutoSegmentation";
+void NvidiaDextrSegTool3D::RunAutoSegmentation(const std::string &modelName) {
+  MITK_INFO("nvidia") << "+++++++++= Run AutoSegmentation using model: " << modelName;
+  m_AIAACurrentModelName = modelName;
+
   if (m_ToolManager->GetWorkingData(0)->GetData()) {
     mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData());
     if (image) {
@@ -394,11 +432,6 @@ void NvidiaDextrSegTool3D::ItkImageProcessAutoSegmentation(itk::Image<TPixel, VI
     Tool::GeneralMessage("Currently 3D Images are only supported for Nvidia AutoSegmentation");
     return;
   }
-  if (m_AIAAServerUri.empty()) {
-    Tool::GeneralMessage("aiaa::server URI is not set");
-    return;
-  }
-
   MITK_INFO("nvidia") << "++++++++ Nvidia AutoSegmentation begins";
 
   // Collect information for working segmentation label
@@ -433,29 +466,22 @@ void NvidiaDextrSegTool3D::ItkImageProcessAutoSegmentation(itk::Image<TPixel, VI
     LATENCY_INIT_API_CALL()
     nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
 
-    LATENCY_START_API_CALL()
-    nvidia::aiaa::ModelList models = client.models(labelName, nvidia::aiaa::Model::segmentation);
-
+    // Selecting Model returned by Server
+    nvidia::aiaa::Model model;
+    for (size_t i = 0; i < m_AIAAModelList.size(); i++) {
+      if (m_AIAACurrentModelName == m_AIAAModelList.models[i].name) {
+        model = m_AIAAModelList.models[i];
+        break;
+      }
+    }
     currentSteps++;
     mitk::ProgressBar::GetInstance()->Progress(1);
-    LATENCY_END_API_CALL("models")
-    MITK_INFO("nvidia") << "aiaa::models (Supported Models): " << models.toJson();
-
-    if (models.empty()) {
-      Tool::GeneralMessage("No Matching Segmentation Model Found in AIAA Server for [" + labelName + "]");
-      mitk::ProgressBar::GetInstance()->Progress(totalSteps - currentSteps);
-      return;
-    }
-
-    // Selecting First Model returned by Server
-    nvidia::aiaa::Model model = models.models[0];
     MITK_INFO("nvidia") << "AIAA Selected Model for [" << labelName << "]: " << model.toJson();
-
 
     // Write the image out to temp folder
     LATENCY_START_API_CALL()
     typedef itk::Image<TPixel, VImageDimension> ImageType;
-    auto writer = itk::ImageFileWriter<ImageType>::New();
+    auto writer = itk::ImageFileWriter < ImageType > ::New();
     writer->SetInput(itkImage);
     writer->SetFileName(tmpSampleFileName);
     writer->Update();
@@ -499,11 +525,6 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
     Tool::GeneralMessage("Currently 3D Images are only supported for Nvidia Segmentation");
     return;
   }
-  if (m_AIAAServerUri.empty()) {
-    Tool::GeneralMessage("aiaa::server URI is not set");
-    return;
-  }
-
 
   MITK_INFO("nvidia") << "++++++++ Nvidia DExtr3D begins";
 
@@ -542,22 +563,16 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
     LATENCY_INIT_API_CALL()
     nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
 
-    LATENCY_START_API_CALL()
-    nvidia::aiaa::ModelList models = client.models(labelName, nvidia::aiaa::Model::annotation);
-
+    // Selecting Model returned by Server
+    nvidia::aiaa::Model model;
+    for (size_t i = 0; i < m_AIAAModelList.size(); i++) {
+      if (m_AIAACurrentModelName == m_AIAAModelList.models[i].name) {
+        model = m_AIAAModelList.models[i];
+        break;
+      }
+    }
     currentSteps++;
     mitk::ProgressBar::GetInstance()->Progress(1);
-    LATENCY_END_API_CALL("models")
-    MITK_INFO("nvidia") << "aiaa::models (Supported Models): " << models.toJson();
-
-    if (models.empty()) {
-      Tool::GeneralMessage("No Matching Segmentation Model Found in AIAA Server for [" + labelName + "]");
-      mitk::ProgressBar::GetInstance()->Progress(totalSteps - currentSteps);
-      return;
-    }
-
-    // Selecting First Model returned by Server
-    nvidia::aiaa::Model model = models.models[0];
     MITK_INFO("nvidia") << "AIAA Selected Model for [" << labelName << "]: " << model.toJson();
 
     // Do Sampling
@@ -641,6 +656,10 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
     MITK_INFO("nvidia") << "MinLabel: " << minMaxImageCalculator->GetMinimum() << "; MaxLabel: " << minMaxImageCalculator->GetMaximum();
 
     // Add labels for class labels higher than 1
+    mitk::ColorSequenceRainbow colorSequenceRainbow;
+    colorSequenceRainbow.GoToBegin();
+    mitk::Color nextColor = labelColor;
+
     for (unsigned int classID = 2; classID <= minMaxImageCalculator->GetMaximum(); classID++) {
       std::string multiLabelName = labelName + std::to_string(classID);
       MITK_INFO("nvidia") << "adding multi-class " << multiLabelName;
@@ -648,6 +667,19 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
       auto multiLabel = mitk::Label::New();
       multiLabel->SetName(multiLabelName);
       multiLabel->SetValue(classID);
+
+      if (classID % 3 == 0) {
+        nextColor = colorSequenceRainbow.GetNextColor();
+        if (labelColor == nextColor) {
+          nextColor = colorSequenceRainbow.GetNextColor();
+        }
+      } else {
+        nextColor[0] /= 2;
+        nextColor[1] /= 2;
+        nextColor[2] /= 2;
+      }
+
+      multiLabel->SetColor(nextColor);
       labelSetActive->AddLabel(multiLabel);
 
       // Set back previously active label

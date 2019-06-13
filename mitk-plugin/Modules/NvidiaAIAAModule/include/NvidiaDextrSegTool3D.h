@@ -38,6 +38,7 @@
 #include <nvidia/aiaa/client.h>
 
 #include <MitkNvidiaAIAAModuleExports.h>
+#include <map>
 
 namespace us {
 class ModuleResource;
@@ -54,9 +55,10 @@ public:
   const char **GetXPM() const override;
 
   void SetServerURI(const std::string &serverURI, const int serverTimeout);
+  void GetModelInfo(std::map<std::string, std::string>& seg, std::map<std::string, std::string>& ann);
   void ClearPoints();
-  void ConfirmPoints();
-  void RunAutoSegmentation();
+  void ConfirmPoints(const std::string &modelName);
+  void RunAutoSegmentation(const std::string &modelName);
 
 protected:
   NvidiaDextrSegTool3D();
@@ -68,6 +70,8 @@ protected:
 private:
   std::string m_AIAAServerUri;
   int m_AIAAServerTimeout;
+  nvidia::aiaa::ModelList m_AIAAModelList;
+  std::string m_AIAACurrentModelName;
 
   mitk::PointSet::Pointer m_PointSet;
   mitk::DataNode::Pointer m_PointSetNode;

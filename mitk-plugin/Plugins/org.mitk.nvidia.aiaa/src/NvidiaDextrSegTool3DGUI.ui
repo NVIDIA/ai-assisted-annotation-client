@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>320</width>
+    <width>306</width>
     <height>410</height>
    </rect>
   </property>
@@ -36,7 +36,7 @@
    <item>
     <widget class="QLabel" name="modelsLabel">
      <property name="text">
-      <string>&lt;p&gt;Change server URI in Nvidia AIAA preferences (Ctrl+P).&lt;/p&gt;&lt;p&gt;&lt;a href='http://0.0.0.0:5600/v1/models'&gt;Click here&lt;/a&gt; to see ALL available Models&lt;/p&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change server URI in Nvidia AIAA preferences (Ctrl+P).&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://0.0.0.0:5600/v1/models&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Click here&lt;/span&gt;&lt;/a&gt; to see Details of available Models&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -61,15 +61,31 @@
        <pointsize>15</pointsize>
       </font>
      </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generally &lt;span style=&quot; color:#ef2929;&quot;&gt;slower&lt;/span&gt; but more &lt;span style=&quot; color:#4e9a06;&quot;&gt;Accurate&lt;/span&gt;. Appropriate for whole organ segmentation &lt;span style=&quot; font-weight:600;&quot;&gt;without any user input&lt;/span&gt;.  &lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; Extreme points returned by segmentation are automatically gets added into pointset for continuing Annotation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
      <property name="text">
-      <string>Auto Segmentation</string>
+      <string>Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="segmentationCombo">
+     <property name="toolTip">
+      <string>Select Your Segmentation Model</string>
      </property>
     </widget>
    </item>
    <item>
     <widget class="QPushButton" name="autoSegmentationBtn">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Click to Run Segmentation</string>
+     </property>
      <property name="text">
-      <string>Run Segmentation</string>
+      <string>Auto Segmentation</string>
      </property>
     </widget>
    </item>
@@ -87,6 +103,9 @@
        <family>DejaVu Sans</family>
        <pointsize>15</pointsize>
       </font>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generally &lt;span style=&quot; color:#4e9a06;&quot;&gt;quicker&lt;/span&gt; but requires &lt;span style=&quot; color:#ef2929;&quot;&gt;more adjustment&lt;/span&gt; from the user to &lt;span style=&quot; font-weight:600;&quot;&gt;select extreme points&lt;/span&gt; for the organ.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="text">
       <string>Annotation</string>
@@ -107,7 +126,17 @@
     </widget>
    </item>
    <item>
+    <widget class="QComboBox" name="annotationCombo">
+     <property name="toolTip">
+      <string>Select Your Annotation Model</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="clearPointsBtn">
+     <property name="toolTip">
+      <string>Click to Discard All Selected Points</string>
+     </property>
      <property name="text">
       <string>Clear Points</string>
      </property>
@@ -115,6 +144,12 @@
    </item>
    <item>
     <widget class="QPushButton" name="confirmPointsBtn">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Click to Run Annotation</string>
+     </property>
      <property name="text">
       <string>Confirm Points</string>
      </property>

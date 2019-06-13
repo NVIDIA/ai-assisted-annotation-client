@@ -54,7 +54,7 @@ public:
   const char *GetName() const override;
   const char **GetXPM() const override;
 
-  void SetServerURI(const std::string &serverURI, const int serverTimeout);
+  void SetServerURI(const std::string &serverURI, const int serverTimeout, bool filterByLabel);
   void GetModelInfo(std::map<std::string, std::string>& seg, std::map<std::string, std::string>& ann);
   void ClearPoints();
   void ConfirmPoints(const std::string &modelName);

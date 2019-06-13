@@ -62,7 +62,7 @@
       </font>
      </property>
      <property name="toolTip">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generally &lt;span style=&quot; color:#ef2929;&quot;&gt;slower&lt;/span&gt; but more &lt;span style=&quot; color:#4e9a06;&quot;&gt;Accurate&lt;/span&gt;. Appropriate for whole organ segmentation &lt;span style=&quot; font-weight:600;&quot;&gt;without any user input&lt;/span&gt;.  &lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; Extreme points returned by segmentation are automatically gets added into pointset for continuing Annotation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fully automated segmentation &lt;span style=&quot; font-weight:600;&quot;&gt;without any user input&lt;/span&gt;. &lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; Extreme points returned by segmentation are automatically added as candidate pointset for continuing Annotation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="text">
       <string>Segmentation</string>
@@ -105,7 +105,7 @@
       </font>
      </property>
      <property name="toolTip">
-      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generally &lt;span style=&quot; color:#4e9a06;&quot;&gt;quicker&lt;/span&gt; but requires &lt;span style=&quot; color:#ef2929;&quot;&gt;more adjustment&lt;/span&gt; from the user to &lt;span style=&quot; font-weight:600;&quot;&gt;select extreme points&lt;/span&gt; for the organ.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generally &lt;span style=&quot; color:#4e9a06;&quot;&gt;more accurate&lt;/span&gt; but requires user or segmentation model to &lt;span style=&quot; font-weight:600;&quot;&gt;select/propose extreme points&lt;/span&gt; of the organ.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="text">
       <string>Annotation</string>
@@ -114,6 +114,11 @@
    </item>
    <item>
     <widget class="QLabel" name="addPointsLabel">
+     <property name="toolTip">
+      <string>To add points, press Shift + Left click
+
+To delete an existing point, hover over the point and then press ALT + Left click</string>
+     </property>
      <property name="text">
       <string>(Shift + Left click) to add points</string>
      </property>

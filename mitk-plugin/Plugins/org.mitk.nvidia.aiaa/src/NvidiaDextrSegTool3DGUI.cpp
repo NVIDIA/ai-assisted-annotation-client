@@ -62,8 +62,9 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
     auto preferences = systemPreferences->Node("/org.mitk.preferences.nvidia.aiaa");
     auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
     auto serverTimeout = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::SERVER_TIMEOUT, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT);
+    auto filterByLabel = preferences->GetBool(QmitkNvidiaAIAAPreferencePage::FILTER_BY_LABEL, QmitkNvidiaAIAAPreferencePage::DEFAULT_FILTER_BY_LABEL);
 
-    m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString(), serverTimeout);
+    m_NvidiaDextrSegTool3D->SetServerURI(serverURI.toStdString(), serverTimeout, filterByLabel);
 
     // Update ComboBox for selecting the model
     m_Ui->segmentationCombo->clear();

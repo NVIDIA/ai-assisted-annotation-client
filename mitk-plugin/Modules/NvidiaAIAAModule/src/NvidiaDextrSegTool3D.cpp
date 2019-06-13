@@ -142,14 +142,26 @@ void NvidiaDextrSegTool3D::Deactivated() {
   Superclass::Deactivated();
 }
 
-void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI, const int serverTimeout) {
+void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI, const int serverTimeout, bool filterByLabel) {
   m_AIAAServerUri = serverURI;
   m_AIAAServerTimeout = serverTimeout;
   m_AIAAModelList = nvidia::aiaa::ModelList();
 
   try {
     nvidia::aiaa::Client client(serverURI, serverTimeout);
-    m_AIAAModelList = client.models();
+    if (!filterByLabel) {
+      m_AIAAModelList = client.models();
+    } else {
+      // Collect information for working segmentation label
+      auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+      auto labelActiveLayerId = labelSetImage->GetActiveLayer();
+      auto labelActive = labelSetImage->GetActiveLabel(labelActiveLayerId);
+
+      std::string labelName = labelActive->GetName();
+      MITK_INFO("nvidia") << "Listing Models for labelName: " << labelName;
+
+      m_AIAAModelList = client.models(labelName, nvidia::aiaa::Model::unknown);
+    }
   } catch (nvidia::aiaa::exception &e) {
     std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
     Tool::GeneralMessage("Failed to communicate with Nvidia AIAA Server\nFix server URI in Nvidia AIAA preferences (Ctrl+P)\n\n" + msg);
@@ -159,7 +171,7 @@ void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI, const int 
 void NvidiaDextrSegTool3D::GetModelInfo(std::map<std::string, std::string>& seg, std::map<std::string, std::string>& ann) {
   for (size_t i = 0; i < m_AIAAModelList.size(); i++) {
     auto &model = m_AIAAModelList.models[i];
-    std::string tooltip = model.description + "<br/><p style='color:#ef2929;'><b>Labels:</b> ";
+    std::string tooltip = model.description + "<br/><b>Labels:</b> [ ";
 
     size_t j = 0;
     for (auto jt = model.labels.begin(); jt != model.labels.end(); jt++, j++) {
@@ -168,13 +180,14 @@ void NvidiaDextrSegTool3D::GetModelInfo(std::map<std::string, std::string>& seg,
       }
       tooltip += *jt;
     }
+    tooltip += " ]</p>";
+
     if (model.type == nvidia::aiaa::Model::segmentation) {
       seg[model.name] = tooltip;
     }
     if (model.type == nvidia::aiaa::Model::annotation) {
       ann[model.name] = tooltip;
     }
-    tooltip += "</p>";
   }
 
   MITK_INFO("nvidia") << "Total Segmentation Models: " << seg.size();

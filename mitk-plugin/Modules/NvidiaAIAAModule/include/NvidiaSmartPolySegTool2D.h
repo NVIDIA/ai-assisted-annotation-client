@@ -55,7 +55,6 @@ public:
   void Activated() override;
   void Deactivated() override;
 
-  void ClearPoints();
   void PolygonFix();
   void Mask2Polygon();
 

@@ -66,6 +66,18 @@ struct AIAA_CLIENT_API Model {
   /// Image ROI size used while training [x,y,z,w] Format;  This shall be used for dextr3D API
   std::vector<int> roi;
 
+  enum ModelType {
+    annotation,
+    segmentation,
+    unknown
+  };
+
+  /// Type of Model (segmentation/annotation)
+  ModelType type;
+
+  /// Version of Model
+  std::string version;
+
   /*!
    @brief create Model from JSON String
    @param[in] json  JSON String.
@@ -104,9 +116,16 @@ struct AIAA_CLIENT_API ModelList {
    First preference goes to exact match.  Otherwise prefix match will be preferred.
    @note Here, the matching type is case-insensitive
    @param[in] label  Organ Name
+   @param[in] type  Model Type
    @return Model
    */
-  Model getMatchingModel(const std::string &label);
+  Model getMatchingModel(const std::string &label, Model::ModelType type = Model::annotation);
+
+  /// Checks if Polygons list is empty
+  bool empty() const;
+
+  /// Count of Polygons list
+  size_t size() const;
 
   /*!
    @brief create Model from JSON String

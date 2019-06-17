@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>320</width>
-    <height>240</height>
+    <width>306</width>
+    <height>410</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,18 +18,130 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QLabel" name="addPointsLabel">
-     <property name="text">
-      <string>Shift + left click to add points
-Change server URI in Nvidia AIAA preferences (Ctrl+P)</string>
+    <widget class="QLabel" name="hModelsLabel">
+     <property name="font">
+      <font>
+       <family>DejaVu Sans</family>
+       <pointsize>15</pointsize>
+      </font>
      </property>
-     <property name="wordWrap">
+     <property name="text">
+      <string>Models</string>
+     </property>
+     <property name="openExternalLinks">
       <bool>true</bool>
      </property>
     </widget>
    </item>
    <item>
+    <widget class="QLabel" name="modelsLabel">
+     <property name="text">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Change server URI in Nvidia AIAA preferences (Ctrl+P).&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;http://0.0.0.0:5600/v1/models&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Click here&lt;/span&gt;&lt;/a&gt; to see Details of available Models&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line1">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="hSegmentationLabel">
+     <property name="font">
+      <font>
+       <family>DejaVu Sans</family>
+       <pointsize>15</pointsize>
+      </font>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Fully automated segmentation &lt;span style=&quot; font-weight:600;&quot;&gt;without any user input&lt;/span&gt;. &lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;NOTE:&lt;/span&gt; Extreme points returned by segmentation are automatically added as candidate pointset for continuing Annotation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string>Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="segmentationCombo">
+     <property name="toolTip">
+      <string>Select Your Segmentation Model</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="autoSegmentationBtn">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Click to Run Segmentation</string>
+     </property>
+     <property name="text">
+      <string>Auto Segmentation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="Line" name="line2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="hAnnotaitonLabel">
+     <property name="font">
+      <font>
+       <family>DejaVu Sans</family>
+       <pointsize>15</pointsize>
+      </font>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Generally &lt;span style=&quot; color:#4e9a06;&quot;&gt;more accurate&lt;/span&gt; but requires user or segmentation model to &lt;span style=&quot; font-weight:600;&quot;&gt;select/propose extreme points&lt;/span&gt; of the organ.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string>Annotation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="addPointsLabel">
+     <property name="toolTip">
+      <string>To add points, press Shift + Left click
+
+To delete an existing point, hover over the point and then press ALT + Left click</string>
+     </property>
+     <property name="text">
+      <string>(Shift + Left click) to add points</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="annotationCombo">
+     <property name="toolTip">
+      <string>Select Your Annotation Model</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="clearPointsBtn">
+     <property name="toolTip">
+      <string>Click to Discard All Selected Points</string>
+     </property>
      <property name="text">
       <string>Clear Points</string>
      </property>
@@ -37,6 +149,12 @@ Change server URI in Nvidia AIAA preferences (Ctrl+P)</string>
    </item>
    <item>
     <widget class="QPushButton" name="confirmPointsBtn">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Click to Run Annotation</string>
+     </property>
      <property name="text">
       <string>Confirm Points</string>
      </property>

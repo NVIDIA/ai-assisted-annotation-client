@@ -1,45 +1,53 @@
 {
   "server": {
     "ip": "10.110.45.66",
-    "port": "5000",
+    "port": "5678",
     "api_version": "v1"
   },
 
   "tests": [
     {
-      "name": "get models",
+      "name": "test_models",
       "disabled": false,
       "api": "models",
-      "result_prefix": "Outputs/model_list"
+      "result_prefix": "test-data/output/models"
     },
     {
-      "name": "liver1",
+      "name": "test_segmentation_spleen",
+      "disabled": false,
+      "api": "segmentation",
+      "model": "segmentation_spleen",
+      "image": "test-data/image.nii.gz",
+      "result_prefix": "test-data/output/segmentation_spleen",
+      "params": "{}"
+    },
+    {
+      "name": "test_annotation_spleen",
       "disabled": false,
       "api": "dextr3d",
-      "model": "Dextr3DLiver",
-      "image": "Inputs/image.nii.gz",
-      "result_prefix": "Outputs/liver1",
-      "temp_folder": "Tmp/",
-      "params": "{\"points\":\"[[275,215,194],[310,212,30],[209,283,108],[304,112,138],[171,258,150],[337,162,119]]\"}",
+      "model": "annotation_spleen",
+      "image": "test-data/image.nii.gz",
+      "result_prefix": "test-data/output/annotation_spleen",
+      "params": "{\"points\":\"[[93,106,64],[40,108,64],[29,66,64],[47,20,64],[93,32,64],[99,68,64]]\"}",
       "pad": 20,
       "roi_size": "128x128x128",
       "sigma": 3
     },
     {
-      "name": "liver1",
+      "name": "test_mask2polygon_spleen",
       "disabled": false,
       "api": "mask2polygon",
-      "image": "Inputs/liver1_result_aas.nii.gz",
-      "result_prefix": "Outputs/liver1_polygon",
+      "image": "test-data/mask2polygon.input.nii.gz",
+      "result_prefix": "test-data/output/mask2polygon_spleen",
       "params": 10
     },
     {
-      "name": "spleen1",
+      "name": "test_fixpolygon_spleen",
       "disabled": false,
       "api": "fixpolygon",
-      "image": "Inputs/image_slice_2D.png",
-      "result_prefix": "Outputs/spleen1_polygonUpdate",
-      "params": "{\"propagate_neighbor\": 1, \"polygonIndex\": 0, \"vertexIndex\": 8, \"poly\": [[[69,167],[73,156],[78,146],[87,137],[98,131],[108,130],[118,132],[123,141],[139,155],[119,161],[109,166],[98,170],[89,176],[80,183],[71,182],[69,172]]], \"prev_poly\": [[[69,167],[73,156],[78,146],[87,137],[98,131],[108,130],[118,132],[123,141],[125,152],[119,161],[109,166],[98,170],[89,176],[80,183],[71,182],[69,172]]]}"
+      "image": "test-data/fixpolygon.input.png",
+      "result_prefix": "test-data/output/fixpolygon_spleen",
+      "params": "{\"propagate_neighbor\":1,\"polygonIndex\":0,\"vertexIndex\":14,\"poly\":[[[53,169],[56,158],[59,147],[65,136],[74,127],[82,132],[85,142],[89,151],[93,161],[92,172],[85,181],[81,192],[84,202],[82,212],[81,227],[65,216],[59,207],[56,197],[54,187],[53,176]]],\"prev_poly\":[[[53,169],[56,158],[59,147],[65,136],[74,127],[82,132],[85,142],[89,151],[93,161],[92,172],[85,181],[81,192],[84,202],[82,212],[73,212],[65,216],[59,207],[56,197],[54,187],[53,176]]]}"
     }
   ]
 }

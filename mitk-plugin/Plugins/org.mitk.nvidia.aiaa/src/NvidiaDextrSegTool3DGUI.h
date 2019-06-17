@@ -51,6 +51,7 @@ public:
 protected slots:
   void OnClearPoints();
   void OnConfirmPoints();
+  void OnAutoSegmentation();
   void OnNewToolAssociated(mitk::Tool *);
 
 protected:

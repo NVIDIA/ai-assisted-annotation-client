@@ -39,7 +39,7 @@ class MITKNVIDIAAIAAMODULE_EXPORT NvidiaPointSetDataInteractor : public mitk::Po
 public:
   mitkClassMacro(NvidiaPointSetDataInteractor, PointSetDataInteractor) itkFactorylessNewMacro(Self)
 
-  void setNvidiaSmartPolySegTool2D(NvidiaSmartPolySegTool2D *smartPoly);
+  void setNvidiaSmartPolySegTool(NvidiaSmartPolySegTool2D *smartPoly);
 
 protected:
   NvidiaPointSetDataInteractor();

@@ -34,19 +34,21 @@
 int main(int argc, char **argv) {
   if (cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
-              "  |-h        (Help) Print this information                                                |\n"
-              "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
-              "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
-              "  |-output   Output File Name to store result                                             |\n"
-              "  |-format   Format Output Json                                                           |\n"
-              "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
-              "  |-ts       Print API Latency                                                            |\n";
+        "  |-h        (Help) Print this information                                                |\n"
+        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+        "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
+        "  |-type     Find Matching Model of type (segmentation/annotation)                        |\n"
+        "  |-output   Output File Name to store result                                             |\n"
+        "  |-format   Format Output Json                                                           |\n"
+        "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
+        "  |-ts       Print API Latency                                                            |\n";
 
     return 0;
   }
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
   std::string label = getCmdOption(argv, argv + argc, "-label");
+  std::string type = getCmdOption(argv, argv + argc, "-type");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
@@ -55,24 +57,15 @@ int main(int argc, char **argv) {
   try {
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri, timeout);
-    nvidia::aiaa::ModelList modelList = client.models();
+
+    nvidia::aiaa::Model::ModelType mt = nvidia::aiaa::Model::unknown;
+    mt = type == "segmentation" ? nvidia::aiaa::Model::segmentation : mt;
+    mt = type == "annotation" ? nvidia::aiaa::Model::annotation : mt;
+
+    nvidia::aiaa::ModelList modelList = type.empty() && label.empty() ? client.models() : client.models(label, mt);
 
     auto end = std::chrono::high_resolution_clock::now();
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    if (!label.empty()) {
-      nvidia::aiaa::Model model = modelList.getMatchingModel(label);
-      if (outputJsonFile.empty()) {
-        std::cout << model.toJson(jsonSpace) << std::endl;
-      } else {
-        stringToFile(model.toJson(jsonSpace), outputJsonFile);
-      }
-
-      if (printTs) {
-        std::cout << "API Latency (in milli sec): " << ms << std::endl;
-      }
-      return 0;
-    }
+    auto ms = std::chrono::duration_cast < std::chrono::milliseconds > (end - begin).count();
 
     if (outputJsonFile.empty()) {
       std::cout << modelList.toJson(jsonSpace) << std::endl;

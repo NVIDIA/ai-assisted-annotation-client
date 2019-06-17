@@ -36,7 +36,7 @@ NvidiaPointSetDataInteractor::NvidiaPointSetDataInteractor()
 NvidiaPointSetDataInteractor::~NvidiaPointSetDataInteractor() {
 }
 
-void NvidiaPointSetDataInteractor::setNvidiaSmartPolySegTool2D(NvidiaSmartPolySegTool2D *smartPoly) {
+void NvidiaPointSetDataInteractor::setNvidiaSmartPolySegTool(NvidiaSmartPolySegTool2D *smartPoly) {
   m_NvidiaSmartPolySegTool2D = smartPoly;
 }
 

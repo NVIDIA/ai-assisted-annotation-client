@@ -109,6 +109,44 @@ Example
       -sigma 3
 
 
+Segmentation
+-------
+
+Provides implementation for ``nvidia::aiaa::Client::segmentation()`` API.
+For more details refer `aiaa-segmentation.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-segmentation.cpp>`_
+ 
+Following are the options available
+
+.. csv-table::
+   :header: Option,Description,Default,Example
+   :widths: auto
+
+   -h,Prints the help information,,
+   -server,Server URI for AIAA Server,,-server http://10.110.45.66:5000/v1
+   -label,Label Name for matching;  Either -model or -label is required,,-label liver
+   -model,Model Name,,-model Dextr3DLiver
+   -image,Input image filename where image is stored in 3D format,,-image image.nii.gz
+   -output,File name to store 3D binary mask image result from AIAA server,,-output result.nii.gz
+
+Example
+
+.. code-block:: bash
+
+   nvidiaAIAADSegmentation \
+      -server http://10.110.45.66:5000/v1 \
+      -label spleen \
+      -image _image.nii.gz \
+      -output tmp_out.nii.gz
+ 
+   #(using model instead of label)
+ 
+   nvidiaAIAADSegmentation \
+      -server http://10.110.45.66:5000/v1 \
+      -model segmentation_spleen \
+      -image _image.nii.gz \
+      -output tmp_out.nii.gz
+
+
 Mask 2D Polygon
 ---------------
 

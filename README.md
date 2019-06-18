@@ -13,7 +13,7 @@ AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate 
  - Windows (Windows 10)
 
 ## Quick Start
-Follow the [Quick Start](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++/Python and run some basic tools to verify few important functionalities like *dextr3D*, *fixPolygon* over an existing AI-Assisted Annotation Server.
+Follow the [Quick Start](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++/Python and run some basic tools to verify few important functionalities like *dextr3D*, *segmentation*, *fixPolygon* over an existing AI-Assisted Annotation Server.
 
 >C++ Client Library provides support for CMake project
 

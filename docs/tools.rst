@@ -47,6 +47,7 @@ Following are the options available
    -h,Prints the help information,,
    -server,Server URI for AIAA Server,,-server http://10.110.45.66:5000/v1
    -label,Label Name for matching,,-label liver
+   -type,Find Matching Model of type (segmentation/annotation),,-type segmentation
    -output,Save output result into a file,,-output models.json
 
 Example
@@ -58,8 +59,8 @@ Example
       -label spleen
 
 
-DEXTR3D
--------
+DEXTR3D (Annotation)
+--------------------
 
 Provides implementation for ``nvidia::aiaa::Client::dextra3d()`` API.
 For more details refer `aiaa-dextra3d.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-dextra3d.cpp>`_
@@ -110,7 +111,7 @@ Example
 
 
 Segmentation
--------
+------------
 
 Provides implementation for ``nvidia::aiaa::Client::segmentation()`` API.
 For more details refer `aiaa-segmentation.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-segmentation.cpp>`_
@@ -147,8 +148,8 @@ Example
       -output tmp_out.nii.gz
 
 
-Mask 2D Polygon
----------------
+Mask To 2D-Polygon
+------------------
 
 Provides implementation for ``nvidia::aiaa::Client::mask2Polygon()`` API.
 For more details refer `aiaa-mask-polygon.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-mask-polygon.cpp>`_

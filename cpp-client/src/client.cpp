@@ -60,7 +60,10 @@ ModelList Client::models() const {
 }
 
 ModelList Client::models(const std::string &label, const Model::ModelType type) const {
-  std::string uri = serverUri + EP_MODELS + "?label=" + label;
+  std::string l = label;
+  std::replace(l.begin(), l.end(), ' ', '+');
+
+  std::string uri = serverUri + EP_MODELS + "?label=" + l;
   if (type != Model::unknown) {
     uri += std::string("&type=") + (type == Model::segmentation ? "segmentation" : "annotation");
   }
@@ -196,7 +199,10 @@ PointSet Client::segmentation(const Model &model, const PointSet &pointSet, cons
   std::string tmpResultFile = postProcess ? (Utils::tempfilename() + IMAGE_FILE_EXTENSION) : outputImageFile;
   AIAA_LOG_DEBUG("TmpResultFile: " << tmpResultFile << "; PostProcess: " << postProcess);
 
-  std::string uri = serverUri + (model.type == Model::segmentation ? EP_SEGMENTATION : EP_DEXTRA_3D) + "?model=" + model.name;
+  std::string m = model.name;
+  std::replace(m.begin(), m.end(), ' ', '+');
+  std::string uri = serverUri + (model.type == Model::segmentation ? EP_SEGMENTATION : EP_DEXTRA_3D) + "?model=" + m;
+
   std::string paramStr = "{\"sigma\":" + Utils::lexical_cast<std::string>(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
   std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile, timeoutInSec);
 

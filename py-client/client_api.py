@@ -164,7 +164,7 @@ class AIAAClient:
 
     def segmentation(self, model_name, image_file_path, result_file_prefix, params):
         """
-        3D image segmentation using DEXTR3D method
+        3D image segmentation method
     
         :param model_name: model name according to the output of model_list()
         :param image_file_path: input 3D image file name

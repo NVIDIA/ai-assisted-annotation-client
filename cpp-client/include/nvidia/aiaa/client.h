@@ -56,7 +56,7 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief create AIAA Client object
    @param[in] serverUri  AIAA Server end-point. For example: "http://10.110.45.66:5000/v1"
-   @param[in] serverUri  AIAA Server operation timeout. Default is 60 seconds
+   @param[in] timeoutInSec  AIAA Server operation timeout. Default is 60 seconds
    @return Client object
    */
   Client(const std::string& serverUri, const int timeoutInSec = 60);
@@ -72,6 +72,8 @@ class AIAA_CLIENT_API Client {
 
   /*!
    @brief This API is used to fetch all the possible Models support by AIAA Server for matching label and model type
+   @param[in] label  Filter models by matching label
+   @param[in] type  Filter models by matching model type (segmentation/annotation)
    @return ModelList object representing a list of Models
 
    @throw nvidia.aiaa.error.101 in case of connect error
@@ -122,7 +124,7 @@ class AIAA_CLIENT_API Client {
    @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, *> format
    @param[in] imageInfo  Optional Original ImageInfo to recover in case of annotation models after inference
 
-   @retval New/Updated Pointset in case of segmentation which represents a set of points in 3-Dimensional for the organ.
+   @retval New/Updated Pointset in case of segmentation which represents a set of extreme points in 3-Dimensional for the organ.
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
@@ -134,7 +136,7 @@ class AIAA_CLIENT_API Client {
   /*!
    @brief 3D image annotation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)
    @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
+   @param[in] pointSet  PointSet object which represents a set of extreme points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
    @param[in] inputImageFile  Input image filename where image is stored in itk::Image<?, 3> format
    @param[in] pixelType  PixelType for Input Image
    @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, 3> format

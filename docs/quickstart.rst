@@ -46,7 +46,7 @@ Linux
 
 .. code-block:: bash
 
-   export version=1.0.0
+   export version=1.0.1
    wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Linux.sh
    sudo sh NvidiaAIAAClient-${version}-Linux.sh --prefix=/usr/local --exclude_sub_dir --skip-license
 
@@ -60,7 +60,7 @@ MacOS
 
 .. code-block:: bash
 
-   export version=1.0.0
+   export version=1.0.1
    wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Darwin.sh
    sh NvidiaAIAAClient-${version}-Darwin.sh --prefix=/usr/local --exclude_sub_dir --skip-license
    
@@ -122,7 +122,7 @@ Find Package
 ^^^^^^^^^^^^
 To use this library from a CMake project, you can locate it directly with find_package() and use the namespaced imported target from the generated package configuration:
 
-.. code-block:: guess
+::
 
    # CMakeLists.txt
    find_package(NvidiaAIAAClient REQUIRED)
@@ -142,13 +142,13 @@ External Project
 ^^^^^^^^^^^^^^^^
 You can achieve this by adding External Project in CMake.
 
-.. code-block:: guess
+::
 
    # CMakeLists.txt
    ...
    ExternalProject_Add(NvidiaAIAAClient
       GIT_REPOSITORY https://github.com/NVIDIA/ai-assisted-annotation-client.git
-      GIT_TAG v1.0.0
+      GIT_TAG v1.0.1
    )
    ...
    target_link_libraries(foo ${NvidiaAIAAClient_LIBRARY})

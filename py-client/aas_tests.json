@@ -16,7 +16,7 @@
       "name": "test_segmentation_spleen",
       "disabled": false,
       "api": "segmentation",
-      "model": "segmentation_spleen",
+      "model": "segmentation_ct_spleen",
       "image": "test-data/image.nii.gz",
       "result_prefix": "test-data/output/segmentation_spleen",
       "params": "{}"
@@ -25,7 +25,7 @@
       "name": "test_annotation_spleen",
       "disabled": false,
       "api": "dextr3d",
-      "model": "annotation_spleen",
+      "model": "annotation_ct_spleen",
       "image": "test-data/image.nii.gz",
       "result_prefix": "test-data/output/annotation_spleen",
       "params": "{\"points\":\"[[93,106,64],[40,108,64],[29,66,64],[47,20,64],[93,32,64],[99,68,64]]\"}",

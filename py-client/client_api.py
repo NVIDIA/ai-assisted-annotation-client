@@ -298,7 +298,7 @@ def _image_post_processing(roi_image_file_path, crop, orig_size):
     resize_image = resize(roi_result, orig_crop_size, preserve_range=True, order=0)
 
     result[crop[0][0]:crop[0][1], crop[1][0]:crop[1][1], crop[2][0]:crop[2][1]] = resize_image
-    return _get_largest_cc(result)
+    return result
 
 
 def _get_largest_cc(result):

@@ -131,7 +131,7 @@ class AIAAClient:
         # Read image
         image = nib.load(image_file_path)
         affine = image.affine
-        image = image.dataobj
+        image = image.get_data()
         orig_size = np.shape(image)
         spacing = [abs(affine[(0, 0)]), abs(affine[(1, 1)]), abs(affine[(2, 2)])]
 
@@ -289,7 +289,7 @@ def _image_post_processing(roi_image_file_path, crop, orig_size):
     result = np.zeros(orig_size, np.uint8)
 
     roi_result = nib.load(roi_image_file_path)
-    roi_result = roi_result.dataobj
+    roi_result = roi_result.get_data()
 
     orig_crop_size = [crop[0][1] - crop[0][0],
                       crop[1][1] - crop[1][0],

@@ -1,5 +1,5 @@
 # NVIDIA AI-Assisted Annotation Client
-NVIDIA AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Once a user has been granted early access user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
+NVIDIA AI-Assisted Annotation SDK follows a client-server approach to integrate into an application.  Clara Train SDK container on ngc.nvidia.com is generally available for download, annotation server is included in the package.  Once a user has setup the AI-Assisted Annotation Server, user can use either C++ or Python client to integrate the SDK into an existing medical imaging application.
 
 [![Documentation](https://img.shields.io/badge/NVIDIA-documentation-brightgreen.svg)](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/index.html)
 [![GitHub license](https://img.shields.io/badge/license-BSD3-blue.svg)](/LICENSE)

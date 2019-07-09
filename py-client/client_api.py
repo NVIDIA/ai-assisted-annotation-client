@@ -61,7 +61,7 @@ class AIAAClient:
         :return: It returns response from AIAA Server 
         """
 
-        endpoint = os.path.join("http://" + self.server_ip + ":" + self.server_port, self.api_version, api)
+        endpoint = "http://" + self.server_ip + ":" + self.server_port + "/" + self.api_version + "/" + api
         url = endpoint
         if args_dict:
             sep = '?'

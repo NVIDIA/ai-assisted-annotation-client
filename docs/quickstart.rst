@@ -70,7 +70,7 @@ MacOS
 
 Windows
 ^^^^^^^
-   Download NvidiaAIAAClient-``<version>``-win64.exe from `Releases <https://github.com/NVIDIA/ai-assisted-annotation-client/releases>`_ and Install the package.  Say by-default it installs into C:\Program Files\NvidiaAIAAClient
+   Download NvidiaAIAAClient-``<version>``-win64.exe from `Releases <https://github.com/NVIDIA/ai-assisted-annotation-client/releases>`_ and Install the package.  Say by-default it installs into ``C:\Program Files\NvidiaAIAAClient``
 
 .. code-block:: bash
 

@@ -72,7 +72,7 @@ Windows
 ^^^^^^^
    Download NvidiaAIAAClient-``<version>``-win64.exe from `Releases <https://github.com/NVIDIA/ai-assisted-annotation-client/releases>`_ and Install the package.  Say by-default it installs into ``C:\Program Files\NvidiaAIAAClient``
 
-.. code-block:: bash
+.. code-block:: batch
 
    PATH=C:\Program Files\NvidiaAIAAClient\bin;%PATH%
    cl /EHsc -I"C:\Program Files\NvidiaAIAAClient\include" example.cpp /link NvidiaAIAAClient.lib /LIBPATH:"C:\Program Files\NvidiaAIAAClient\lib"

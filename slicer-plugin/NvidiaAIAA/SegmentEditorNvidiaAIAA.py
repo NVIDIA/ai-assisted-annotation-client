@@ -21,14 +21,21 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         self.parent.helpText = "This hidden module registers NVIDA AI-Assisted segment editor effect"
         self.parent.helpText += self.getDefaultModuleDocumentationLink()
         self.parent.acknowledgementText = "Supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. See http://www.slicer.org for details."
-        slicer.app.connect("startupCompleted()", self.registerEditorEffect)
+        slicer.app.connect("startupCompleted()", self.performPostModuleDiscoveryTasks)
 
-    def registerEditorEffect(self):
+    def performPostModuleDiscoveryTasks(self):
+
+        # Register editor effects
         import qSlicerSegmentationsEditorEffectsPythonQt as qSlicerSegmentationsEditorEffects
         instance = qSlicerSegmentationsEditorEffects.qSlicerSegmentEditorScriptedEffect(None)
         effectFilename = os.path.join(os.path.dirname(__file__), self.__class__.__name__ + 'Lib/SegmentEditorEffect.py')
         instance.setPythonSource(effectFilename.replace('\\', '/'))
         instance.self().register()
+
+        # Register settings panel
+        if not slicer.app.commandOptions().noMainWindow:
+            self.settingsPanel = SegmentEditorNvidiaAIAASettingsPanel()
+            slicer.app.settingsDialog().addPanel("NVidia", self.settingsPanel)
 
 
 class SegmentEditorNvidiaAIAATest(ScriptedLoadableModuleTest):
@@ -142,3 +149,35 @@ class SegmentEditorNvidiaAIAATest(ScriptedLoadableModuleTest):
         self.assertEqual(round(segStatLogic.statistics["Background", "LM volume cc"]), 3010)
 
         self.delayDisplay('test_NvidiaAIAA1 passed')
+
+
+class _ui_SegmentEditorNvidiaAIAASettingsPanel(object):
+  def __init__(self, parent):
+    vBoxLayout = qt.QVBoxLayout(parent)
+
+    # AIAA settings
+    aiaaGroupBox = ctk.ctkCollapsibleGroupBox()
+    aiaaGroupBox.title = "AI-Assisted Annotation Server"
+    aiaaGroupLayout = qt.QFormLayout(aiaaGroupBox)
+
+    serverIP = qt.QLineEdit("10.110.45.66")
+    aiaaGroupLayout.addRow("Server IP:", serverIP)
+    parent.registerProperty(
+      "NVIDIA-AIAA/serverIP", serverIP,
+      "text", str(qt.SIGNAL("textChanged(QString)")))
+
+    serverPort = qt.QLineEdit("5678")
+    aiaaGroupLayout.addRow("Server Port:", serverPort)
+    parent.registerProperty(
+      "NVIDIA-AIAA/serverPort", serverPort,
+      "text", str(qt.SIGNAL("textChanged(QString)")))
+
+    vBoxLayout.addWidget(aiaaGroupBox)
+    vBoxLayout.addStretch(1)
+
+
+class SegmentEditorNvidiaAIAASettingsPanel(ctk.ctkSettingsPanel):
+  def __init__(self, *args, **kwargs):
+    ctk.ctkSettingsPanel.__init__(self, *args, **kwargs)
+    self.ui = _ui_SegmentEditorNvidiaAIAASettingsPanel(self)
+

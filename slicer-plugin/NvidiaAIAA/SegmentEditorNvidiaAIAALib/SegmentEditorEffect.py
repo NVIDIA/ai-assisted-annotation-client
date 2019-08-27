@@ -28,6 +28,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def __init__(self, scriptedEffect):
         scriptedEffect.name = 'Nvidia AIAA'
         scriptedEffect.perSegment = False  # this effect operates on all segments at once (not on a single selected segment)
+        try:
+            # this effect can create its own segments, so we do not require any pre-existing segment
+            scriptedEffect.requireSegments = False
+        except AttributeError:
+            # requireSegments option is not available in this Slicer version,
+            # therefore the user has to create a segment to make the effect enabled
+            pass
         AbstractScriptedSegmentEditorEffect.__init__(self, scriptedEffect)
 
         self.extremePoints = dict()

@@ -9,4 +9,4 @@ Click/Select Segmentation Editor and you should be able to see "Nvidia AIAA" ext
 
 For Demo Video [Click Here](https://drive.google.com/open?id=1cQgCBl4v3OqI3Hh8hzMvR01xiEBO2GLE)
 
-![Alt text](/snapshot.png?raw=true "NVIDIA In Action")
+![Alt text](snapshot.png?raw=true "NVIDIA In Action")

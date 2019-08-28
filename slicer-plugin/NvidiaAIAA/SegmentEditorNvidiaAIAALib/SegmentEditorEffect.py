@@ -166,10 +166,21 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return name
 
     def onClickModels(self):
-        logic = AIAALogic(self.serverIP.text, int(self.serverPort.text))
-        label = self.getActiveLabel()
-        logging.info('Active Label: {}'.format(label))
-        models = json.loads(logic.list_models(label if self.filterByLabel.checked else None))
+
+        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText="Fetching models", maximum=100)
+        slicer.app.processEvents()
+        try:
+            logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
+                progress_callback = lambda progressPercentage, progressBar=progressBar: SegmentEditorEffect.report_progress(progressBar, progressPercentage))
+            label = self.getActiveLabel()
+            logging.info('Active Label: {}'.format(label))
+            models = json.loads(logic.list_models(label if self.filterByLabel.checked else None))
+        except:
+            progressBar.close()
+            slicer.util.errorDisplay("Failed to fetch models from remote server. Make sure server address is correct and retry.", detailedText=traceback.format_exc())
+            return
+        else:
+            progressBar.close()
 
         self.segmentationModelSelector.clear()
         self.annotationModelSelector.clear()
@@ -255,23 +266,41 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         os.unlink(in_file)
         return True
 
+    @staticmethod
+    def report_progress(progressBar, progressPercentage):
+        progressBar.show()
+        progressBar.activateWindow()
+        progressBar.setValue(progressPercentage)
+        slicer.app.processEvents()
+
     def onClickSegmentation(self):
-        logic = AIAALogic(self.serverIP.text, int(self.serverPort.text))
         model = self.segmentationModelSelector.currentText
         label = self.getActiveLabel()
-        logging.info('Run Segmentation for model: {} for label: {}'.format(model, label))
+        operationDescription = 'Run Segmentation for model: {} for label: {}'.format(model, label)
+        logging.info(operationDescription)
+        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription, maximum=100)
+        slicer.app.processEvents()
+        try:
+            qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
+            logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
+                progress_callback = lambda progressPercentage, progressBar=progressBar: SegmentEditorEffect.report_progress(progressBar, progressPercentage))
 
-        qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
+            inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
+            json, result_file = logic.segmentation(model, inputVolume)
+            result = 'SUCCESS' if self.updateSegmentationMask(json, result_file) is True else 'FAILED'
 
-        inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-        json, result_file = logic.segmentation(model, inputVolume)
-        result = 'SUCCESS' if self.updateSegmentationMask(json, result_file) is True else 'FAILED'
+            if result is 'SUCCESS':
+                self.segmentMarkupNode.RemoveAllMarkups()
+                self.updateGUIFromMRML()
+        except:
+            qt.QApplication.restoreOverrideCursor()
+            progressBar.close()
+            slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
+            return
+        else:
+            qt.QApplication.restoreOverrideCursor()
+            progressBar.close()
 
-        if result is 'SUCCESS':
-            self.segmentMarkupNode.RemoveAllMarkups()
-            self.updateGUIFromMRML()
-
-        qt.QApplication.restoreOverrideCursor()
         qt.QMessageBox.information(
             slicer.util.mainWindow(),
             'NVIDIA AIAA',
@@ -298,23 +327,34 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return point_set
 
     def onClickAnnotation(self):
-        logic = AIAALogic(self.serverIP.text, int(self.serverPort.text))
         model = self.annotationModelSelector.currentText
         label = self.getActiveLabel()
-        logging.info('Run Annotation for model: {} for label: {}'.format(model, label))
+        operationDescription = 'Run Annotation for model: {} for label: {}'.format(model, label)
+        logging.info(operationDescription)
+        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription, maximum=100)
+        slicer.app.processEvents()
+        try:
+            qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
+            logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
+                progress_callback = lambda progressPercentage, progressBar=progressBar: SegmentEditorEffect.report_progress(progressBar, progressPercentage))
 
-        qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
+            inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
+            modelInfo = self.models.get(model)
+            pointSet = self.getFiducialPointsXYZ()
+            json, result_file = logic.dextr3d(model, pointSet, inputVolume, modelInfo)
+            result = 'SUCCESS' if self.updateSegmentationMask(json, result_file) is True else 'FAILED'
 
-        inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-        modelInfo = self.models.get(model)
-        pointSet = self.getFiducialPointsXYZ()
-        json, result_file = logic.dextr3d(model, pointSet, inputVolume, modelInfo)
-        result = 'SUCCESS' if self.updateSegmentationMask(json, result_file) is True else 'FAILED'
+            if result is 'SUCCESS':
+                self.updateGUIFromMRML()
+        except:
+            qt.QApplication.restoreOverrideCursor()
+            progressBar.close()
+            slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
+            return
+        else:
+            qt.QApplication.restoreOverrideCursor()
+            progressBar.close()
 
-        if result is 'SUCCESS':
-            self.updateGUIFromMRML()
-
-        qt.QApplication.restoreOverrideCursor()
         qt.QMessageBox.information(
             slicer.util.mainWindow(),
             'NVIDIA AIAA',
@@ -454,9 +494,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
 
 class AIAALogic():
-    def __init__(self, server_host='0.0.0.0', server_port=5000, server_version='v1'):
+    def __init__(self, server_host='0.0.0.0', server_port=5000, server_version='v1', progress_callback=None):
         self.server_url = server_host + ':' + str(server_port)
         self.server_version = server_version
+        self.progress_callback = progress_callback
         logging.info('Using URI: {}'.format(self.server_url))
 
     @staticmethod
@@ -469,7 +510,12 @@ class AIAALogic():
             return urllib.parse.quote_plus(s)
         return 
 
+    def reportProgress(self, progress):
+        if self.progress_callback:
+            self.progress_callback(progress)
+
     def list_models(self, label=None):
+        self.reportProgress(0)
         conn = httplib.HTTPConnection(self.server_url)
         selector = '/' + self.server_version + '/models'
         if label is not None and len(label) > 0:
@@ -477,15 +523,21 @@ class AIAALogic():
 
         logging.info('Using Selector: {}'.format(selector))
         conn.request('GET', selector)
+        self.reportProgress(30)
         response = conn.getresponse()
-        return response.read()
+        self.reportProgress(60)
+        result = response.read()
+        self.reportProgress(100)
+        return result
 
     def segmentation(self, model, inputVolume):
+        self.reportProgress(0)
         logging.info('Preparing for Segmentation Action')
         in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
 
         slicer.util.saveNode(inputVolume, in_file)
         logging.info('Saved Input Node into: {}'.format(in_file))
+        self.reportProgress(20)
 
         selector = '/' + self.server_version + '/segmentation?model=' + AIAALogic.urllib_quote_plus(model)
         fields = {'params': '{}'}
@@ -495,35 +547,39 @@ class AIAALogic():
         logging.info('Using Fields: {}'.format(fields))
         logging.info('Using Files: {}'.format(files))
 
-        form, files = self.post_multipart(selector, fields, files)
+        form, files = self.post_multipart(selector, fields, files, 20, 80)
 
         result_file = None
         if len(files) > 0:
-            fname = files.keys()[0]
+            fname = list(files.keys())[0]
             logging.info('Saving segmentation result: {}'.format(fname))
             with tempfile.NamedTemporaryFile(suffix='.nii.gz', delete=False) as f:
                 f.write(files[fname])
                 result_file = f.name
 
         os.unlink(in_file)
+        self.reportProgress(100)
         return form, result_file
 
     def dextr3d(self, model, pointset, inputVolume, modelInfo):
+        self.reportProgress(0)
         logging.info('Preparing for Annotation/Dextr3D Action')
         in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
 
         slicer.util.saveNode(inputVolume, in_file)
         logging.info('Saved Input Node into: {}'.format(in_file))
+        self.reportProgress(20)
 
         # Pre Process
         pad = 20
         roi_size = '128x128x128'
-        if modelInfo is not None:
+        if (modelInfo is not None) and ('padding' in modelInfo):
             pad = modelInfo['padding']
             roi_size = 'x'.join(map(str, modelInfo['roi']))
 
         cropped_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
         points, crop = AIAALogic.image_pre_process(in_file, cropped_file, pointset, pad, roi_size)
+        self.reportProgress(30)
 
         selector = '/' + self.server_version + '/dextr3d?model=' + AIAALogic.urllib_quote_plus(model)
         params = dict()
@@ -536,12 +592,12 @@ class AIAALogic():
         logging.info('Using Fields: {}'.format(fields))
         logging.info('Using Files: {}'.format(files))
 
-        form, files = self.post_multipart(selector, fields, files)
+        form, files = self.post_multipart(selector, fields, files, 30, 80)
 
         # Post Process
         result_file = None
         if len(files) > 0:
-            fname = files.keys()[0]
+            fname = list(files.keys())[0]
             logging.info('Saving segmentation result: {}'.format(fname))
             with tempfile.NamedTemporaryFile(suffix='.nii.gz', delete=False) as f:
                 f.write(files[fname])
@@ -554,6 +610,8 @@ class AIAALogic():
         os.unlink(in_file)
         os.unlink(cropped_file)
         os.unlink(cropped_out_file)
+
+        self.reportProgress(100)
         return {'points': json.dumps(pointset)}, result_file
 
     @staticmethod
@@ -665,28 +723,37 @@ class AIAALogic():
 
         sitk.WriteImage(itk_result, output_file, True)
 
-    def post_multipart(self, selector, fields, files):
+    def post_multipart(self, selector, fields, files, progressStart=None, progressEnd=None):
+        if progressStart is not None:
+            self.reportProgress(progressStart)
         content_type, body = self.encode_multipart_formdata(fields, files)
-        h = httplib.HTTP(self.server_url)
+        h = httplib.HTTPConnection(self.server_url)
         h.putrequest('POST', selector)
         h.putheader('content-type', content_type)
         h.putheader('content-length', str(len(body)))
         h.endheaders()
         h.send(body)
+        if (progressStart is not None) and (progressEnd is not None):
+            self.reportProgress(int(progressStart+(progressEnd-progressStart)*0.25))
 
-        errcode, errmsg, headers = h.getreply()
+        response = h.getresponse()
+        headers = response.msg
+        errcode = response.status
+        errmsg = response.reason
         logging.info('Error Code: {}'.format(errcode))
         logging.info('Error Message: {}'.format(errmsg))
         logging.info('Headers: {}'.format(headers))
-
-        form, files = self.parse_multipart(h.file, headers)
+        if (progressStart is not None) and (progressEnd is not None):
+            self.reportProgress(int(progressStart+(progressEnd-progressStart)*0.75))
+        form, files = self.parse_multipart(response.fp, headers)
         logging.info('Response FORM: {}'.format(form))
         logging.info('Response FILES: {}'.format(files.keys()))
+        if progressEnd is not None:
+            self.reportProgress(progressEnd)
         return form, files
 
     def encode_multipart_formdata(self, fields, files):
         LIMIT = '----------lImIt_of_THE_fIle_eW_$'
-        CRLF = '\r\n'
         L = []
         for (key, value) in fields.items():
             L.append('--' + LIMIT)
@@ -703,6 +770,13 @@ class AIAALogic():
                 L.append(data)
         L.append('--' + LIMIT + '--')
         L.append('')
+        CRLF = '\r\n'
+        import sys
+        if sys.version_info.major>=3:
+            for i in range(len(L)):
+                if type(L[i]) == str:
+                    L[i] = L[i].encode('ascii')
+            CRLF = CRLF.encode('ascii')
         body = CRLF.join(L)
         content_type = 'multipart/form-data; boundary=%s' % LIMIT
         return content_type, body

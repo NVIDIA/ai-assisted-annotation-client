@@ -33,8 +33,40 @@ from __future__ import print_function
 import argparse
 import json
 import logging
+import sys
 
 import client_api
+
+
+# Support Python 2.7 json load
+def json_load_byteified(file_handle):
+    return _byteify(
+        json.load(file_handle, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+
+def json_loads_byteified(json_text):
+    return _byteify(
+        json.loads(json_text, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+
+def _byteify(data, ignore_dicts=False):
+    if sys.version_info[0] >= 3:
+        return data
+
+    if isinstance(data, unicode):
+        return data.encode('utf-8')
+    if isinstance(data, list):
+        return [_byteify(item, ignore_dicts=True) for item in data]
+    if isinstance(data, dict) and not ignore_dicts:
+        return {
+            _byteify(key, ignore_dicts=True): _byteify(value, ignore_dicts=True)
+            for key, value in data.iteritems()
+        }
+    return data
 
 
 def call_server():
@@ -48,7 +80,7 @@ def call_server():
     args = parser.parse_args()
     print('Using ARGS: {}'.format(args))
 
-    test_config = json.load(open(args.test_config))
+    test_config = json_load_byteified(open(args.test_config))
     if args.debug:
         logging.basicConfig(level=logging.DEBUG,
                             format='[%(asctime)s.%(msecs)03d][%(levelname)5s](%(name)s:%(funcName)s) - %(message)s',
@@ -76,14 +108,11 @@ def call_server():
         if name is None or api is None:
             raise ValueError('missing name: {} or api: {} in test'.format(name, api))
 
-        # dir_path = os.path.dirname(os.path.realpath(result_prefix))
-        # os.makedirs(dir_path, exist_ok=True)
-
         if api == 'models':
             label = test.get('label')
 
             models = client.model_list(label)
-            print('++++ Listed Models: {}'.format(models))
+            print('++++ Listed Models: {}'.format(json.dumps(models)))
             continue
 
         if api == 'segmentation':
@@ -91,7 +120,8 @@ def call_server():
             image_in = test.get('image_in')
             image_out = test.get('image_out')
 
-            client.segmentation(model, image_in, image_out)
+            extreme_points = client.segmentation(model, image_in, image_out)
+            print('++++ Extreme Points: {}'.format(json.dumps(extreme_points)))
             continue
 
         if api == 'dextr3d':
@@ -102,7 +132,8 @@ def call_server():
             pad = test.get('pad', 20)
             roi_size = test.get('roi_size', '128x128x128')
 
-            client.dextr3d(model, point_set, image_in, image_out, pad, roi_size)
+            result = client.dextr3d(model, point_set, image_in, image_out, pad, roi_size)
+            print('++++ dextr3d result: {}'.format(json.dumps(result)))
             continue
 
         if api == 'mask2polygon':
@@ -110,7 +141,7 @@ def call_server():
             point_ratio = test.get('point_ratio')
             polygons = client.mask2polygon(image_in, point_ratio)
 
-            print('++++ Mask2Polygons: {}'.format(polygons))
+            print('++++ Mask2Polygons: {}'.format(json.dumps(polygons)))
             continue
 
         if api == 'fixpolygon':
@@ -122,7 +153,7 @@ def call_server():
             propagate_neighbor = test.get('propagate_neighbor')
 
             updated_poly = client.fixpolygon(image_in, image_out, polygons, index, vertex_offset, propagate_neighbor)
-            print('++++ FixPolygons: {}'.format(updated_poly))
+            print('++++ FixPolygons: {}'.format(json.dumps(updated_poly)))
             continue
 
         raise ValueError("Invalid API: {}".format(args.api))

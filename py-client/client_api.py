@@ -34,7 +34,7 @@ try:
     # Python3
     # noinspection PyUnresolvedReferences
     import http.client as httplib
-except ModuleNotFoundError as e:
+except ImportError as e:
     # Python2
     # noinspection PyUnresolvedReferences
     import httplib
@@ -76,7 +76,10 @@ class AIAAClient:
         selector = '/' + self.api_version + '/models'
         if label is not None and len(label) > 0:
             selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
-        return json.loads(AIAAUtils.get_method(self.server_url, selector))
+
+        response = AIAAUtils.get_method(self.server_url, selector)
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        return json.loads(response)
 
     def segmentation(self, model, image_in, image_out):
         """
@@ -84,6 +87,7 @@ class AIAAClient:
         :param model: model name according to the output of model_list()
         :param image_in: input 3D image file name
         :param image_out: output files will be stored
+        :return: returns json containing extreme points for the segmentation mask
 
         Output 3D binary mask will be saved to the specified file
         """
@@ -148,7 +152,7 @@ class AIAAClient:
     def mask2polygon(self, image_in, point_ratio):
         """
         3D binary mask to polygon representation conversion
-    
+
         :param image_in: input 3D binary mask image file name
         :param point_ratio: point ratio controlling how many polygon vertices will be generated
 
@@ -165,12 +169,13 @@ class AIAAClient:
         files = {'datapoint': image_in}
 
         response = AIAAUtils.post_multipart(self.server_url, selector, fields, files, False)
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
     def fixpolygon(self, image_in, image_out, polygons, index, vertex_offset, propagate_neighbor):
         """
         2D/3D polygon update with single point edit
-    
+
         :param image_in: input 2D/3D image file name
         :param image_out: output 2D/3D mask image file name
         :param polygons: list of polygons 2D/3D
@@ -218,6 +223,9 @@ class AIAAClient:
 
 
 class AIAAUtils:
+    def __init__(self):
+        pass
+
     @staticmethod
     def resample_image(itk_image, out_size, linear):
         spacing = list(itk_image.GetSpacing())
@@ -242,6 +250,7 @@ class AIAAUtils:
     @staticmethod
     def image_pre_process(input_file, output_file, point_set, pad, roi_size):
         logger = logging.getLogger(__name__)
+        logger.debug('Reading Image from: {}'.format(input_file))
 
         itk_image = SimpleITK.ReadImage(input_file)
         spacing = itk_image.GetSpacing()
@@ -354,7 +363,7 @@ class AIAAUtils:
         logger.debug('Headers: {}'.format(response.getheaders()))
 
         if multipart_response:
-            form, files = AIAAUtils.parse_multipart(response, response.msg)
+            form, files = AIAAUtils.parse_multipart(response.fp if response.fp else response, response.msg)
             logger.debug('Response FORM: {}'.format(form))
             logger.debug('Response FILES: {}'.format(files.keys()))
             return form, files
@@ -367,9 +376,16 @@ class AIAAUtils:
             for name in files:
                 data = files[name]
                 logger.debug('Saving {} to {}; Size: {}'.format(name, result_file, len(data)))
+
+                dir_path = os.path.dirname(os.path.realpath(result_file))
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path)
+
                 with open(result_file, "wb") as f:
-                    f.write(data.encode('utf-8') if isinstance(data, str) else data)
-                    f.close()
+                    if isinstance(data, bytes):
+                        f.write(data)
+                    else:
+                        f.write(data.encode('utf-8'))
                 break
 
     @staticmethod
@@ -392,10 +408,10 @@ class AIAAUtils:
         lines.append('--' + limit + '--')
         lines.append('')
 
-        blines = []
+        body = bytearray()
         for l in lines:
-            blines.append(l.encode('utf-8') if isinstance(l, str) else l)
-        body = b'\r\n'.join(blines)
+            body.extend(l if isinstance(l, bytes) else l.encode('utf-8'))
+            body.extend(b'\r\n')
 
         content_type = 'multipart/form-data; boundary=%s' % limit
         return content_type, body

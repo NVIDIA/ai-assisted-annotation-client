@@ -32,103 +32,131 @@ from __future__ import print_function
 
 import argparse
 import json
-import os
+import logging
+import sys
+
 import client_api
+
+
+# Support Python 2.7 json load
+def json_load_byteified(file_handle):
+    return _byteify(
+        json.load(file_handle, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+
+def json_loads_byteified(json_text):
+    return _byteify(
+        json.loads(json_text, object_hook=_byteify),
+        ignore_dicts=True
+    )
+
+
+def _byteify(data, ignore_dicts=False):
+    if sys.version_info[0] >= 3:
+        return data
+
+    if isinstance(data, unicode):
+        return data.encode('utf-8')
+    if isinstance(data, list):
+        return [_byteify(item, ignore_dicts=True) for item in data]
+    if isinstance(data, dict) and not ignore_dicts:
+        return {
+            _byteify(key, ignore_dicts=True): _byteify(value, ignore_dicts=True)
+            for key, value in data.iteritems()
+        }
+    return data
 
 
 def call_server():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--test_config')
+    parser.add_argument('--server_ip', default='0.0.0.0')
+    parser.add_argument('--server_port', default=5000)
+    parser.add_argument('--api_version', default='v1')
+    parser.add_argument('--test_config', required=True)
+    parser.add_argument('--debug', default=False)
+
     args = parser.parse_args()
+    print('Using ARGS: {}'.format(args))
 
-    if not args.test_config:
-        raise SyntaxError('test config file not specified')
-
-    test_config = json.load(open(args.test_config))
-
-    server_config = test_config.get('server', None)
-    if not server_config:
-        raise ValueError('server not configured')
-
-    ip = server_config.get('ip', '')
-    if not ip:
-        raise ValueError('server IP not configured')
-    else:
-        print("IP Address: ", ip)
-
-    port = server_config.get('port', '')
-    if not port:
-        raise ValueError('server port not configured')
-    else:
-        print("Port: ", port)
-
-    api_version = server_config.get('api_version', '')
-    if not api_version:
-        raise ValueError('API version not configured')
-    else:
-        print("API Version: ", api_version)
+    test_config = json_load_byteified(open(args.test_config))
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='[%(asctime)s.%(msecs)03d][%(levelname)5s](%(name)s:%(funcName)s) - %(message)s',
+                            datefmt='%Y-%m-%d %H:%M:%S')
 
     tests = test_config.get('tests', None)
-    print(tests)
     if not tests:
         raise ValueError('no tests defined')
 
-    client = client_api.AIAAClient(ip, port, api_version)
+    client = client_api.AIAAClient(args.server_ip, args.server_port, args.api_version)
     for test in tests:
         name = test.get('name')
-        if not name:
-            raise ValueError('missing name in test definition')
-
-        api = test.get('api')
-        if not api:
-            raise ValueError('missing api in test definition')
-
-        model_name = test.get('model')
-        image_path = test.get('image')
-        result_prefix = test.get('result_prefix')
-        params = test.get('params')
         disabled = test.get('disabled', False)
-        pad = test.get('pad', 20)
-        roi_size = test.get('roi_size', '128x128x128')
-        sigma = test.get('sigma', 3)
+        api = test.get('api')
+
+        print('')
+        print('---------------------------------------------------------------------')
+        print('Running Test: {}'.format(name))
+        print('---------------------------------------------------------------------')
 
         if disabled:
+            print('This test is skipped')
             continue
 
-        if not result_prefix:
-            raise ValueError('missing result_prefix in test "{}"'.format(name))
-
-        dir_path = os.path.dirname(os.path.realpath(result_prefix))
-        os.makedirs(dir_path, exist_ok=True)
+        if name is None or api is None:
+            raise ValueError('missing name: {} or api: {} in test'.format(name, api))
 
         if api == 'models':
-            client.model_list(result_prefix)
+            label = test.get('label')
+
+            models = client.model_list(label)
+            print('++++ Listed Models: {}'.format(json.dumps(models)))
             continue
 
-        if not image_path:
-            raise ValueError('missing image in test "{}"'.format(name))
-        if not params:
-            raise ValueError('missing params in test "{}"'.format(name))
-
         if api == 'segmentation':
-            if not model_name:
-                raise ValueError('missing model name in test "{}"'.format(name))
-            files = client.segmentation(model_name, image_path, result_prefix, params)
-        elif api == 'dextr3d':
-            if not model_name:
-                raise ValueError('missing model name in test "{}"'.format(name))
+            model = test.get('model')
+            image_in = test.get('image_in')
+            image_out = test.get('image_out')
 
-            files = client.dextr3d(model_name, image_path, result_prefix, params,
-                                   pad, roi_size, sigma)
-        elif api == 'mask2polygon':
-            files = client.mask2polygon(image_path, result_prefix, params)
-        elif api == 'fixpolygon':
-            files = client.fixpolygon(image_path, result_prefix, params)
-        else:
-            raise ValueError("Invalid API: {}".format(args.api))
+            extreme_points = client.segmentation(model, image_in, image_out)
+            print('++++ Extreme Points: {}'.format(json.dumps(extreme_points)))
+            continue
 
-        print("\nGenerated file for Test '{}':".format(name))
-        print('\n'.join(files))
+        if api == 'dextr3d':
+            model = test.get('model')
+            point_set = test.get('point_set')
+            image_in = test.get('image_in')
+            image_out = test.get('image_out')
+            pad = test.get('pad', 20)
+            roi_size = test.get('roi_size', '128x128x128')
+
+            result = client.dextr3d(model, point_set, image_in, image_out, pad, roi_size)
+            print('++++ dextr3d result: {}'.format(json.dumps(result)))
+            continue
+
+        if api == 'mask2polygon':
+            image_in = test.get('image_in')
+            point_ratio = test.get('point_ratio')
+            polygons = client.mask2polygon(image_in, point_ratio)
+
+            print('++++ Mask2Polygons: {}'.format(json.dumps(polygons)))
+            continue
+
+        if api == 'fixpolygon':
+            image_in = test.get('image_in')
+            image_out = test.get('image_out')
+            polygons = test.get('polygons')
+            index = test.get('index')
+            vertex_offset = test.get('vertex_offset')
+            propagate_neighbor = test.get('propagate_neighbor')
+
+            updated_poly = client.fixpolygon(image_in, image_out, polygons, index, vertex_offset, propagate_neighbor)
+            print('++++ FixPolygons: {}'.format(json.dumps(updated_poly)))
+            continue
+
+        raise ValueError("Invalid API: {}".format(args.api))
 
 
 if __name__ == '__main__':

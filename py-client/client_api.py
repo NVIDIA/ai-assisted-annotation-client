@@ -24,16 +24,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import json
-import os
-import re
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
-import nibabel as nib
+import cgi
+
+try:
+    # Python3
+    # noinspection PyUnresolvedReferences
+    import http.client as httplib
+    # noinspection PyUnresolvedReferences
+    from urllib.parse import quote_plus
+except ImportError as e:
+    # Python2
+    # noinspection PyUnresolvedReferences
+    import httplib
+    # noinspection PyUnresolvedReferences
+    from urllib import quote_plus
+
+import json
+import logging
+import mimetypes
+import os
+import sys
+import tempfile
+
+import SimpleITK
 import numpy as np
-import requests
-import skimage.measure as skm
-from requests_toolbelt.multipart import decoder
-from skimage.transform import resize
 
 
 class AIAAClient:
@@ -46,343 +64,385 @@ class AIAAClient:
     """
 
     def __init__(self, server_ip, server_port, api_version='v1'):
-        self.server_ip = server_ip
-        self.server_port = server_port
+        self.server_url = server_ip + ':' + str(server_port)
         self.api_version = api_version
 
-    def _call_server(self, api, args_dict=None, params=None, files=None):
-        """
-        Compose http message and get response
-    
-        :param args_dict: for method selection
-        :param params: parameters
-        :param files: files to be sent to AIAA Server
-        
-        :return: It returns response from AIAA Server 
-        """
-
-        endpoint = "http://" + self.server_ip + ":" + self.server_port + "/" + self.api_version + "/" + api
-        url = endpoint
-        if args_dict:
-            sep = '?'
-            for key, value in args_dict.items():
-                url = url + sep + key + "=" + value
-                sep = '&'
-
-        print("Connecting to: ", url)
-
-        if not params:
-            response = requests.get(url)
-        else:
-            data = {'params': params}
-            print(data)
-            if not files:
-                response = requests.post(url, data=data)
-            else:
-                response = requests.post(url, data=data, files=files)
-
-        return response
-
-    def model_list(self, result_file_prefix):
+    def model_list(self, label=None):
         """
         Get the current supported model list
-        :param result_file_prefix: File name to store the result
-        :return: returns json containing list of models and details supported for DEXTR3D
+        :param label: Filter models which are matching the label
+        :return: returns json containing list of models and details
         """
+        logger = logging.getLogger(__name__)
+        logger.debug('Fetching Model Details')
 
-        response = self._call_server("models")
-        file_names = _process_response(response, result_file_prefix)
-        print(file_names)
-        return file_names
+        selector = '/' + self.api_version + '/models'
+        if label is not None and len(label) > 0:
+            selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
 
-    # noinspection PyUnresolvedReferences
-    def dextr3d(self, model_name, image_file_path, result_file_prefix, point_set, pad=20,
-                roi_size='128x128x128', sigma=3):
+        response = AIAAUtils.http_get_method(self.server_url, selector)
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        return json.loads(response)
+
+    def segmentation(self, model, image_in, image_out):
         """
-        3D image segmentation using DEXTR3D method
-
-        :param model_name: model name according to the output of model_list()
-        :param image_file_path: input 3D image file name
-        :param point_set: point set json containing the extreme points' indices
-        :param result_file_prefix: output files will be stored under this prefix
-        :param pad: padding size (default is 20)
-        :param roi_size:  image resize value (default is 128x128x128)
-        :param sigma: sigma value to be used for sigma (default is 3)
+        3D image segmentation using segmentation method
+        :param model: model name according to the output of model_list()
+        :param image_in: input 3D image file name
+        :param image_out: output files will be stored
+        :return: returns json containing extreme points for the segmentation mask
 
         Output 3D binary mask will be saved to the specified file
         """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for Segmentation Action')
 
-        # Extract extreme points information
-        points = json.loads(point_set)
-        points = points.get('points')
-        pts_str = points.replace('[[', '')
-        pts_str = pts_str.replace(']]', '')
-        pts_str = pts_str.split('],[')
-        points = np.zeros((6, 3), dtype=np.int)
-        for i, pt_str in enumerate(pts_str):
-            points[i, ::] = tuple(map(int, pt_str.split(',')))
+        selector = '/' + self.api_version + '/segmentation?model=' + AIAAUtils.urllib_quote_plus(model)
+        fields = {'params': '{}'}
+        files = {'datapoint': image_in}
 
-        assert (np.shape(points)[0] >= 6)  # at least six points
-        assert (np.shape(points)[1] == 3)  # 3D points
+        logger.debug('Using Selector: {}'.format(selector))
+        logger.debug('Using Fields: {}'.format(fields))
+        logger.debug('Using Files: {}'.format(files))
 
-        # Assign temporary file names
-        tmp_image_file_path = result_file_prefix + "_cropped_input_image.nii.gz"
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        AIAAUtils.save_result(files, image_out)
+        return form
 
-        # Read image
-        image = nib.load(image_file_path)
-        affine = image.affine
-        image = image.get_data()
-        orig_size = np.shape(image)
-        spacing = [abs(affine[(0, 0)]), abs(affine[(1, 1)]), abs(affine[(2, 2)])]
-
-        # Preprocess - crop and resize
-        points, crop = _image_pre_process(image, tmp_image_file_path, points, pad, roi_size, spacing)
-
-        # Compose request message
-        json_data = {'points': str(points.tolist()), 'sigma': sigma}
-
-        files = _make_files(tmp_image_file_path)
-        params = json.dumps(json_data)
-        response = self._call_server("dextr3d", {"model": model_name}, params, files)
-
-        # Process response
-        file_names = _process_response(response, result_file_prefix)
-        print(file_names)
-
-        # Postprocess - recover resize and crop
-        out_image_file_path = result_file_prefix + "_resized_output_image.nii.gz"
-        roi_image_file_path = None
-        for image_name in file_names:
-            if image_name.find("_aas_result.nii.gz") != -1:
-                roi_image_file_path = image_name
-
-        result = _image_post_processing(roi_image_file_path, crop, orig_size)
-        nib.save(nib.Nifti1Image(result.astype(np.uint8), affine), out_image_file_path)
-
-        file_names.append(out_image_file_path)
-        return file_names
-
-    def segmentation(self, model_name, image_file_path, result_file_prefix, params):
+    def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128'):
         """
-        3D image segmentation method
-    
-        :param model_name: model name according to the output of model_list()
-        :param image_file_path: input 3D image file name
-        :param result_file_prefix: result file from AIAA Server
-        :param params: additional params if applicable for segmentation
+        3D image segmentation using DEXTR3D method
+        :param model: model name according to the output of model_list()
+        :param point_set: point set json containing the extreme points' indices
+        :param image_in: input 3D image file name
+        :param image_out: output files will be stored
+        :param pad: padding size (default is 20)
+        :param roi_size:  image resize value (default is 128x128x128)
 
-        Output 3D binary mask and extreme points will be saved into files with result_file_prefix
+        Output 3D binary mask will be saved to the specified file
         """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for Annotation/Dextr3D Action')
 
-        # Compose request message
-        files = _make_files(image_file_path)
-        response = self._call_server("segmentation", {"model": model_name}, params, files)
+        # Pre Process
+        cropped_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
+        points, crop = AIAAUtils.image_pre_process(image_in, cropped_file, point_set, pad, roi_size)
 
-        # Process response
-        file_names = _process_response(response, result_file_prefix)
-        print(file_names)
+        # Dextr3D
+        selector = '/' + self.api_version + '/dextr3d?model=' + AIAAUtils.urllib_quote_plus(model)
+        params = dict()
+        params['points'] = json.dumps(points)
 
-        return file_names
+        fields = {'params': json.dumps(params)}
+        files = {'datapoint': cropped_file}
 
-    def mask2polygon(self, image_file_path, result_file_prefix, point_ratio):
+        logger.debug('Using Selector: {}'.format(selector))
+        logger.debug('Using Fields: {}'.format(fields))
+        logger.debug('Using Files: {}'.format(files))
+
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+
+        # Post Process
+        if len(files) > 0:
+            cropped_out_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
+            AIAAUtils.save_result(files, cropped_out_file)
+            AIAAUtils.image_post_processing(cropped_out_file, image_out, crop, image_in)
+            os.unlink(cropped_out_file)
+
+        os.unlink(cropped_file)
+        return form
+
+    def mask2polygon(self, image_in, point_ratio):
         """
         3D binary mask to polygon representation conversion
-    
-        :param image_file_path: input 3D binary mask image file name
-        :param result_file_prefix: result file from AIAA Server
+
+        :param image_in: input 3D binary mask image file name
         :param point_ratio: point ratio controlling how many polygon vertices will be generated
 
         :return: A json containing the indices of all polygon vertices slice by slice.
         """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for Mask2Polygon Action')
 
-        json_data = {'more_points': point_ratio}
-        params = json.dumps(json_data)
+        selector = '/' + self.api_version + '/mask2polygon'
+        params = dict()
+        params['more_points'] = point_ratio
 
-        files = _make_files(image_file_path)
+        fields = {'params': json.dumps(params)}
+        files = {'datapoint': image_in}
 
-        response = self._call_server("mask2polygon", None, params, files)
+        response = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files, False)
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        return json.loads(response)
 
-        file_names = _process_response(response, result_file_prefix)
-        print(file_names)
-        return file_names
-
-    def fixpolygon(self, image_file_path, result_file_prefix, params):
+    def fixpolygon(self, image_in, image_out, polygons, index, vertex_offset, propagate_neighbor):
         """
-        2D polygon update with single point edit
-    
-        :param image_file_path: input 2D image file name
-        :param result_file_prefix: output 2D mask image file name
-        :param params: json containing parameters of polygon editing
+        2D/3D polygon update with single point edit
+
+        :param image_in: input 2D/3D image file name
+        :param image_out: output 2D/3D mask image file name
+        :param polygons: list of polygons 2D/3D
+        :param index: index of vertex which needs to be updated
+                      1) for 2D [polygon_index, vertex_index]
+                      2) for 3D [slice_index, polygon_index, vertex_index]
+        :param vertex_offset: offset (2D/3D) needs to be added to get the updated vertex in [x,y] format
+        :param propagate_neighbor: neighborhood size
+                      1) for 2D: single value (polygon_neighborhood_size)
+                      2) for 3D: [slice_neighborhood_size, polygon_neighborhood_size]
         :return: A json containing the indices of updated polygon vertices
-        
-        json parameters will have
-            1. Neighborhood size 
-            2. Index of the changed polygon 
-            3. Index of the changed vertex
-            4. Polygon before editing
-            5. Polygon after editing
 
 
         Output binary mask will be saved to the specified name
         """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for FixPolygon Action')
 
-        files = _make_files(image_file_path)
-        response = self._call_server("fixpolygon", None, params, files)
-        return _process_response(response, result_file_prefix)
+        selector = '/' + self.api_version + '/fixpolygon'
 
+        dimension = len(index)
 
-def _image_pre_process(image, tmp_image_file_path, point_set, pad, roi_size, spacing):
-    """
-    Image pre-processing, crop ROI according to extreme points and resample to 128^3 
-    
-    :param point_set: json containing the extreme points' indices 
-    :param image: input 3D image file name
-    :param tmp_image_file_path: output temporary 3D ROI image file name
-    :param pad: padding size
-    :param roi_size: image resize value
-    :return: json containing the extreme points' indices after cropping and resizing
-    """
+        params = dict()
+        params['prev_poly'] = polygons
+        params['vertex_offset'] = vertex_offset
+        params['dimension'] = dimension
 
-    target_size = tuple(map(int, roi_size.split('x')))
+        if dimension == 3:
+            params['sliceIndex'] = index[0]
+            params['polygonIndex'] = index[1]
+            params['vertexIndex'] = index[2]
+            params['propagate_neighbor_3d'] = propagate_neighbor[0]
+            params['propagate_neighbor'] = propagate_neighbor[1]
+        else:
+            params['polygonIndex'] = index[0]
+            params['vertexIndex'] = index[1]
+            params['propagate_neighbor'] = propagate_neighbor
 
-    image_size = np.shape(image)
-    points = np.asanyarray(point_set)
+        fields = {'params': json.dumps(params)}
+        files = {'datapoint': image_in}
 
-    # get bounding box
-    x1 = max(0, np.min(points[::, 0]) - int(pad / spacing[0]))
-    x2 = min(image_size[0], np.max(points[::, 0]) + int(pad / spacing[0]))
-    y1 = max(0, np.min(points[::, 1]) - int(pad / spacing[1]))
-    y2 = min(image_size[1], np.max(points[::, 1]) + int(pad / spacing[1]))
-    z1 = max(0, np.min(points[::, 2]) - int(pad / spacing[2]))
-    z2 = min(image_size[2], np.max(points[::, 2]) + int(pad / spacing[2]))
-    crop = [[x1, x2], [y1, y2], [z1, z2]]
-
-    # crop
-    points[::, 0] = points[::, 0] - x1
-    points[::, 1] = points[::, 1] - y1
-    points[::, 2] = points[::, 2] - z1
-    image = image[x1:x2, y1:y2, z1:z2]
-    cropped_size = np.shape(image)
-
-    # resize
-    ratio = np.divide(np.asanyarray(target_size, dtype=np.float), np.asanyarray(cropped_size, dtype=np.float))
-    image = resize(image, target_size, preserve_range=True, order=1)  # linear interpolation
-    points[::, 0] = points[::, 0] * ratio[0]
-    points[::, 1] = points[::, 1] * ratio[1]
-    points[::, 2] = points[::, 2] * ratio[2]
-
-    nib.save(nib.Nifti1Image(image, np.eye(4)), tmp_image_file_path)
-
-    return points, crop
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        AIAAUtils.save_result(files, image_out)
+        return form
 
 
-def _image_post_processing(roi_image_file_path, crop, orig_size):
-    """
-    Image post-processing, recover the cropping and resizing 
-    
-    :param roi_image_file_path: 3D temporary ROI binary mask image file name
-    :param crop: Crop Size output
-    :param orig_size: Original Image Size
-    
-    :return: Recovered 3D binary mask
-    """
-    result = np.zeros(orig_size, np.uint8)
+class AIAAUtils:
+    def __init__(self):
+        pass
 
-    roi_result = nib.load(roi_image_file_path)
-    roi_result = roi_result.get_data()
+    @staticmethod
+    def resample_image(itk_image, out_size, linear):
+        spacing = list(itk_image.GetSpacing())
+        size = list(itk_image.GetSize())
 
-    orig_crop_size = [crop[0][1] - crop[0][0],
-                      crop[1][1] - crop[1][0],
-                      crop[2][1] - crop[2][0]]
+        out_spacing = []
+        for i in range(len(size)):
+            out_spacing.append(float(spacing[i]) * float(size[i]) / float(out_size[i]))
 
-    resize_image = resize(roi_result, orig_crop_size, preserve_range=True, order=0)
+        resample = SimpleITK.ResampleImageFilter()
+        resample.SetOutputSpacing(out_spacing)
+        resample.SetSize(out_size)
+        resample.SetOutputDirection(itk_image.GetDirection())
+        resample.SetOutputOrigin(itk_image.GetOrigin())
 
-    result[crop[0][0]:crop[0][1], crop[1][0]:crop[1][1], crop[2][0]:crop[2][1]] = resize_image
-    return result
+        if linear:
+            resample.SetInterpolator(SimpleITK.sitkLinear)
+        else:
+            resample.SetInterpolator(SimpleITK.sitkNearestNeighbor)
+        return resample.Execute(itk_image)
 
+    @staticmethod
+    def image_pre_process(input_file, output_file, point_set, pad, roi_size):
+        logger = logging.getLogger(__name__)
+        logger.debug('Reading Image from: {}'.format(input_file))
 
-def _get_largest_cc(result):
-    """
-    Get Largest Connected Component
-    """
-    labels = skm.label(result)
+        itk_image = SimpleITK.ReadImage(input_file)
+        spacing = itk_image.GetSpacing()
+        image_size = itk_image.GetSize()
 
-    largest_label = None
-    largest_area = 0
-    for r in skm.regionprops(labels):
-        if r.area > largest_area:
-            largest_area = r.area
-            largest_label = r.label
+        target_size = tuple(map(int, roi_size.split('x')))
+        points = np.asanyarray(np.array(point_set).astype(int))
 
-    largest_cc = labels == largest_label
-    return largest_cc
+        logger.debug('Image Size: {}'.format(image_size))
+        logger.debug('Image Spacing: {}'.format(spacing))
+        logger.debug('Target Size: {}'.format(target_size))
+        logger.debug('Input Points: {}'.format(json.dumps(points.tolist())))
 
+        index_min = [sys.maxsize, sys.maxsize, sys.maxsize]
+        index_max = [0, 0, 0]
+        vx_pad = [0, 0, 0]
+        for point in points:
+            for i in range(3):
+                vx_pad[i] = int((pad / spacing[i]) if spacing[i] > 0 else pad)
+                index_min[i] = min(max(int(point[i] - vx_pad[i]), 0), int(index_min[i]))
+                index_max[i] = max(min(int(point[i] + vx_pad[i]), int(image_size[i] - 1)), int(index_max[i]))
 
-def _make_files(image_file_path):
-    """
-    Load file for http request
-    
-    :param image_file_path: image file name
-    :return: data for binary transmission
-    """
+        logger.debug('Voxel Padding: {}'.format(vx_pad))
+        logger.debug('Min Index: {}'.format(index_min))
+        logger.debug('Max Index: {}'.format(index_max))
 
-    return [('datapoint', (image_file_path, open(image_file_path, 'rb'), 'application/octet-stream'))]
+        crop_index = [0, 0, 0]
+        crop_size = [0, 0, 0]
+        crop = []
+        for i in range(3):
+            crop_index[i] = index_min[i]
+            crop_size[i] = index_max[i] - index_min[i]
+            crop.append([crop_index[i], crop_index[i] + crop_size[i]])
+        logger.debug('crop_index: {}'.format(crop_index))
+        logger.debug('crop_size: {}'.format(crop_size))
+        logger.debug('crop: {}'.format(crop))
 
+        # get bounding box
+        x1 = crop[0][0]
+        x2 = crop[0][1]
+        y1 = crop[1][0]
+        y2 = crop[1][1]
+        z1 = crop[2][0]
+        z2 = crop[2][1]
 
-def _process_response(r, result_prefix):
-    """
-    Parse http response
-    
-    :param r: http response
-    :param result_prefix: result saving path
-    :return: saved file path
-    """
+        # crop
+        points[::, 0] = points[::, 0] - x1
+        points[::, 1] = points[::, 1] - y1
+        points[::, 2] = points[::, 2] - z1
 
-    response_info = r.headers['Content-Type']
-    print(response_info)
+        cropped_image = itk_image[x1:x2, y1:y2, z1:z2]
+        cropped_size = cropped_image.GetSize()
+        logger.debug('Cropped size: {}'.format(cropped_size))
 
-    files = []
-    if response_info.find("json") != -1:
-        # save json
-        result_path = result_prefix + '.json'
-        with open(result_path, 'wb') as f:
-            f.write(r.content)
-            print('Write returned json to', result_path)
-            files.append(result_path)
-    elif response_info.find("multipart") != -1:
-        # parse multipart data
-        multipart_data = decoder.MultipartDecoder.from_response(r)
-        for part in multipart_data.parts:
-            print(part.headers)
+        # resize
+        out_image = AIAAUtils.resample_image(cropped_image, target_size, True)
+        logger.debug('Cropped Image Size: {}'.format(out_image.GetSize()))
+        SimpleITK.WriteImage(out_image, output_file, True)
 
-            header = part.headers[b'Content-Disposition']
+        # pointsROI
+        ratio = np.divide(np.asanyarray(target_size, dtype=np.float), np.asanyarray(cropped_size, dtype=np.float))
+        points[::, 0] = points[::, 0] * ratio[0]
+        points[::, 1] = points[::, 1] * ratio[1]
+        points[::, 2] = points[::, 2] * ratio[2]
+        return points.astype(int).tolist(), crop
 
-            header = header.decode('utf-8')
-            header_info = header.split(";")
+    @staticmethod
+    def image_post_processing(input_file, output_file, crop, orig_file):
+        itk_image = SimpleITK.ReadImage(input_file)
+        orig_crop_size = [crop[0][1] - crop[0][0], crop[1][1] - crop[1][0], crop[2][1] - crop[2][0]]
+        resize_image = AIAAUtils.resample_image(itk_image, orig_crop_size, False)
 
-            if header_info[0] != 'form-data':
-                continue
+        orig_image = SimpleITK.ReadImage(orig_file)
+        orig_size = orig_image.GetSize()
 
-            name_header = re.findall("name=\"(.+)\"|$", header_info[1])[0]
+        image = SimpleITK.GetArrayFromImage(resize_image)
+        result = np.zeros(orig_size[::-1], np.uint8)
+        result[crop[2][0]:crop[2][1], crop[1][0]:crop[1][1], crop[0][0]:crop[0][1]] = image
 
-            result_path = ""
+        itk_result = SimpleITK.GetImageFromArray(result)
+        itk_result.SetDirection(orig_image.GetDirection())
+        itk_result.SetSpacing(orig_image.GetSpacing())
+        itk_result.SetOrigin(orig_image.GetOrigin())
 
-            if name_header == 'points':
-                result_path = result_prefix + '_points.txt'
-            elif name_header == 'results':
-                result_path = result_prefix + '.json'
-            elif name_header == "file":
-                filename_header = re.findall("name=\"(.+)\"|$", header_info[2])[0]
-                result_path = result_prefix + "_" + filename_header
-                if filename_header.find(".nii.gz") != -1:
-                    result_path = result_prefix + "_aas_result.nii.gz"
-                if filename_header.find(".png") != -1:
-                    result_path = result_prefix + "_aas_result.png"
+        SimpleITK.WriteImage(itk_result, output_file, True)
 
-            if result_path:
-                print("Write returned file to ", result_path)
-                with open(result_path, 'wb') as f:
-                    f.write(part.content)
-                    files.append(result_path)
+    @staticmethod
+    def http_get_method(server_url, selector):
+        logger = logging.getLogger(__name__)
+        logger.debug('Using Selector: {}'.format(selector))
 
-    return files
+        conn = httplib.HTTPConnection(server_url)
+        conn.request('GET', selector)
+        response = conn.getresponse()
+        return response.read()
+
+    @staticmethod
+    def http_post_multipart(server_url, selector, fields, files, multipart_response=True):
+        logger = logging.getLogger(__name__)
+        logger.debug('Using Selector: {}'.format(selector))
+
+        content_type, body = AIAAUtils.encode_multipart_formdata(fields, files)
+        conn = httplib.HTTPConnection(server_url)
+        headers = {'content-type': content_type, 'content-length': str(len(body))}
+        conn.request('POST', selector, body, headers)
+
+        response = conn.getresponse()
+        logger.debug('Error Code: {}'.format(response.status))
+        logger.debug('Error Message: {}'.format(response.reason))
+        logger.debug('Headers: {}'.format(response.getheaders()))
+
+        if multipart_response:
+            form, files = AIAAUtils.parse_multipart(response.fp if response.fp else response, response.msg)
+            logger.debug('Response FORM: {}'.format(form))
+            logger.debug('Response FILES: {}'.format(files.keys()))
+            return form, files
+        return response.read()
+
+    @staticmethod
+    def save_result(files, result_file):
+        logger = logging.getLogger(__name__)
+        if len(files) > 0:
+            for name in files:
+                data = files[name]
+                logger.debug('Saving {} to {}; Size: {}'.format(name, result_file, len(data)))
+
+                dir_path = os.path.dirname(os.path.realpath(result_file))
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path)
+
+                with open(result_file, "wb") as f:
+                    if isinstance(data, bytes):
+                        f.write(data)
+                    else:
+                        f.write(data.encode('utf-8'))
+                break
+
+    @staticmethod
+    def encode_multipart_formdata(fields, files):
+        limit = '----------lImIt_of_THE_fIle_eW_$'
+        lines = []
+        for (key, value) in fields.items():
+            lines.append('--' + limit)
+            lines.append('Content-Disposition: form-data; name="%s"' % key)
+            lines.append('')
+            lines.append(value)
+        for (key, filename) in files.items():
+            lines.append('--' + limit)
+            lines.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
+            lines.append('Content-Type: %s' % AIAAUtils.get_content_type(filename))
+            lines.append('')
+            with open(filename, mode='rb') as f:
+                data = f.read()
+                lines.append(data)
+        lines.append('--' + limit + '--')
+        lines.append('')
+
+        body = bytearray()
+        for l in lines:
+            body.extend(l if isinstance(l, bytes) else l.encode('utf-8'))
+            body.extend(b'\r\n')
+
+        content_type = 'multipart/form-data; boundary=%s' % limit
+        return content_type, body
+
+    @staticmethod
+    def get_content_type(filename):
+        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
+    @staticmethod
+    def parse_multipart(fp, headers):
+        logger = logging.getLogger(__name__)
+        fs = cgi.FieldStorage(
+            fp=fp,
+            environ={'REQUEST_METHOD': 'POST'},
+            headers=headers,
+            keep_blank_values=True
+        )
+        form = {}
+        files = {}
+        for f in fs.list:
+            logger.debug('FILE-NAME: {}; NAME: {}; SIZE: {}'.format(f.filename, f.name, len(f.value)))
+            if f.filename:
+                files[f.filename] = f.value
+            else:
+                form[f.name] = f.value
+        return form, files
+
+    # noinspection PyUnresolvedReferences
+    @staticmethod
+    def urllib_quote_plus(s):
+        return quote_plus(s)

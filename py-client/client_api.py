@@ -34,10 +34,14 @@ try:
     # Python3
     # noinspection PyUnresolvedReferences
     import http.client as httplib
+    # noinspection PyUnresolvedReferences
+    from urllib.parse import quote_plus
 except ImportError as e:
     # Python2
     # noinspection PyUnresolvedReferences
     import httplib
+    # noinspection PyUnresolvedReferences
+    from urllib import quote_plus
 
 import json
 import logging
@@ -45,7 +49,6 @@ import mimetypes
 import os
 import sys
 import tempfile
-import urllib
 
 import SimpleITK
 import numpy as np
@@ -77,7 +80,7 @@ class AIAAClient:
         if label is not None and len(label) > 0:
             selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
 
-        response = AIAAUtils.get_method(self.server_url, selector)
+        response = AIAAUtils.http_get_method(self.server_url, selector)
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -102,7 +105,7 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
-        form, files = AIAAUtils.post_multipart(self.server_url, selector, fields, files)
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
         AIAAUtils.save_result(files, image_out)
         return form
 
@@ -137,7 +140,7 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
-        form, files = AIAAUtils.post_multipart(self.server_url, selector, fields, files)
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
 
         # Post Process
         if len(files) > 0:
@@ -168,7 +171,7 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        response = AIAAUtils.post_multipart(self.server_url, selector, fields, files, False)
+        response = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files, False)
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -217,7 +220,7 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        form, files = AIAAUtils.post_multipart(self.server_url, selector, fields, files)
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
         AIAAUtils.save_result(files, image_out)
         return form
 
@@ -338,7 +341,7 @@ class AIAAUtils:
         SimpleITK.WriteImage(itk_result, output_file, True)
 
     @staticmethod
-    def get_method(server_url, selector):
+    def http_get_method(server_url, selector):
         logger = logging.getLogger(__name__)
         logger.debug('Using Selector: {}'.format(selector))
 
@@ -348,7 +351,7 @@ class AIAAUtils:
         return response.read()
 
     @staticmethod
-    def post_multipart(server_url, selector, fields, files, multipart_response=True):
+    def http_post_multipart(server_url, selector, fields, files, multipart_response=True):
         logger = logging.getLogger(__name__)
         logger.debug('Using Selector: {}'.format(selector))
 
@@ -442,9 +445,4 @@ class AIAAUtils:
     # noinspection PyUnresolvedReferences
     @staticmethod
     def urllib_quote_plus(s):
-        try:
-            # Python3
-            return urllib.parse.quote_plus(s)
-        except AttributeError:
-            # Python2
-            return urllib.quote_plus(s)
+        return quote_plus(s)

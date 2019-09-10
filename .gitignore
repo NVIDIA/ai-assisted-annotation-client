@@ -40,3 +40,5 @@ install
 *.out
 *.app
 *.pyc
+
+.idea

@@ -34,7 +34,7 @@ try:
     # Python3
     # noinspection PyUnresolvedReferences
     import http.client as httplib
-    # noinspection PyUnresolvedReferences
+    # noinspection PyUnresolvedReferences,PyCompatibility
     from urllib.parse import quote_plus
 except ImportError as e:
     # Python2
@@ -63,8 +63,9 @@ class AIAAClient:
     :param api_version: AIAA Serverversion
     """
 
-    def __init__(self, server_ip, server_port, api_version='v1'):
-        self.server_url = server_ip + ':' + str(server_port)
+    def __init__(self, server_ip='0.0.0.0', server_port=5000, api_version='v1'):
+        self.server_ip = server_ip
+        self.server_port = server_port
         self.api_version = api_version
 
     def model_list(self, label=None):
@@ -80,7 +81,8 @@ class AIAAClient:
         if label is not None and len(label) > 0:
             selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
 
-        response = AIAAUtils.http_get_method(self.server_url, selector)
+        server_url = self.server_ip + ':' + str(self.server_port)
+        response = AIAAUtils.http_get_method(server_url, selector)
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -105,7 +107,8 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
-        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        server_url = self.server_ip + ':' + str(self.server_port)
+        form, files = AIAAUtils.http_post_multipart(server_url, selector, fields, files)
         AIAAUtils.save_result(files, image_out)
         return form
 
@@ -140,7 +143,8 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
-        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        server_url = self.server_ip + ':' + str(self.server_port)
+        form, files = AIAAUtils.http_post_multipart(server_url, selector, fields, files)
 
         # Post Process
         if len(files) > 0:
@@ -171,7 +175,8 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        response = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files, False)
+        server_url = self.server_ip + ':' + str(self.server_port)
+        response = AIAAUtils.http_post_multipart(server_url, selector, fields, files, False)
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -220,7 +225,8 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        server_url = self.server_ip + ':' + str(self.server_port)
+        form, files = AIAAUtils.http_post_multipart(server_url, selector, fields, files)
         AIAAUtils.save_result(files, image_out)
         return form
 

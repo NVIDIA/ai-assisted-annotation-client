@@ -57,6 +57,7 @@ Following the below instructions to get the source code and build the project
    git clone https://github.com/NVIDIA/ai-assisted-annotation-client.git NvidiaAIAAClient
    cd NvidiaAIAAClient
    mkdir build
+   cd build
    cmake -DCMAKE_BUILD_TYPE=Release ../
    
    # If ITK is installed locally

@@ -24,6 +24,11 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         slicer.app.connect("startupCompleted()", self.registerEditorEffect)
 
     def registerEditorEffect(self):
+        import shutil
+        pluginDir = os.path.dirname(__file__)
+        logging.info('This plugin dir: {}'.format(pluginDir))
+        shutil.copy(pluginDir + '/../../py-client/client_api.py', pluginDir + '/AIAAClient.py')
+
         import qSlicerSegmentationsEditorEffectsPythonQt as qSlicerSegmentationsEditorEffects
         instance = qSlicerSegmentationsEditorEffects.qSlicerSegmentEditorScriptedEffect(None)
         effectFilename = os.path.join(os.path.dirname(__file__), self.__class__.__name__ + 'Lib/SegmentEditorEffect.py')

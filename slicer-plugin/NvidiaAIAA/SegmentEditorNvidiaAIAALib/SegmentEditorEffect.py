@@ -1,26 +1,15 @@
-import cgi
 import json
 import logging
-import mimetypes
 import os
-import sys
 import tempfile
-import urllib
 
 import SimpleITK as sitk
-try:
-    # Python2
-    import httplib
-except ModuleNotFoundError as e:
-    # Python3
-    import http.client as httplib
-import numpy as np
 import qt
 import sitkUtils
 import slicer
 import vtk
 from SegmentEditorEffects import *
-
+from AIAAClient import AIAAClient
 
 class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     """This effect uses Watershed algorithm to partition the input volume"""
@@ -171,13 +160,17 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.app.processEvents()
         try:
             logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
-                progress_callback = lambda progressPercentage, progressBar=progressBar: SegmentEditorEffect.report_progress(progressBar, progressPercentage))
+                              progress_callback=lambda progressPercentage,
+                                                       progressBar=progressBar: SegmentEditorEffect.report_progress(
+                                  progressBar, progressPercentage))
             label = self.getActiveLabel()
             logging.info('Active Label: {}'.format(label))
-            models = json.loads(logic.list_models(label if self.filterByLabel.checked else None))
+            models = logic.list_models(label if self.filterByLabel.checked else None)
         except:
             progressBar.close()
-            slicer.util.errorDisplay("Failed to fetch models from remote server. Make sure server address is correct and retry.", detailedText=traceback.format_exc())
+            slicer.util.errorDisplay(
+                "Failed to fetch models from remote server. Make sure server address is correct and retry.",
+                detailedText=traceback.format_exc())
             return
         else:
             progressBar.close()
@@ -278,12 +271,15 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         label = self.getActiveLabel()
         operationDescription = 'Run Segmentation for model: {} for label: {}'.format(model, label)
         logging.info(operationDescription)
-        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription, maximum=100)
+        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription,
+                                                       maximum=100)
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
             logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
-                progress_callback = lambda progressPercentage, progressBar=progressBar: SegmentEditorEffect.report_progress(progressBar, progressPercentage))
+                              progress_callback=lambda progressPercentage,
+                                                       progressBar=progressBar: SegmentEditorEffect.report_progress(
+                                  progressBar, progressPercentage))
 
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
             json, result_file = logic.segmentation(model, inputVolume)
@@ -331,12 +327,15 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         label = self.getActiveLabel()
         operationDescription = 'Run Annotation for model: {} for label: {}'.format(model, label)
         logging.info(operationDescription)
-        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription, maximum=100)
+        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription,
+                                                       maximum=100)
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
             logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
-                progress_callback = lambda progressPercentage, progressBar=progressBar: SegmentEditorEffect.report_progress(progressBar, progressPercentage))
+                              progress_callback=lambda progressPercentage,
+                                                       progressBar=progressBar: SegmentEditorEffect.report_progress(
+                                  progressBar, progressPercentage))
 
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
             modelInfo = self.models.get(model)
@@ -495,20 +494,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
 class AIAALogic():
     def __init__(self, server_host='0.0.0.0', server_port=5000, server_version='v1', progress_callback=None):
-        self.server_url = server_host + ':' + str(server_port)
-        self.server_version = server_version
+        logging.info('Using AIAA: {}:{}'.format(server_host, server_port))
         self.progress_callback = progress_callback
-        logging.info('Using URI: {}'.format(self.server_url))
-
-    @staticmethod
-    def urllib_quote_plus(s):
-        try:
-            # Python2
-            return urllib.quote_plus(s)
-        except AttributeError:
-            # Python3
-            return urllib.parse.quote_plus(s)
-        return 
+        self.client = AIAAClient(server_host, server_port, server_version)
 
     def reportProgress(self, progress):
         if self.progress_callback:
@@ -516,17 +504,8 @@ class AIAALogic():
 
     def list_models(self, label=None):
         self.reportProgress(0)
-        conn = httplib.HTTPConnection(self.server_url)
-        selector = '/' + self.server_version + '/models'
-        if label is not None and len(label) > 0:
-            selector += '?label=' + AIAALogic.urllib_quote_plus(label)
-
-        logging.info('Using Selector: {}'.format(selector))
-        conn.request('GET', selector)
-        self.reportProgress(30)
-        response = conn.getresponse()
-        self.reportProgress(60)
-        result = response.read()
+        logging.info('Fetching List of Models for label: {}'.format(label))
+        result = self.client.model_list(label)
         self.reportProgress(100)
         return result
 
@@ -535,40 +514,27 @@ class AIAALogic():
         logging.info('Preparing for Segmentation Action')
         in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
 
+        self.reportProgress(5)
         slicer.util.saveNode(inputVolume, in_file)
         logging.info('Saved Input Node into: {}'.format(in_file))
-        self.reportProgress(20)
+        self.reportProgress(30)
 
-        selector = '/' + self.server_version + '/segmentation?model=' + AIAALogic.urllib_quote_plus(model)
-        fields = {'params': '{}'}
-        files = {'datapoint': in_file}
-
-        logging.info('Using Selector: {}'.format(selector))
-        logging.info('Using Fields: {}'.format(fields))
-        logging.info('Using Files: {}'.format(files))
-
-        form, files = self.post_multipart(selector, fields, files, 20, 80)
-
-        result_file = None
-        if len(files) > 0:
-            fname = list(files.keys())[0]
-            logging.info('Saving segmentation result: {}'.format(fname))
-            with tempfile.NamedTemporaryFile(suffix='.nii.gz', delete=False) as f:
-                f.write(files[fname])
-                result_file = f.name
+        result_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
+        extreme_points = self.client.segmentation(model, in_file, result_file)
 
         os.unlink(in_file)
         self.reportProgress(100)
-        return form, result_file
+        return extreme_points, result_file
 
     def dextr3d(self, model, pointset, inputVolume, modelInfo):
         self.reportProgress(0)
         logging.info('Preparing for Annotation/Dextr3D Action')
         in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
 
+        self.reportProgress(5)
         slicer.util.saveNode(inputVolume, in_file)
         logging.info('Saved Input Node into: {}'.format(in_file))
-        self.reportProgress(20)
+        self.reportProgress(30)
 
         # Pre Process
         pad = 20
@@ -577,225 +543,8 @@ class AIAALogic():
             pad = modelInfo['padding']
             roi_size = 'x'.join(map(str, modelInfo['roi']))
 
-        cropped_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
-        points, crop = AIAALogic.image_pre_process(in_file, cropped_file, pointset, pad, roi_size)
-        self.reportProgress(30)
-
-        selector = '/' + self.server_version + '/dextr3d?model=' + AIAALogic.urllib_quote_plus(model)
-        params = dict()
-        params['points'] = json.dumps(points)
-
-        fields = {'params': json.dumps(params)}
-        files = {'datapoint': cropped_file}
-
-        logging.info('Using Selector: {}'.format(selector))
-        logging.info('Using Fields: {}'.format(fields))
-        logging.info('Using Files: {}'.format(files))
-
-        form, files = self.post_multipart(selector, fields, files, 30, 80)
-
-        # Post Process
-        result_file = None
-        if len(files) > 0:
-            fname = list(files.keys())[0]
-            logging.info('Saving segmentation result: {}'.format(fname))
-            with tempfile.NamedTemporaryFile(suffix='.nii.gz', delete=False) as f:
-                f.write(files[fname])
-                cropped_out_file = f.name
-                logging.info('Cropped Output: {}'.format(cropped_out_file))
-
-            result_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
-            AIAALogic.image_post_processing(cropped_out_file, result_file, crop, in_file)
-
-        os.unlink(in_file)
-        os.unlink(cropped_file)
-        os.unlink(cropped_out_file)
+        result_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
+        self.client.dextr3d(model, pointset, in_file, result_file, pad, roi_size)
 
         self.reportProgress(100)
         return {'points': json.dumps(pointset)}, result_file
-
-    @staticmethod
-    def resample_image(itk_image, out_size, linear):
-        spacing = itk_image.GetSpacing()
-        size = itk_image.GetSize()
-
-        out_spacing = []
-        for i in range(3):
-            out_spacing.append(float(spacing[i]) * float(size[i]) / float(out_size[i]))
-
-        resample = sitk.ResampleImageFilter()
-        resample.SetOutputSpacing(out_spacing)
-        resample.SetSize(out_size)
-        resample.SetOutputDirection(itk_image.GetDirection())
-        resample.SetOutputOrigin(itk_image.GetOrigin())
-        # resample.SetTransform(sitk.Transform(3, sitk.sitkIdentity))
-        # resample.SetDefaultPixelValue(itk_image.GetPixelIDValue())
-
-        if linear:
-            resample.SetInterpolator(sitk.sitkLinear)
-        else:
-            resample.SetInterpolator(sitk.sitkNearestNeighbor)
-        return resample.Execute(itk_image)
-
-    @staticmethod
-    def image_pre_process(input_file, output_file, point_set, pad, roi_size):
-        itk_image = sitk.ReadImage(input_file)
-        spacing = itk_image.GetSpacing()
-        image_size = itk_image.GetSize()
-
-        target_size = tuple(map(int, roi_size.split('x')))
-        points = np.asanyarray(np.array(point_set).astype(int))
-
-        print('Image Size: {}'.format(image_size))
-        print('Image Spacing: {}'.format(spacing))
-        print('Target Size: {}'.format(target_size))
-        print('Input Points: {}'.format(json.dumps(points.tolist())))
-
-        indexMin = [sys.maxsize, sys.maxsize, sys.maxsize]
-        indexMax = [0, 0, 0]
-        vxPad = [0, 0, 0]
-        for point in points:
-            for i in range(3):
-                vxPad[i] = int((pad / spacing[i]) if spacing[i] > 0 else pad)
-                indexMin[i] = min(max(int(point[i] - vxPad[i]), 0), int(indexMin[i]))
-                indexMax[i] = max(min(int(point[i] + vxPad[i]), int(image_size[i] - 1)), int(indexMax[i]))
-        print('Voxel Padding: {}'.format(vxPad))
-        print('Min Index: {}'.format(indexMin))
-        print('Max Index: {}'.format(indexMax))
-
-        cropIndex = [0, 0, 0]
-        cropSize = [0, 0, 0]
-        crop = []
-        for i in range(3):
-            cropIndex[i] = indexMin[i]
-            cropSize[i] = indexMax[i] - indexMin[i]
-            crop.append([cropIndex[i], cropIndex[i] + cropSize[i]])
-        print('cropIndex: {}'.format(cropIndex))
-        print('cropSize: {}'.format(cropSize))
-        print('crop: {}'.format(crop))
-
-        # get bounding box
-        x1 = crop[0][0]
-        x2 = crop[0][1]
-        y1 = crop[1][0]
-        y2 = crop[1][1]
-        z1 = crop[2][0]
-        z2 = crop[2][1]
-
-        # crop
-        points[::, 0] = points[::, 0] - x1
-        points[::, 1] = points[::, 1] - y1
-        points[::, 2] = points[::, 2] - z1
-
-        cropped_image = itk_image[x1:x2, y1:y2, z1:z2]
-        cropped_size = cropped_image.GetSize()
-        print('Cropped size: {}'.format(cropped_size))
-
-        # resize
-        out_image = AIAALogic.resample_image(cropped_image, target_size, True)
-        print('Cropped Image Size: {}'.format(out_image.GetSize()))
-        sitk.WriteImage(out_image, output_file, True)
-
-        # pointsROI
-        ratio = np.divide(np.asanyarray(target_size, dtype=np.float), np.asanyarray(cropped_size, dtype=np.float))
-        points[::, 0] = points[::, 0] * ratio[0]
-        points[::, 1] = points[::, 1] * ratio[1]
-        points[::, 2] = points[::, 2] * ratio[2]
-        return points.astype(int).tolist(), crop
-
-    @staticmethod
-    def image_post_processing(input_file, output_file, crop, orig_file):
-        itk_image = sitk.ReadImage(input_file)
-        orig_crop_size = [crop[0][1] - crop[0][0], crop[1][1] - crop[1][0], crop[2][1] - crop[2][0]]
-        resize_image = AIAALogic.resample_image(itk_image, orig_crop_size, False)
-
-        orig_image = sitk.ReadImage(orig_file)
-        orig_size = orig_image.GetSize()
-
-        image = sitk.GetArrayFromImage(resize_image)
-        result = np.zeros(orig_size[::-1], np.uint8)
-        result[crop[2][0]:crop[2][1], crop[1][0]:crop[1][1], crop[0][0]:crop[0][1]] = image
-
-        itk_result = sitk.GetImageFromArray(result)
-        itk_result.SetDirection(orig_image.GetDirection())
-        itk_result.SetSpacing(orig_image.GetSpacing())
-        itk_result.SetOrigin(orig_image.GetOrigin())
-
-        sitk.WriteImage(itk_result, output_file, True)
-
-    def post_multipart(self, selector, fields, files, progressStart=None, progressEnd=None):
-        if progressStart is not None:
-            self.reportProgress(progressStart)
-        content_type, body = self.encode_multipart_formdata(fields, files)
-        h = httplib.HTTPConnection(self.server_url)
-        h.putrequest('POST', selector)
-        h.putheader('content-type', content_type)
-        h.putheader('content-length', str(len(body)))
-        h.endheaders()
-        h.send(body)
-        if (progressStart is not None) and (progressEnd is not None):
-            self.reportProgress(int(progressStart+(progressEnd-progressStart)*0.25))
-
-        response = h.getresponse()
-        headers = response.msg
-        errcode = response.status
-        errmsg = response.reason
-        logging.info('Error Code: {}'.format(errcode))
-        logging.info('Error Message: {}'.format(errmsg))
-        logging.info('Headers: {}'.format(headers))
-        if (progressStart is not None) and (progressEnd is not None):
-            self.reportProgress(int(progressStart+(progressEnd-progressStart)*0.75))
-        form, files = self.parse_multipart(response.fp, headers)
-        logging.info('Response FORM: {}'.format(form))
-        logging.info('Response FILES: {}'.format(files.keys()))
-        if progressEnd is not None:
-            self.reportProgress(progressEnd)
-        return form, files
-
-    def encode_multipart_formdata(self, fields, files):
-        LIMIT = '----------lImIt_of_THE_fIle_eW_$'
-        L = []
-        for (key, value) in fields.items():
-            L.append('--' + LIMIT)
-            L.append('Content-Disposition: form-data; name="%s"' % key)
-            L.append('')
-            L.append(value)
-        for (key, filename) in files.items():
-            L.append('--' + LIMIT)
-            L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
-            L.append('Content-Type: %s' % self.get_content_type(filename))
-            L.append('')
-            with open(filename, mode='rb') as f:
-                data = f.read()
-                L.append(data)
-        L.append('--' + LIMIT + '--')
-        L.append('')
-        CRLF = '\r\n'
-        import sys
-        if sys.version_info.major>=3:
-            for i in range(len(L)):
-                if type(L[i]) == str:
-                    L[i] = L[i].encode('ascii')
-            CRLF = CRLF.encode('ascii')
-        body = CRLF.join(L)
-        content_type = 'multipart/form-data; boundary=%s' % LIMIT
-        return content_type, body
-
-    def get_content_type(self, filename):
-        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-
-    def parse_multipart(self, fp, headers):
-        fs = cgi.FieldStorage(
-            fp=fp,
-            environ={'REQUEST_METHOD': 'POST'},
-            headers=headers,
-            keep_blank_values=True
-        )
-        form = {}
-        files = {}
-        for f in fs.list:
-            if f.filename:
-                files[f.filename] = f.value
-            else:
-                form[f.name] = f.value
-        return form, files

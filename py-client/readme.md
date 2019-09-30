@@ -6,7 +6,7 @@ pip install SimpleITK numpy
 ### Sample
 ```python
 import client_api
-client = client_api.AIAAClient(server_ip='0.0.0.0', server_port=5000)
+client = client_api.AIAAClient(server_url='http://0.0.0.0:5000')
 
 # List Models
 models = client.model_list(label='spleen')
@@ -28,7 +28,7 @@ client.dextr3d(
 #### Running Tests
 ```bash
 python test_aiaa_server.py --test_config aas_tests.json \
-       --server_ip 0.0.0.0 --server_port 5000
+       --server_url http://0.0.0.0:5000
 ```
 
 test_aiaa_server.py gives method to test all the possible APIs supported under by NVIDIA AI-Assisted Annotation and required configurations are specified by aas_tests.json:

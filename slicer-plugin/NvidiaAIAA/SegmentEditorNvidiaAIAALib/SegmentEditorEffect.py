@@ -58,15 +58,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         nvidiaFormLayout.addRow(qt.QLabel())
         aiaaGroupBox = qt.QGroupBox("AI-Assisted Annotation Server: ")
         aiaaGroupLayout = qt.QFormLayout(aiaaGroupBox)
-        self.serverIP = qt.QLineEdit("10.110.45.66")
-        self.serverPort = qt.QLineEdit("5678")
+        self.serverUrl = qt.QLineEdit("http://0.0.0.0:5000")
         self.filterByLabel = qt.QCheckBox("Filter By Label")
         self.modelsButton = qt.QPushButton("Fetch Models")
 
         self.filterByLabel.setChecked(True)
 
-        aiaaGroupLayout.addRow("Server IP: ", self.serverIP)
-        aiaaGroupLayout.addRow("Server Port: ", self.serverPort)
+        aiaaGroupLayout.addRow("Server URL: ", self.serverUrl)
         aiaaGroupLayout.addRow(self.filterByLabel)
         aiaaGroupLayout.addRow(self.modelsButton)
 
@@ -159,7 +157,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText="Fetching models", maximum=100)
         slicer.app.processEvents()
         try:
-            logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
+            logic = AIAALogic(self.serverUrl.text,
                               progress_callback=lambda progressPercentage,
                                                        progressBar=progressBar: SegmentEditorEffect.report_progress(
                                   progressBar, progressPercentage))
@@ -276,7 +274,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-            logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
+            logic = AIAALogic(self.serverUrl.text,
                               progress_callback=lambda progressPercentage,
                                                        progressBar=progressBar: SegmentEditorEffect.report_progress(
                                   progressBar, progressPercentage))
@@ -332,7 +330,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-            logic = AIAALogic(self.serverIP.text, int(self.serverPort.text),
+            logic = AIAALogic(self.serverUrl.text,
                               progress_callback=lambda progressPercentage,
                                                        progressBar=progressBar: SegmentEditorEffect.report_progress(
                                   progressBar, progressPercentage))
@@ -493,10 +491,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
 
 class AIAALogic():
-    def __init__(self, server_host='0.0.0.0', server_port=5000, server_version='v1', progress_callback=None):
-        logging.info('Using AIAA: {}:{}'.format(server_host, server_port))
+    def __init__(self, server_url='http://0.0.0.0:5000', server_version='v1', progress_callback=None):
+        logging.info('Using AIAA: {}'.format(server_url))
         self.progress_callback = progress_callback
-        self.client = AIAAClient(server_host, server_port, server_version)
+        self.client = AIAAClient(server_url, server_version)
 
     def reportProgress(self, progress):
         if self.progress_callback:

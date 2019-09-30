@@ -71,8 +71,7 @@ def _byteify(data, ignore_dicts=False):
 
 def call_server():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--server_ip', default='0.0.0.0')
-    parser.add_argument('--server_port', default=5000)
+    parser.add_argument('--server_url', default='http://0.0.0.0:5000')
     parser.add_argument('--api_version', default='v1')
     parser.add_argument('--test_config', required=True)
     parser.add_argument('--debug', default=False)
@@ -90,7 +89,7 @@ def call_server():
     if not tests:
         raise ValueError('no tests defined')
 
-    client = client_api.AIAAClient(args.server_ip, args.server_port, args.api_version)
+    client = client_api.AIAAClient(args.server_url, args.api_version)
     for test in tests:
         name = test.get('name')
         disabled = test.get('disabled', False)

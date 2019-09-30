@@ -29,6 +29,7 @@ from __future__ import division
 from __future__ import print_function
 
 import cgi
+import ssl
 
 try:
     # Python3
@@ -36,12 +37,16 @@ try:
     import http.client as httplib
     # noinspection PyUnresolvedReferences,PyCompatibility
     from urllib.parse import quote_plus
+    # noinspection PyUnresolvedReferences,PyCompatibility
+    from urllib.parse import urlparse
 except ImportError as e:
     # Python2
     # noinspection PyUnresolvedReferences
     import httplib
     # noinspection PyUnresolvedReferences
     from urllib import quote_plus
+    # noinspection PyUnresolvedReferences
+    from urlparse import urlparse
 
 import json
 import logging
@@ -58,14 +63,12 @@ class AIAAClient:
     """
     The AIAAClient object is constructed with the server information
 
-    :param server_ip: AIAA Server IP address
-    :param server_port: AIAA Server Port
-    :param api_version: AIAA Serverversion
+    :param server_url: AIAA Server URL (example: 'http://0.0.0.0:5000')
+    :param api_version: AIAA Server API version
     """
 
-    def __init__(self, server_ip='0.0.0.0', server_port=5000, api_version='v1'):
-        self.server_ip = server_ip
-        self.server_port = server_port
+    def __init__(self, server_url='http://0.0.0.0:5000', api_version='v1'):
+        self.server_url = server_url
         self.api_version = api_version
 
     def model_list(self, label=None):
@@ -81,8 +84,7 @@ class AIAAClient:
         if label is not None and len(label) > 0:
             selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
 
-        server_url = self.server_ip + ':' + str(self.server_port)
-        response = AIAAUtils.http_get_method(server_url, selector)
+        response = AIAAUtils.http_get_method(self.server_url, selector)
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -107,8 +109,7 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
-        server_url = self.server_ip + ':' + str(self.server_port)
-        form, files = AIAAUtils.http_post_multipart(server_url, selector, fields, files)
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
         AIAAUtils.save_result(files, image_out)
         return form
 
@@ -143,8 +144,7 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
-        server_url = self.server_ip + ':' + str(self.server_port)
-        form, files = AIAAUtils.http_post_multipart(server_url, selector, fields, files)
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
 
         # Post Process
         if len(files) > 0:
@@ -175,8 +175,7 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        server_url = self.server_ip + ':' + str(self.server_port)
-        response = AIAAUtils.http_post_multipart(server_url, selector, fields, files, False)
+        response = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files, False)
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -225,8 +224,7 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        server_url = self.server_ip + ':' + str(self.server_port)
-        form, files = AIAAUtils.http_post_multipart(server_url, selector, fields, files)
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
         AIAAUtils.save_result(files, image_out)
         return form
 
@@ -349,9 +347,15 @@ class AIAAUtils:
     @staticmethod
     def http_get_method(server_url, selector):
         logger = logging.getLogger(__name__)
-        logger.debug('Using Selector: {}'.format(selector))
+        logger.debug('Using Selector: {}{}'.format(server_url, selector))
 
-        conn = httplib.HTTPConnection(server_url)
+        parsed = urlparse(server_url)
+        if parsed.scheme == 'https':
+            logger.debug('Using HTTPS mode')
+            # noinspection PyProtectedMember
+            conn = httplib.HTTPSConnection(parsed.hostname, parsed.port, context=ssl._create_unverified_context())
+        else:
+            conn = httplib.HTTPConnection(parsed.hostname, parsed.port)
         conn.request('GET', selector)
         response = conn.getresponse()
         return response.read()
@@ -359,10 +363,17 @@ class AIAAUtils:
     @staticmethod
     def http_post_multipart(server_url, selector, fields, files, multipart_response=True):
         logger = logging.getLogger(__name__)
-        logger.debug('Using Selector: {}'.format(selector))
+        logger.debug('Using Selector: {}{}'.format(server_url, selector))
+
+        parsed = urlparse(server_url)
+        if parsed.scheme == 'https':
+            logger.debug('Using HTTPS mode')
+            # noinspection PyProtectedMember
+            conn = httplib.HTTPSConnection(parsed.hostname, parsed.port, context=ssl._create_unverified_context())
+        else:
+            conn = httplib.HTTPConnection(parsed.hostname, parsed.port)
 
         content_type, body = AIAAUtils.encode_multipart_formdata(fields, files)
-        conn = httplib.HTTPConnection(server_url)
         headers = {'content-type': content_type, 'content-length': str(len(body))}
         conn.request('POST', selector, body, headers)
 

@@ -27,6 +27,7 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         import shutil
         pluginDir = os.path.dirname(__file__)
         logging.info('This plugin dir: {}'.format(pluginDir))
+        shutil.rmtree(pluginDir + '/AIAAClient.py', ignore_errors=True)
         shutil.rmtree(pluginDir + '/AIAAClient.pyc', ignore_errors=True)
         shutil.copy(pluginDir + '/../../py-client/client_api.py', pluginDir + '/AIAAClient.py')
 

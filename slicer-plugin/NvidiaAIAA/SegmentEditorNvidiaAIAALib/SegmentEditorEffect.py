@@ -1,7 +1,10 @@
+import atexit
 import json
 import logging
 import os
+import shutil
 import tempfile
+import time
 
 import SimpleITK as sitk
 import qt
@@ -9,7 +12,9 @@ import sitkUtils
 import slicer
 import vtk
 from SegmentEditorEffects import *
+
 from AIAAClient import AIAAClient
+
 
 class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     """This effect uses Watershed algorithm to partition the input volume"""
@@ -153,7 +158,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return name
 
     def onClickModels(self):
-
+        start = time.time()
         progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText="Fetching models", maximum=100)
         slicer.app.processEvents()
         try:
@@ -198,9 +203,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         msg += 'Segmentation Models: \t' + str(self.segmentationModelSelector.count) + '\t\n'
         msg += 'Annotation Models: \t' + str(self.annotationModelSelector.count) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
-        qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
+        # qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
+        logging.info(msg)
+        logging.info("++ Time consumed by onClickModels: {}".format(time.time() - start))
 
-    def updateSegmentationMask(self, json, in_file):
+    def updateSegmentationMask(self, extreme_points, in_file, modelInfo):
+        start = time.time()
         logging.info('Update Segmentation Mask from: {}'.format(in_file))
         if in_file is None:
             return False
@@ -230,6 +238,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
 
         addedSegments = 0
+        modelLabels = modelInfo.get('labels')
         for i in range(segmentation.GetNumberOfSegments()):
             segmentId = segmentation.GetNthSegmentID(i)
             segment = segmentation.GetSegment(segmentId)
@@ -243,18 +252,18 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 segment.SetName(label)
 
                 self.scriptedEffect.parameterSetNode().SetSelectedSegmentID(segmentId)
-                points = None if json is None else json.get('points')
-                logging.info('Extreme Points: {}'.format(points))
-                if points is not None:
-                    segment.SetTag("DExtr3DExtremePoints", points)
+                logging.info('Extreme Points: {}'.format(extreme_points))
+                if extreme_points is not None:
+                    segment.SetTag("DExtr3DExtremePoints", json.dumps(extreme_points))
 
             else:
-                segment.SetName(label + '_' + str(addedSegments))
+                segment.SetName(modelLabels[addedSegments])
             addedSegments = addedSegments + 1
         logging.info('Total Added Segments for {}: {}'.format(label, addedSegments))
 
-        self.extremePoints[label] = json
+        self.extremePoints[label] = extreme_points
         os.unlink(in_file)
+        logging.info("++ Time consumed by updateSegmentationMask: {}".format(time.time() - start))
         return True
 
     @staticmethod
@@ -265,8 +274,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.app.processEvents()
 
     def onClickSegmentation(self):
+        start = time.time()
         model = self.segmentationModelSelector.currentText
         label = self.getActiveLabel()
+        modelInfo = self.models.get(model)
+
         operationDescription = 'Run Segmentation for model: {} for label: {}'.format(model, label)
         logging.info(operationDescription)
         progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription,
@@ -280,10 +292,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                                   progressBar, progressPercentage))
 
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-            json, result_file = logic.segmentation(model, inputVolume)
-            result = 'SUCCESS' if self.updateSegmentationMask(json, result_file) is True else 'FAILED'
-
-            if result is 'SUCCESS':
+            extreme_points, result_file = logic.segmentation(model, inputVolume)
+            if self.updateSegmentationMask(extreme_points, result_file, modelInfo):
+                result = 'SUCCESS'
                 self.segmentMarkupNode.RemoveAllMarkups()
                 self.updateGUIFromMRML()
         except:
@@ -291,14 +302,16 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             progressBar.close()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
-        else:
-            qt.QApplication.restoreOverrideCursor()
-            progressBar.close()
 
-        qt.QMessageBox.information(
-            slicer.util.mainWindow(),
-            'NVIDIA AIAA',
-            'Run segmentation for (' + model + '): ' + result + '\t')
+        qt.QApplication.restoreOverrideCursor()
+        progressBar.close()
+
+        logging.info("++ Time consumed by onClickSegmentation: {}".format(time.time() - start))
+        msg = 'Run segmentation for ({}): {}\t\nTime Consumed: {} (sec)'.format(model, result, (time.time() - start))
+        logging.info(msg)
+        qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
+
+        self.onClickEditPoints()
 
     def getFiducialPointsXYZ(self):
         v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
@@ -321,6 +334,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return point_set
 
     def onClickAnnotation(self):
+        start = time.time()
         model = self.annotationModelSelector.currentText
         label = self.getActiveLabel()
         operationDescription = 'Run Annotation for model: {} for label: {}'.format(model, label)
@@ -338,24 +352,25 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
             modelInfo = self.models.get(model)
             pointSet = self.getFiducialPointsXYZ()
-            json, result_file = logic.dextr3d(model, pointSet, inputVolume, modelInfo)
-            result = 'SUCCESS' if self.updateSegmentationMask(json, result_file) is True else 'FAILED'
 
-            if result is 'SUCCESS':
+            result_file = logic.dextr3d(model, pointSet, inputVolume, modelInfo)
+            result = 'FAILED'
+            if self.updateSegmentationMask(pointSet, result_file, modelInfo):
+                result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except:
             qt.QApplication.restoreOverrideCursor()
             progressBar.close()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
-        else:
-            qt.QApplication.restoreOverrideCursor()
-            progressBar.close()
 
-        qt.QMessageBox.information(
-            slicer.util.mainWindow(),
-            'NVIDIA AIAA',
-            'Run dextr3D for (' + model + '): ' + result + '\t')
+        qt.QApplication.restoreOverrideCursor()
+        progressBar.close()
+
+        logging.info("++ Time consumed by onClickAnnotation: {}".format(time.time() - start))
+        msg = 'Run annotation for ({}): {}\t\nTime Consumed: {} (sec)'.format(model, result, (time.time() - start))
+        logging.info(msg)
+        qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
 
     def onClickEditPoints(self):
         segmentID = self.scriptedEffect.parameterSetNode().GetSelectedSegmentID()
@@ -371,10 +386,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         fPosStr = vtk.mutable("")
         segment.GetTag("DExtr3DExtremePoints", fPosStr)
-        logging.info('{} => {} Extreme points are: '.format(segmentID, label, fPosStr))
+        pointset = str(fPosStr)
+        logging.info('{} => {} Extreme points are: {}'.format(segmentID, label, pointset))
 
-        if fPosStr is not None and len(fPosStr) > 0:
-            points = json.loads(str(fPosStr))
+        if fPosStr is not None and len(pointset) > 0:
+            points = json.loads(pointset)
             for p in points:
                 p_Ijk = [p[0], p[1], p[2], 1.0]
                 p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
@@ -490,11 +506,34 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.updateGUIFromMRML()
 
 
+# Create Single AIAA Client Instance
+aiaaClient = AIAAClient()
+volumeToImageFiles = dict()
+
+# TODO:: Support multiple slicer instances running in same box
+aiaa_tmpdir = os.path.join(tempfile.gettempdir(), 'slicer-aiaa')
+shutil.rmtree(aiaa_tmpdir, ignore_errors=True)
+if not os.path.exists(aiaa_tmpdir):
+    os.makedirs(aiaa_tmpdir)
+
+
+def goodbye():
+    print('GOOD BYE!! Removing Temp Dir: {}'.format(aiaa_tmpdir))
+    shutil.rmtree(aiaa_tmpdir, ignore_errors=True)
+
+
+atexit.register(goodbye)
+
+
 class AIAALogic():
     def __init__(self, server_url='http://0.0.0.0:5000', server_version='v1', progress_callback=None):
         logging.info('Using AIAA: {}'.format(server_url))
         self.progress_callback = progress_callback
-        self.client = AIAAClient(server_url, server_version)
+
+        aiaaClient.server_url = server_url
+        aiaaClient.api_version = server_version
+        self.client = aiaaClient
+        logging.info('DOC ID inside client: {}'.format(aiaaClient.doc_id))
 
     def reportProgress(self, progress):
         if self.progress_callback:
@@ -510,28 +549,52 @@ class AIAALogic():
     def segmentation(self, model, inputVolume):
         self.reportProgress(0)
         logging.info('Preparing for Segmentation Action')
-        in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
 
-        self.reportProgress(5)
-        slicer.util.saveNode(inputVolume, in_file)
-        logging.info('Saved Input Node into: {}'.format(in_file))
+        node_id = inputVolume.GetID()
+        in_file = volumeToImageFiles.get(node_id)
+        logging.info('Node Id: {} => {}'.format(node_id, in_file))
+
+        if in_file is None:
+            in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz', dir=aiaa_tmpdir).name
+
+            self.reportProgress(5)
+            slicer.util.saveNode(inputVolume, in_file)
+
+            volumeToImageFiles[node_id] = in_file
+            logging.info('Saved Input Node into: {}'.format(in_file))
+        else:
+            logging.info('Using Saved Node from: {}'.format(in_file))
+
         self.reportProgress(30)
 
         result_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
-        extreme_points = self.client.segmentation(model, in_file, result_file)
+        params = self.client.segmentation(model, in_file, result_file, save_doc=True)
 
-        os.unlink(in_file)
+        extreme_points = params.get('points', params.get('extreme_points'))
+        logging.info('Extreme Points: {}'.format(extreme_points))
+
         self.reportProgress(100)
         return extreme_points, result_file
 
     def dextr3d(self, model, pointset, inputVolume, modelInfo):
         self.reportProgress(0)
         logging.info('Preparing for Annotation/Dextr3D Action')
-        in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
 
-        self.reportProgress(5)
-        slicer.util.saveNode(inputVolume, in_file)
-        logging.info('Saved Input Node into: {}'.format(in_file))
+        node_id = inputVolume.GetID()
+        in_file = volumeToImageFiles.get(node_id)
+        logging.info('Node Id: {} => {}'.format(node_id, in_file))
+
+        if in_file is None:
+            in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz', dir=aiaa_tmpdir).name
+
+            self.reportProgress(5)
+            slicer.util.saveNode(inputVolume, in_file)
+
+            volumeToImageFiles[node_id] = in_file
+            logging.info('Saved Input Node into: {}'.format(in_file))
+        else:
+            logging.info('Using Saved Node from: {}'.format(in_file))
+
         self.reportProgress(30)
 
         # Pre Process
@@ -545,4 +608,4 @@ class AIAALogic():
         self.client.dextr3d(model, pointset, in_file, result_file, pad, roi_size)
 
         self.reportProgress(100)
-        return {'points': json.dumps(pointset)}, result_file
+        return result_file

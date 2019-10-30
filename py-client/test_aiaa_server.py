@@ -119,8 +119,8 @@ def call_server():
             image_in = test.get('image_in')
             image_out = test.get('image_out')
 
-            extreme_points = client.segmentation(model, image_in, image_out)
-            print('++++ Extreme Points: {}'.format(json.dumps(extreme_points)))
+            result = client.segmentation(model, image_in, image_out)
+            print('++++ Segmentation Result: {}'.format(json.dumps(result)))
             continue
 
         if api == 'dextr3d':

@@ -71,6 +71,8 @@ class AIAAClient:
         self.server_url = server_url
         self.api_version = api_version
 
+        self.doc_id = None
+
     def model_list(self, label=None):
         """
         Get the current supported model list
@@ -88,13 +90,14 @@ class AIAAClient:
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
-    def segmentation(self, model, image_in, image_out):
+    def segmentation(self, model, image_in, image_out, save_doc=False):
         """
         3D image segmentation using segmentation method
         :param model: model name according to the output of model_list()
         :param image_in: input 3D image file name
         :param image_out: output files will be stored
-        :return: returns json containing extreme points for the segmentation mask
+        :param save_doc: save input image in server for future reference; server will return doc id in params
+        :return: returns params containing extreme points for the segmentation mask and other info
 
         Output 3D binary mask will be saved to the specified file
         """
@@ -102,16 +105,33 @@ class AIAAClient:
         logger.debug('Preparing for Segmentation Action')
 
         selector = '/' + self.api_version + '/segmentation?model=' + AIAAUtils.urllib_quote_plus(model)
+        selector += '&save_doc=' + ('true' if save_doc else 'false')
+        if self.doc_id:
+            selector += '&doc=' + AIAAUtils.urllib_quote_plus(self.doc_id)
+
         fields = {'params': '{}'}
-        files = {'datapoint': image_in}
+        files = {'datapoint': image_in} if self.doc_id is None else {}
 
         logger.debug('Using Selector: {}'.format(selector))
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
         form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        form = json.loads(form) if isinstance(form, str) else form
+
+        params = form.get('params')
+        if params is None:
+            points = json.loads(form.get('points'))
+            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
+        else:
+            params = json.loads(params) if isinstance(params, str) else params
+
         AIAAUtils.save_result(files, image_out)
-        return form
+
+        if self.doc_id is None:
+            self.doc_id = form.get('doc') if isinstance(form, dict) else None
+            logger.info('Saving Doc-ID: {}'.format(self.doc_id))
+        return params
 
     def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128'):
         """
@@ -134,10 +154,8 @@ class AIAAClient:
 
         # Dextr3D
         selector = '/' + self.api_version + '/dextr3d?model=' + AIAAUtils.urllib_quote_plus(model)
-        params = dict()
-        params['points'] = json.dumps(points)
 
-        fields = {'params': json.dumps(params)}
+        fields = {'params': json.dumps({'points': json.dumps(points)})}
         files = {'datapoint': cropped_file}
 
         logger.debug('Using Selector: {}'.format(selector))
@@ -145,16 +163,23 @@ class AIAAClient:
         logger.debug('Using Files: {}'.format(files))
 
         form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        params = form.get('params')
+        if params is None:
+            points = json.loads(form.get('points'))
+            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
+        else:
+            params = json.loads(params) if isinstance(params, str) else params
 
         # Post Process
         if len(files) > 0:
             cropped_out_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
             AIAAUtils.save_result(files, cropped_out_file)
+
             AIAAUtils.image_post_processing(cropped_out_file, image_out, crop, image_in)
             os.unlink(cropped_out_file)
 
         os.unlink(cropped_file)
-        return form
+        return params
 
     def mask2polygon(self, image_in, point_ratio):
         """

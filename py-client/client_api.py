@@ -129,7 +129,7 @@ class AIAAClient:
         AIAAUtils.save_result(files, image_out)
 
         if self.doc_id is None:
-            self.doc_id = form.get('doc') if isinstance(form, dict) else None
+            self.doc_id = params.get('doc')
             logger.info('Saving Doc-ID: {}'.format(self.doc_id))
         return params
 

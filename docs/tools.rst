@@ -148,7 +148,7 @@ Example
       -output tmp_out.nii.gz
 
 
-Mask To 2D-Polygon
+Mask To Polygon
 ------------------
 
 Provides implementation for ``nvidia::aiaa::Client::mask2Polygon()`` API.

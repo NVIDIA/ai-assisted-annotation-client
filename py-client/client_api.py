@@ -73,9 +73,27 @@ class AIAAClient:
 
         self.doc_id = None
 
+    def model(self, model):
+        """
+        Get the model details
+
+        :param model: A valid Model Name which exists in AIAA Server
+        :return: returns json containing the model details
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug('Fetching Model Details')
+
+        selector = '/' + self.api_version + '/models'
+        selector += '?model=' + AIAAUtils.urllib_quote_plus(model)
+
+        response = AIAAUtils.http_get_method(self.server_url, selector)
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        return json.loads(response)
+
     def model_list(self, label=None):
         """
         Get the current supported model list
+
         :param label: Filter models which are matching the label
         :return: returns json containing list of models and details
         """
@@ -92,14 +110,15 @@ class AIAAClient:
 
     def segmentation(self, model, image_in, image_out, save_doc=False):
         """
-        3D image segmentation using segmentation method
-        :param model: model name according to the output of model_list()
-        :param image_in: input 3D image file name
-        :param image_out: output files will be stored
-        :param save_doc: save input image in server for future reference; server will return doc id in params
-        :return: returns params containing extreme points for the segmentation mask and other info
+        2D/3D image segmentation using segmentation method
 
-        Output 3D binary mask will be saved to the specified file
+        :param model: model name according to the output of model_list()
+        :param image_in: input 2D/3D image file name
+        :param image_out: output mask will be stored
+        :param save_doc: save input image in server for future reference; server will return doc id in result json
+        :return: returns json containing extreme points for the segmentation mask and other info
+
+        Output 2D/3D binary mask will be saved to the specified file
         """
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for Segmentation Action')
@@ -136,6 +155,7 @@ class AIAAClient:
     def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128'):
         """
         3D image segmentation using DEXTR3D method
+
         :param model: model name according to the output of model_list()
         :param point_set: point set json containing the extreme points' indices
         :param image_in: input 3D image file name

@@ -27,8 +27,10 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         import shutil
         pluginDir = os.path.dirname(__file__)
         logging.info('This plugin dir: {}'.format(pluginDir))
-        shutil.rmtree(pluginDir + '/AIAAClient.py', ignore_errors=True)
-        shutil.rmtree(pluginDir + '/AIAAClient.pyc', ignore_errors=True)
+        if os.path.exists(pluginDir + '/AIAAClient.py'):
+            os.remove(pluginDir + '/AIAAClient.py')
+        if os.path.exists(pluginDir + '/AIAAClient.pyc'):
+            os.remove(pluginDir + '/AIAAClient.pyc')
         shutil.copy(pluginDir + '/../../py-client/client_api.py', pluginDir + '/AIAAClient.py')
 
         import qSlicerSegmentationsEditorEffectsPythonQt as qSlicerSegmentationsEditorEffects

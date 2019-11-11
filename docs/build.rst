@@ -100,7 +100,7 @@ To build the docs install the required dependencies::
 
   $ apt-get update
   $ apt-get install -y --no-install-recommends doxygen
-  $ pip install --upgrade sphinx sphinx-rtd-theme nbsphinx exhale breathe numpy requests_toolbelt nibabel future
+  $ pip install --upgrade sphinx sphinx-rtd-theme nbsphinx exhale breathe SimpleITK numpy
 
 Then use Sphinx to build the documentation into the build/html
 directory::

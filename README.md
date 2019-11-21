@@ -12,6 +12,11 @@ AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate 
  - macOS (High Sierra and above)
  - Windows (Windows 10)
 
+## Plugins
+Following plugins integrate with NVIDIA AI-Assisted Annotation through either C++/Python Client APIs
+- [NVIDIA MITK Plugin](/mitk-plugin) *(based on c++ client APIs)*
+- [NVIDIA 3D Slicer](/slicer-plugin) *(based on py-client APIs)*
+
 ## Quick Start
 Follow the [Quick Start](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++/Python and run some basic tools to verify few important functionalities like *dextr3D*, *segmentation*, *fixPolygon* over an existing AI-Assisted Annotation Server.
 

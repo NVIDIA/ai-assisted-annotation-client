@@ -40,6 +40,44 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         instance.self().register()
 
 
+        # Register settings panel
+        if not slicer.app.commandOptions().noMainWindow:
+            self.settingsPanel = SegmentEditorNvidiaAIAASettingsPanel()
+            slicer.app.settingsDialog().addPanel("NVidia", self.settingsPanel)
+
+class _ui_SegmentEditorNvidiaAIAASettingsPanel(object):
+  def __init__(self, parent):
+    vBoxLayout = qt.QVBoxLayout(parent)
+
+    # AIAA settings
+    aiaaGroupBox = ctk.ctkCollapsibleGroupBox()
+    aiaaGroupBox.title = "AI-Assisted Annotation Server"
+    aiaaGroupLayout = qt.QFormLayout(aiaaGroupBox)
+
+    serverUrl = qt.QLineEdit("http://0.0.0.0:5000")
+    aiaaGroupLayout.addRow("Server IP:", serverUrl)
+    parent.registerProperty(
+      "NVIDIA-AIAA/serverUrl", serverUrl,
+      "text", str(qt.SIGNAL("textChanged(QString)")))
+
+    filterByLabel = qt.QCheckBox()
+    filterByLabel.setChecked(True)
+    aiaaGroupLayout.addRow("Filter By Label:", filterByLabel)
+    filterByLabelMapper = ctk.ctkBooleanMapper(filterByLabel, "checked", str(qt.SIGNAL("toggled(bool)")))
+    parent.registerProperty(
+      "NVIDIA-AIAA/filterByLabel", filterByLabelMapper,
+      "valueAsInt", str(qt.SIGNAL("valueAsIntChanged(int)")))
+
+    vBoxLayout.addWidget(aiaaGroupBox)
+    vBoxLayout.addStretch(1)
+
+
+class SegmentEditorNvidiaAIAASettingsPanel(ctk.ctkSettingsPanel):
+  def __init__(self, *args, **kwargs):
+    ctk.ctkSettingsPanel.__init__(self, *args, **kwargs)
+    self.ui = _ui_SegmentEditorNvidiaAIAASettingsPanel(self)
+
+
 class SegmentEditorNvidiaAIAATest(ScriptedLoadableModuleTest):
     """
     This is the test case for your scripted module.

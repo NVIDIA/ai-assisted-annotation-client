@@ -140,16 +140,15 @@ class AIAAClient:
 
         params = form.get('params')
         if params is None:
-            points = json.loads(form.get('points'))
+            points = json.loads(form.get('points', '[]'))
             params = {'points': (json.loads(points) if isinstance(points, str) else points)}
         else:
             params = json.loads(params) if isinstance(params, str) else params
 
-        AIAAUtils.save_result(files, image_out)
+        self.doc_id = params.get('doc')
+        logger.info('Saving Doc-ID: {}'.format(self.doc_id))
 
-        if self.doc_id is None:
-            self.doc_id = params.get('doc')
-            logger.info('Saving Doc-ID: {}'.format(self.doc_id))
+        AIAAUtils.save_result(files, image_out)
         return params
 
     def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128'):
@@ -496,12 +495,13 @@ class AIAAUtils:
         )
         form = {}
         files = {}
-        for f in fs.list:
-            logger.debug('FILE-NAME: {}; NAME: {}; SIZE: {}'.format(f.filename, f.name, len(f.value)))
-            if f.filename:
-                files[f.filename] = f.value
-            else:
-                form[f.name] = f.value
+        if hasattr(fs, 'list') and isinstance(fs.list, list):
+            for f in fs.list:
+                logger.debug('FILE-NAME: {}; NAME: {}; SIZE: {}'.format(f.filename, f.name, len(f.value)))
+                if f.filename:
+                    files[f.filename] = f.value
+                else:
+                    form[f.name] = f.value
         return form, files
 
     # noinspection PyUnresolvedReferences

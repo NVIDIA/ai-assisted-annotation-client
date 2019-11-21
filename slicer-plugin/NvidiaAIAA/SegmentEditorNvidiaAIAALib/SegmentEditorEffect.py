@@ -210,7 +210,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def updateSegmentationMask(self, extreme_points, in_file, modelInfo):
         start = time.time()
         logging.info('Update Segmentation Mask from: {}'.format(in_file))
-        if in_file is None:
+        if in_file is None or os.path.exists(in_file) is False:
             return False
 
         segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
@@ -284,6 +284,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription,
                                                        maximum=100)
         slicer.app.processEvents()
+        result = 'FAILED'
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
             logic = AIAALogic(self.serverUrl.text,

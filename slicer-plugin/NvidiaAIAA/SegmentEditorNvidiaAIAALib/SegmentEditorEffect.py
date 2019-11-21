@@ -53,7 +53,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return qt.QIcon()
 
     def helpText(self):
-        return """Use NVIDIA AI-Assisted features for segmentation and annotation."""
+        return """<html>Use NVIDIA AI-Assisted features for segmentation and annotation.<br/> 
+            (Click Edit &rarr; Application Settings &rarr; <b>Nvidia</b> for related settings)</html>"""
+
+    def fetchSettings(self):
+        settings = qt.QSettings()
+        self.serverUrl = settings.value("NVIDIA-AIAA/serverUrl", "http://0.0.0.0:5000")
+        self.filterByLabel = True if int(settings.value("NVIDIA-AIAA/filterByLabel", "1")) > 0 else False
 
     def setupOptionsFrame(self):
         nvidiaFormLayout = qt.QFormLayout()
@@ -63,14 +69,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         nvidiaFormLayout.addRow(qt.QLabel())
         aiaaGroupBox = qt.QGroupBox("AI-Assisted Annotation Server: ")
         aiaaGroupLayout = qt.QFormLayout(aiaaGroupBox)
-        self.serverUrl = qt.QLineEdit("http://0.0.0.0:5000")
-        self.filterByLabel = qt.QCheckBox("Filter By Label")
+
         self.modelsButton = qt.QPushButton("Fetch Models")
 
-        self.filterByLabel.setChecked(True)
-
-        aiaaGroupLayout.addRow("Server URL: ", self.serverUrl)
-        aiaaGroupLayout.addRow(self.filterByLabel)
         aiaaGroupLayout.addRow(self.modelsButton)
 
         aiaaGroupBox.setLayout(aiaaGroupLayout)
@@ -162,13 +163,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText="Fetching models", maximum=100)
         slicer.app.processEvents()
         try:
-            logic = AIAALogic(self.serverUrl.text,
+            self.fetchSettings()
+            logic = AIAALogic(self.serverUrl,
                               progress_callback=lambda progressPercentage,
                                                        progressBar=progressBar: SegmentEditorEffect.report_progress(
                                   progressBar, progressPercentage))
             label = self.getActiveLabel()
             logging.info('Active Label: {}'.format(label))
-            models = logic.list_models(label if self.filterByLabel.checked else None)
+            models = logic.list_models(label if self.filterByLabel else None)
         except:
             progressBar.close()
             slicer.util.errorDisplay(
@@ -196,7 +198,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         msg = ''
         msg += '-----------------------------------------------------\t\n'
-        if self.filterByLabel.checked:
+        if self.filterByLabel:
             msg += 'Using Label: \t\t' + label + '\t\n'
         msg += 'Total Models Loaded: \t' + str(len(models)) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
@@ -286,7 +288,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-            logic = AIAALogic(self.serverUrl.text,
+            self.fetchSettings()
+            logic = AIAALogic(self.serverUrl,
                               progress_callback=lambda progressPercentage,
                                                        progressBar=progressBar: SegmentEditorEffect.report_progress(
                                   progressBar, progressPercentage))
@@ -344,7 +347,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-            logic = AIAALogic(self.serverUrl.text,
+            self.fetchSettings()
+            logic = AIAALogic(self.serverUrl,
                               progress_callback=lambda progressPercentage,
                                                        progressBar=progressBar: SegmentEditorEffect.report_progress(
                                   progressBar, progressPercentage))

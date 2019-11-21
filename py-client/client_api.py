@@ -147,9 +147,8 @@ class AIAAClient:
 
         AIAAUtils.save_result(files, image_out)
 
-        if self.doc_id is None:
-            self.doc_id = params.get('doc')
-            logger.info('Saving Doc-ID: {}'.format(self.doc_id))
+        self.doc_id = params.get('doc')
+        logger.info('Saving Doc-ID: {}'.format(self.doc_id))
         return params
 
     def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128'):

@@ -1,3 +1,6 @@
+# client_api.py is copied from another folder, it must not be added to revision control here
+NvidiaAIAA/NvidiaAIAAClientAPI/client_api.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

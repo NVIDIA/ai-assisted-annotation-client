@@ -4,13 +4,14 @@ project(NvidiaAIAssistedAnnotation)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_HOMEPAGE "http://slicer.org/slicerWiki/index.php/Documentation/Nightly/Extensions/NvidiaAIAssistedAnnotation")
+set(EXTENSION_HOMEPAGE "https://github.com/NVIDIA/ai-assisted-annotation-client/tree/master/slicer-plugin")
 set(EXTENSION_CATEGORY "Segmentation")
 set(EXTENSION_CONTRIBUTORS "Sachidanand Alle (NVIDIA)")
-set(EXTENSION_DESCRIPTION "This is a simple extension to demonstrate the features of NVIDIA AI-Assisted Annotation framework")
-set(EXTENSION_ICONURL "http://www.example.com/Slicer/Extensions/NvidiaAIAssistedAnnotation.png")
-set(EXTENSION_SCREENSHOTURLS "http://www.example.com/Slicer/Extensions/NvidiaAIAssistedAnnotation/Screenshots/1.png")
+set(EXTENSION_DESCRIPTION "This extension offers automatic segmentation using NVIDIA AI-Assisted Annotation framework (Powered by the Clara Train SDK).")
+set(EXTENSION_ICONURL "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/NvidiaAIAssistedAnnotation.png")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a space separated string, a list or 'NA' if any
+set(EXTENSION_BUILD_SUBDIRECTORY "slicer-plugin")
 
 #-----------------------------------------------------------------------------
 # Extension dependencies

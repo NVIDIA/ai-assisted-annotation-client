@@ -21,24 +21,31 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         self.parent.helpText = "This hidden module registers NVIDA AI-Assisted segment editor effect"
         self.parent.helpText += self.getDefaultModuleDocumentationLink()
         self.parent.acknowledgementText = "Supported by NA-MIC, NAC, BIRN, NCIGT, and the Slicer Community. See http://www.slicer.org for details."
-        slicer.app.connect("startupCompleted()", self.registerEditorEffect)
+        slicer.app.connect("startupCompleted()", self.initializeAfterStartup)
 
-    def registerEditorEffect(self):
+    def initializeAfterStartup(self):
+
+        # Copy client_api if running from build tree to avoid the need to configure the project with CMake
+        # (in the install tree, CMake takes care of the copy and this code section is not used).
         import shutil
         pluginDir = os.path.dirname(__file__)
         logging.info('This plugin dir: {}'.format(pluginDir))
-        if os.path.exists(pluginDir + '/AIAAClient.py'):
-            os.remove(pluginDir + '/AIAAClient.py')
-        if os.path.exists(pluginDir + '/AIAAClient.pyc'):
-            os.remove(pluginDir + '/AIAAClient.pyc')
-        shutil.copy(pluginDir + '/../../py-client/client_api.py', pluginDir + '/AIAAClient.py')
+        if os.path.exists(pluginDir + '/../../py-client/client_api.py'):
+            logging.info('Running from build tree - update client_api.py')
+            if os.path.exists(pluginDir + '/client_api.py'):
+                os.remove(pluginDir + '/NvidiaAIAAClientAPI/client_api.py')
+            if os.path.exists(pluginDir + '/client_api.pyc'):
+                os.remove(pluginDir + '/NvidiaAIAAClientAPI/client_api.pyc')
+            if os.path.exists(pluginDir + '/NvidiaAIAAClientAPI/__pycache__/client_api.cpython-36.pyc'):
+                os.remove(pluginDir + '/NvidiaAIAAClientAPI/__pycache__/client_api.cpython-36.pyc')
+            shutil.copy(pluginDir + '/../../py-client/client_api.py', pluginDir + '/NvidiaAIAAClientAPI/client_api.py')
 
+        # Register segment editor effect
         import qSlicerSegmentationsEditorEffectsPythonQt as qSlicerSegmentationsEditorEffects
         instance = qSlicerSegmentationsEditorEffects.qSlicerSegmentEditorScriptedEffect(None)
         effectFilename = os.path.join(os.path.dirname(__file__), self.__class__.__name__ + 'Lib/SegmentEditorEffect.py')
         instance.setPythonSource(effectFilename.replace('\\', '/'))
         instance.self().register()
-
 
         # Register settings panel
         if not slicer.app.commandOptions().noMainWindow:

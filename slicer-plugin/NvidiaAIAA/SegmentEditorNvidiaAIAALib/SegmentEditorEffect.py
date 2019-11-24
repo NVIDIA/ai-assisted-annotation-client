@@ -13,7 +13,7 @@ import slicer
 import vtk
 from SegmentEditorEffects import *
 
-from AIAAClient import AIAAClient
+from NvidiaAIAAClientAPI.client_api import AIAAClient
 
 
 class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):

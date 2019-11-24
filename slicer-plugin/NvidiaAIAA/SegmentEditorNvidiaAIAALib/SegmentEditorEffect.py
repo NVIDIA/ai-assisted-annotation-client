@@ -199,7 +199,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.annotationModelSelector.addItem(model_name)
 
         self.segmentationButton.enabled = self.segmentationModelSelector.count > 0
-        self.updateGUIFromMRML()
+        self.onClickEditPoints()
 
         msg = ''
         msg += '-----------------------------------------------------\t\n'
@@ -404,11 +404,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
                 logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
                 self.segmentMarkupNode.AddFiducialFromArray(p_Ras[0:3])
-        else:
-            qt.QMessageBox.information(
-                slicer.util.mainWindow(),
-                'NVIDIA AIAA',
-                'There are no pre-existing extreme points available for (' + segment.GetName() + ')' + '\t')
         self.updateGUIFromMRML()
 
     def reset(self):

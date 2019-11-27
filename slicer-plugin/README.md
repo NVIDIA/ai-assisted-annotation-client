@@ -34,3 +34,4 @@ The plugin can be downloaded and installed directly from GitHub:
 - Open 3D Slicer: Go to Edit -> Application Settings -> Modules -> Additional Module Paths
    1) Add New Module Path: <FULL_PATH>/slicer-plugin/NvidiaAIAA
    2) Restart
+- To build extension package, build 3D Slicer then configure ai-assisted-annotation-client project using CMake, defining these variables: -DSlicer_DIR:PATH=... -DNvidiaAIAssistedAnnotation_BUILD_SLICER_EXTENSION:BOOL=ON

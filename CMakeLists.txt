@@ -31,6 +31,15 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(AIAA_LOG_DEBUG_ENABLED "0" CACHE STRING "Enable Debug Level logs for AIAA Client")
 set(AIAA_LOG_INFO_ENABLED  "1" CACHE STRING "Enable Info Level logs for AIAA Client")
 
+# 3D Slicer's extension build tool defines NvidiaAIAssistedAnnotation_BUILD_SLICER_EXTENSION:BOOL=ON
+# to indicate that this project is being built as a 3D Slicer extension.
+if (NvidiaAIAssistedAnnotation_BUILD_SLICER_EXTENSION)
+  message(STATUS "Building project as a Slicer extension")
+  project(NvidiaAIAssistedAnnotation)
+  add_subdirectory(slicer-plugin)
+  return()
+endif()
+
 if (NOT DEFINED USE_SUPERBUILD)
   project(NvidiaAIAAClient-superbuild)
   include (cpp-client/CMakeExternals/SuperBuild.cmake)

@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(NvidiaAIAssistedAnnotation)
-
 #-----------------------------------------------------------------------------
 # Extension meta-information
 set(EXTENSION_HOMEPAGE "https://github.com/NVIDIA/ai-assisted-annotation-client/tree/master/slicer-plugin")
@@ -11,7 +9,6 @@ set(EXTENSION_DESCRIPTION "This extension offers automatic segmentation using NV
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/NvidiaAIAssistedAnnotation.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot.png")
 set(EXTENSION_DEPENDS "NA") # Specified as a space separated string, a list or 'NA' if any
-set(EXTENSION_BUILD_SUBDIRECTORY "slicer-plugin")
 
 #-----------------------------------------------------------------------------
 # Extension dependencies

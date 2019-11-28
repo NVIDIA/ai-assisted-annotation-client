@@ -19,6 +19,8 @@ set(MODULE_PYTHON_SCRIPTS
 
 set(MODULE_PYTHON_RESOURCES
   ${MODULE_NAME}Lib/SegmentEditorEffect.png
+  ${MODULE_NAME}Lib/nvidia-icon.png
+  ${MODULE_NAME}Lib/edit-icon.png
   )
 
 #-----------------------------------------------------------------------------

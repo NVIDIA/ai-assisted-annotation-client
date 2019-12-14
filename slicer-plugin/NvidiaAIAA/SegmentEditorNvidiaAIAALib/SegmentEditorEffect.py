@@ -1,10 +1,10 @@
-import atexit
 import json
 import logging
 import os
 import shutil
 import tempfile
 import time
+from collections import OrderedDict
 
 import SimpleITK as sitk
 import qt
@@ -21,18 +21,15 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
     def __init__(self, scriptedEffect):
         scriptedEffect.name = 'Nvidia AIAA'
-        scriptedEffect.perSegment = False  # this effect operates on all segments at once (not on a single selected segment)
-        try:
-            # this effect can create its own segments, so we do not require any pre-existing segment
+        # this effect operates on all segments at once (not on a single selected segment)
+        scriptedEffect.perSegment = False
+        # this effect can create its own segments, so we do not require any pre-existing segment
+        if (slicer.app.majorVersion >= 5) or (slicer.app.majorVersion >= 4 and slicer.app.minorVersion >= 11):
             scriptedEffect.requireSegments = False
-        except AttributeError:
-            # requireSegments option is not available in this Slicer version,
-            # therefore the user has to create a segment to make the effect enabled
-            pass
+                
         AbstractScriptedSegmentEditorEffect.__init__(self, scriptedEffect)
 
-        self.extremePoints = dict()
-        self.models = dict()
+        self.models = OrderedDict()
 
         # Effect-specific members
         self.segmentMarkupNode = None
@@ -40,6 +37,19 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         self.connectedToEditorForSegmentChange = False
         self.isActivated = False
+
+        self.progressBar = None
+        self.logic = None
+
+        self.observedParameterSetNode = None
+        self.parameterSetNodeObserverTags = []
+        self.observedSegmentation = None
+        self.segmentationNodeObserverTags = []
+
+    def __del__(self):
+        AbstractScriptedSegmentEditorEffect.__del__(self)
+        if self.progressBar:
+            self.progressBar.close()
 
     def clone(self):
         # It should not be necessary to modify this method
@@ -56,268 +66,240 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return qt.QIcon()
 
     def helpText(self):
-        return """<html>Use NVIDIA AI-Assisted features for segmentation and annotation.<br/> 
-            (Click Edit &rarr; Application Settings &rarr; <b>Nvidia</b> for related settings)</html>"""
+        return """NVIDIA AI-Assisted Annotation for automatic and boundary points based segmentation
+    . The module requires access to an NVidia Clara AIAA server. See <a href="https://github.com/NVIDIA/ai-assisted-annotation-client/tree/master/slicer-plugin">module documentation</a> for more information."""
 
-    def fetchSettings(self):
-        settings = qt.QSettings()
-        self.serverUrl = settings.value("NVIDIA-AIAA/serverUrl", "http://0.0.0.0:5000")
-        self.filterByLabel = True if int(settings.value("NVIDIA-AIAA/filterByLabel", "1")) > 0 else False
+    def serverUrl(self):
+        serverUrl = self.ui.serverComboBox.currentText
+        if not serverUrl:
+            # Default Slicer AIAA server
+            serverUrl = "http://skull.cs.queensu.ca:8123"
+        return serverUrl
 
     def setupOptionsFrame(self):
-        nvidiaFormLayout = qt.QFormLayout()
 
-        ##################################################
-        # AIAA Server + Fetch/Refresh Models
-        nvidiaFormLayout.addRow(qt.QLabel())
-        aiaaGroupBox = qt.QGroupBox("AI-Assisted Annotation Server: ")
-        aiaaGroupLayout = qt.QFormLayout(aiaaGroupBox)
+        if (slicer.app.majorVersion == 4 and slicer.app.minorVersion <= 10):
+            self.scriptedEffect.addOptionsWidget(qt.QLabel("This effect only works in recent 3D Slicer Preview Release (Slicer-4.11.x)."))
+            return
 
-        self.modelsButton = qt.QPushButton("Fetch Models")
+        # Load widget from .ui file. This .ui file can be edited using Qt Designer
+        # (Edit / Application Settings / Developer / Qt Designer -> launch).
+        uiWidget = slicer.util.loadUI(os.path.join(os.path.dirname(__file__), "SegmentEditorNvidiaAIAA.ui"))
+        self.scriptedEffect.addOptionsWidget(uiWidget)
+        self.ui = slicer.util.childWidgetVariables(uiWidget)
 
-        aiaaGroupLayout.addRow(self.modelsButton)
+        # Set icons and tune widget properties
 
-        aiaaGroupBox.setLayout(aiaaGroupLayout)
-        nvidiaFormLayout.addRow(aiaaGroupBox)
-        ##################################################
+        self.ui.segmentationButton.setIcon(self.icon('nvidia-icon.png'))
+        self.ui.annotationModelFilterPushButton.setIcon(self.icon('filter-icon.png'))
+        self.ui.fetchModelsButton.setIcon(slicer.util.mainWindow().style().standardIcon(qt.QStyle.SP_BrowserReload))
+        self.ui.fiducialEditButton.setIcon(self.icon('edit-icon.png'))
+        self.ui.annotationButton.setIcon(self.icon('nvidia-icon.png'))
 
-        ##################################################
-        # Segmentation
-        nvidiaFormLayout.addRow(qt.QLabel())
-        segGroupBox = qt.QGroupBox("Auto Segmentation: ")
-        segGroupLayout = qt.QFormLayout(segGroupBox)
-        self.segmentationModelSelector = qt.QComboBox()
-        self.segmentationButton = qt.QPushButton(" Run Segmentation")
-        self.segmentationButton.setIcon(self.icon('nvidia-icon.png'))
-        self.segmentationButton.setEnabled(False)
+        self.ui.fiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
+        self.ui.fiducialPlacementWidget.buttonsVisible = False
+        self.ui.fiducialPlacementWidget.show()
+        self.ui.fiducialPlacementWidget.placeButton().show()
+        self.ui.fiducialPlacementWidget.deleteButton().show()
 
-        # self.segmentationModelSelector.addItems(['segmentation_ct_spleen', 'segmentation_ct_liver_and_tumor'])
-        self.segmentationModelSelector.setToolTip("Pick the input Segmentation model")
-
-        segGroupLayout.addRow("Model: ", self.segmentationModelSelector)
-        segGroupLayout.addRow(self.segmentationButton)
-
-        segGroupBox.setLayout(segGroupLayout)
-        ##################################################
-
-        ##################################################
-        # Annotation
-        annGroupBox = qt.QGroupBox("Annotation: ")
-        annGroupLayout = qt.QFormLayout(annGroupBox)
-
-        # Fiducial Placement widget
-        self.fiducialPlacementToggle = slicer.qSlicerMarkupsPlaceWidget()
-        self.fiducialPlacementToggle.setMRMLScene(slicer.mrmlScene)
-        self.fiducialPlacementToggle.placeMultipleMarkups = self.fiducialPlacementToggle.ForcePlaceMultipleMarkups
-        self.fiducialPlacementToggle.buttonsVisible = False
-        self.fiducialPlacementToggle.show()
-        self.fiducialPlacementToggle.placeButton().show()
-        self.fiducialPlacementToggle.deleteButton().show()
-
-        # Edit surface button
-        self.annoEditButton = qt.QPushButton()
-        self.annoEditButton.setIcon(self.icon('edit-icon.png'))
-        self.annoEditButton.objectName = self.__class__.__name__ + 'Edit'
-        self.annoEditButton.setToolTip("Edit the previously placed group of fiducials.")
-        self.annoEditButton.setEnabled(False)
-
-        fiducialActionLayout = qt.QHBoxLayout()
-        fiducialActionLayout.addWidget(self.fiducialPlacementToggle)
-        fiducialActionLayout.addWidget(self.annoEditButton)
-
-        self.annotationModelSelector = qt.QComboBox()
-        self.dextr3DButton = qt.QPushButton(" Run DExtr3D")
-        self.dextr3DButton.setIcon(self.icon('nvidia-icon.png'))
-        self.dextr3DButton.setEnabled(False)
-
-        # self.annotationModelSelector.addItems(['annotation_ct_spleen'])
-        self.annotationModelSelector.setToolTip("Pick the input Annotation model")
-
-        annGroupLayout.addRow("Model: ", self.annotationModelSelector)
-        annGroupLayout.addRow(fiducialActionLayout)
-        annGroupLayout.addRow(self.dextr3DButton)
-
-        annGroupBox.setLayout(annGroupLayout)
-        ##################################################
-        aiaaAction = qt.QHBoxLayout()
-        aiaaAction.addWidget(segGroupBox)
-        aiaaAction.addWidget(annGroupBox)
-        nvidiaFormLayout.addRow(aiaaAction)
-
-        self.scriptedEffect.addOptionsWidget(nvidiaFormLayout)
-
-        ##################################################
-        # connections
-        self.modelsButton.connect('clicked(bool)', self.onClickModels)
-        self.segmentationButton.connect('clicked(bool)', self.onClickSegmentation)
-        self.annoEditButton.connect('clicked(bool)', self.onClickEditPoints)
-        self.fiducialPlacementToggle.placeButton().clicked.connect(self.onFiducialPlacementToggleChanged)
-        self.dextr3DButton.connect('clicked(bool)', self.onClickAnnotation)
-        ##################################################
+        # Connections
+        self.ui.fetchModelsButton.connect('clicked(bool)', self.onClickFetchModels)
+        self.ui.segmentationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
+        self.ui.segmentationButton.connect('clicked(bool)', self.onClickSegmentation)
+        self.ui.annotationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
+        self.ui.fiducialEditButton.connect('clicked(bool)', self.onClickEditPoints)
+        self.ui.annotationModelFilterPushButton.connect('toggled(bool)', self.updateMRMLFromGUI)
+        self.ui.fiducialPlacementWidget.placeButton().clicked.connect(self.onfiducialPlacementWidgetChanged)
+        self.ui.annotationButton.connect('clicked(bool)', self.onClickAnnotation)
 
     def onCurrentSegmentIDChanged(self, segmentID):
-        logging.debug('+++ onCurrentSegmentIDChanged: {}'.format(segmentID))
+        logging.debug('onCurrentSegmentIDChanged: {}'.format(segmentID))
         if self.isActivated:
-            self.onClickModels()
+            self.updateGUIFromMRML()
 
-    def getActiveLabel(self):
+    def currentSegment(self):
         pnode = self.scriptedEffect.parameterSetNode()
-        node = pnode.GetSegmentationNode() if pnode else None
-        id = pnode.GetSelectedSegmentID() if pnode else None
-        segmentation = node.GetSegmentation() if node else None
-        segment = segmentation.GetSegment(id) if segmentation and id else None
-        name = segment.GetName() if segment else None
-        return name
+        segmentationNode = pnode.GetSegmentationNode()
+        segmentation = segmentationNode.GetSegmentation() if segmentationNode else None
+        if not pnode or not segmentation or not pnode.GetSelectedSegmentID():
+            return None
+        return segmentation.GetSegment(pnode.GetSelectedSegmentID())
 
-    def onClickModels(self):
+    def currentSegmentID(self):
+        pnode = self.scriptedEffect.parameterSetNode()
+        return pnode.GetSelectedSegmentID() if pnode else None
+
+    def updateServerSettings(self):
+        self.logic.setServer(self.serverUrl())
+        self.logic.setUseCompression(slicer.util.settingsValue("NVIDIA-AIAA/compressData", True, converter=slicer.util.toBool))
+
+    def onClickFetchModels(self):
+
+        self.updateMRMLFromGUI()
+
+        # Save selected server URL
+        settings = qt.QSettings()
+        serverUrl = self.ui.serverComboBox.currentText
+        settings.setValue("NVIDIA-AIAA/serverUrl", serverUrl)
+
+        # Save current server URL to the top of history
+        serverUrlHistory = settings.value("NVIDIA-AIAA/serverUrlHistory")
+        if serverUrlHistory:
+            serverUrlHistory = serverUrlHistory.split(";")
+        else:
+            serverUrlHistory = []
+        try:
+            serverUrlHistory.remove(serverUrl)
+        except ValueError:
+            pass
+        serverUrlHistory.insert(0, serverUrl)
+        serverUrlHistory = serverUrlHistory[:10]  # keep up to first 10 elements
+        settings.setValue("NVIDIA-AIAA/serverUrlHistory", ";".join(serverUrlHistory))
+
+        self.updateServerUrlGUIFromSettings()
+
         start = time.time()
         try:
-            self.fetchSettings()
-            logic = AIAALogic(self.serverUrl)
-            label = self.getActiveLabel()
-            logging.debug('Active Label: {}'.format(label))
-            if label is None:
-                return
-            models = logic.list_models(label if self.filterByLabel else None)
+            self.updateServerSettings()
+            models = self.logic.list_models(self.ui.modelFilterLabelLineEdit.text)
         except:
             slicer.util.errorDisplay(
                 "Failed to fetch models from remote server. Make sure server address is correct and retry.",
                 detailedText=traceback.format_exc())
+            self.ui.modelsCollapsibleButton.collapsed = False
             return
 
-        self.segmentationModelSelector.clear()
-        self.annotationModelSelector.clear()
+        self.ui.modelsCollapsibleButton.collapsed = True
+
+        self.models.clear()
         for model in models:
             model_name = model['name']
             model_type = model['type']
             logging.debug('{} = {}'.format(model_name, model_type))
             self.models[model_name] = model
 
-            if model_type == 'segmentation':
-                self.segmentationModelSelector.addItem(model_name)
-            else:
-                self.annotationModelSelector.addItem(model_name)
-
-        self.segmentationButton.enabled = self.segmentationModelSelector.count > 0
-        self.onClickEditPoints()
+        self.updateGUIFromMRML()
 
         msg = ''
         msg += '-----------------------------------------------------\t\n'
-        if self.filterByLabel:
+        label = self.ui.modelFilterLabelLineEdit.text
+        if label:
             msg += 'Using Label: \t\t' + label + '\t\n'
         msg += 'Total Models Loaded: \t' + str(len(models)) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
-        msg += 'Segmentation Models: \t' + str(self.segmentationModelSelector.count) + '\t\n'
-        msg += 'Annotation Models: \t' + str(self.annotationModelSelector.count) + '\t\n'
+        msg += 'Segmentation Models: \t' + str(self.ui.segmentationModelSelector.count) + '\t\n'
+        msg += 'Annotation Models: \t' + str(self.ui.annotationModelSelector.count) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
         # qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
         logging.debug(msg)
-        logging.info("++ Time consumed by onClickModels: {}".format(time.time() - start))
+        logging.info("Time consumed by onClickFetchModels: {0:3.1f}".format(time.time() - start))
 
-    def updateSegmentationMask(self, extreme_points, in_file, modelInfo):
+    def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False):
         start = time.time()
         logging.debug('Update Segmentation Mask from: {}'.format(in_file))
         if in_file is None or os.path.exists(in_file) is False:
             return False
 
         segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-        selectedSegmentId = self.scriptedEffect.parameterSetNode().GetSelectedSegmentID()
-
         segmentation = segmentationNode.GetSegmentation()
-        segment = segmentation.GetSegment(selectedSegmentId)
-        color = segment.GetColor()
-        label = segment.GetName()
+        currentSegment = self.currentSegment()
 
         labelImage = sitk.ReadImage(in_file)
         labelmapVolumeNode = sitkUtils.PushVolumeToSlicer(labelImage, None, className='vtkMRMLLabelMapVolumeNode')
-        labelmapVolumeNode.SetName(label)
-        # [success, labelmapVolumeNode] = slicer.util.loadLabelVolume(in_file, {'name': label}, returnNode=True)
 
-        logging.debug('Removing temp segmentation with id: {} with color: {}'.format(selectedSegmentId, color))
-        segmentationNode.RemoveSegment(selectedSegmentId)
-
-        originalSegments = dict()
-        for i in range(segmentation.GetNumberOfSegments()):
-            segmentId = segmentation.GetNthSegmentID(i)
-            originalSegments[segmentId] = i
-
+        numberOfExistingSegments = segmentation.GetNumberOfSegments()
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, segmentationNode)
         slicer.mrmlScene.RemoveNode(labelmapVolumeNode)
 
-        addedSegments = 0
-        modelLabels = modelInfo.get('labels')
-        for i in range(segmentation.GetNumberOfSegments()):
-            segmentId = segmentation.GetNthSegmentID(i)
+        modelLabels = modelInfo['labels']
+        numberOfAddedSegments = segmentation.GetNumberOfSegments() - numberOfExistingSegments
+        logging.debug('Adding {} segments'.format(numberOfAddedSegments))
+        addedSegmentIds = [segmentation.GetNthSegmentID(numberOfExistingSegments + i) for i in range(numberOfAddedSegments)]
+        for i, segmentId in enumerate(addedSegmentIds):
             segment = segmentation.GetSegment(segmentId)
-            if originalSegments.get(segmentId) is not None:
-                logging.debug('No change for existing segment with id: {} => {}'.format(segmentId, segment.GetName()))
-                continue
-
-            logging.debug('Setting new segmentation with id: {} => {}'.format(segmentId, segment.GetName()))
-            if addedSegments == 0:
-                segment.SetColor(color)
-                segment.SetName(label)
-
-                self.scriptedEffect.parameterSetNode().SetSelectedSegmentID(segmentId)
-                logging.debug('Extreme Points: {}'.format(extreme_points))
-                if extreme_points is not None:
-                    segment.SetTag("DExtr3DExtremePoints", json.dumps(extreme_points))
-
+            if i==0 and overwriteCurrentSegment and currentSegment:
+                logging.debug('Update current segment with id: {} => {}'.format(segmentId, segment.GetName()))
+                # Copy labelmap representation to the current segment then remove the imported segment
+                labelmap = slicer.vtkOrientedImageData()
+                segmentationNode.GetBinaryLabelmapRepresentation(segmentId, labelmap)
+                self.scriptedEffect.modifySelectedSegmentByLabelmap(labelmap, slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet)
+                segmentationNode.RemoveSegment(segmentId)
             else:
-                segment.SetName(modelLabels[addedSegments])
-            addedSegments = addedSegments + 1
-        logging.debug('Total Added Segments for {}: {}'.format(label, addedSegments))
+                logging.debug('Setting new segmentation with id: {} => {}'.format(segmentId, segment.GetName()))
+                if i<len(modelLabels):
+                    segment.SetName(modelLabels[i])
+                else:
+                    # we did not get enough labels (for exampe annotation_mri_prostate_cg_and_pz model returns a labelmap with
+                    # 2 labels but in the model infor only 1 label is provided)
+                    segment.SetName("unknown {}".format(i))
 
-        self.extremePoints[label] = extreme_points
+        # Save extreme points into first segment
+        if extreme_points:
+            logging.debug('Extreme Points: {}'.format(extreme_points))
+            if overwriteCurrentSegment and currentSegment:
+                segment = currentSegment
+            else:
+                segment = segmentation.GetNthSegment(numberOfExistingSegments)
+            if segment:
+                segment.SetTag("AIAA.DExtr3DExtremePoints", json.dumps(extreme_points))
+
         os.unlink(in_file)
-        logging.info("++ Time consumed by updateSegmentationMask: {}".format(time.time() - start))
+        logging.info("Time consumed by updateSegmentationMask: {0:3.1f}".format(time.time() - start))
         return True
 
-    @staticmethod
-    def report_progress(progressBar, progressPercentage):
-        progressBar.show()
-        progressBar.activateWindow()
-        progressBar.setValue(progressPercentage)
+    def setProgressBarLabelText(self, label):
+        if not self.progressBar:
+            self.progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", maximum=100)
+        self.progressBar.labelText = label
+
+    def reportProgress(self, progressPercentage):
+        if not self.progressBar:
+            self.progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", maximum=100)
+        self.progressBar.show()
+        self.progressBar.activateWindow()
+        self.progressBar.setValue(progressPercentage)
         slicer.app.processEvents()
 
-    def onClickSegmentation(self):
-        start = time.time()
-        model = self.segmentationModelSelector.currentText
-        label = self.getActiveLabel()
-        modelInfo = self.models.get(model)
+    def getPermissionForImageDataUpload(self):
+        return slicer.util.confirmOkCancelDisplay("Master volume - without any additional patient information -"
+            " will be sent to remote data processing server: {0}.\n\n"
+            "Click 'OK' to proceed with the segmentation.\n"
+            "Click 'Cancel' to not upload any data and cancel segmentation.\n".format(self.serverUrl()),
+            dontShowAgainSettingsKey = "NVIDIA-AIAA/showImageDataSendWarning")
 
-        operationDescription = 'Run Segmentation for model: {} for label: {}'.format(model, label)
+    def onClickSegmentation(self):
+        if not self.getPermissionForImageDataUpload():
+            return
+
+        start = time.time()
+        model = self.ui.segmentationModelSelector.currentText
+        modelInfo = self.models[model]
+
+        operationDescription = 'Run Segmentation for model: {}'.format(model)
         logging.debug(operationDescription)
-        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription,
-                                                       maximum=100)
+        self.setProgressBarLabelText(operationDescription)
         slicer.app.processEvents()
         result = 'FAILED'
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-            self.fetchSettings()
-            logic = AIAALogic(self.serverUrl,
-                              progress_callback=lambda progressPercentage,
-                                                       progressBar=progressBar: SegmentEditorEffect.report_progress(
-                                  progressBar, progressPercentage))
-
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-            extreme_points, result_file = logic.segmentation(model, inputVolume)
+            self.updateServerSettings()
+            extreme_points, result_file = self.logic.segmentation(model, inputVolume)
             if self.updateSegmentationMask(extreme_points, result_file, modelInfo):
                 result = 'SUCCESS'
                 self.segmentMarkupNode.RemoveAllMarkups()
                 self.updateGUIFromMRML()
         except:
             qt.QApplication.restoreOverrideCursor()
-            progressBar.close()
+            self.progressBar.hide()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
 
         qt.QApplication.restoreOverrideCursor()
-        progressBar.close()
+        self.progressBar.hide()
 
-        msg = 'Run segmentation for ({}): {}\t\nTime Consumed: {} (sec)'.format(model, result, (time.time() - start))
+        msg = 'Run segmentation for ({0}): {1}\t\nTime Consumed: {2:3.1f} (sec)'.format(model, result, (time.time() - start))
         logging.info(msg)
-        qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
 
         self.onClickEditPoints()
 
@@ -342,101 +324,107 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return point_set
 
     def onClickAnnotation(self):
+        if not self.getPermissionForImageDataUpload():
+            return
+
         start = time.time()
-        model = self.annotationModelSelector.currentText
-        label = self.getActiveLabel()
-        operationDescription = 'Run Annotation for model: {} for label: {}'.format(model, label)
+        self.ui.fiducialPlacementWidget.placeModeEnabled = False
+        model = self.ui.annotationModelSelector.currentText
+        label = self.currentSegment().GetName()
+        operationDescription = 'Run Annotation for model: {} for segment: {}'.format(model, label)
         logging.debug(operationDescription)
-        progressBar = slicer.util.createProgressDialog(windowTitle="Wait...", labelText=operationDescription,
-                                                       maximum=100)
+        self.setProgressBarLabelText(operationDescription)
         slicer.app.processEvents()
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-            self.fetchSettings()
-            logic = AIAALogic(self.serverUrl,
-                              progress_callback=lambda progressPercentage,
-                                                       progressBar=progressBar: SegmentEditorEffect.report_progress(
-                                  progressBar, progressPercentage))
-
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-            modelInfo = self.models.get(model)
+            modelInfo = self.models[model]
             pointSet = self.getFiducialPointsXYZ()
-
-            result_file = logic.dextr3d(model, pointSet, inputVolume, modelInfo)
+            self.updateServerSettings()
+            result_file = self.logic.dextr3d(model, pointSet, inputVolume, modelInfo)
             result = 'FAILED'
-            if self.updateSegmentationMask(pointSet, result_file, modelInfo):
+            if self.updateSegmentationMask(pointSet, result_file, modelInfo, overwriteCurrentSegment=True):
                 result = 'SUCCESS'
+                self.segmentMarkupNode.RemoveAllMarkups()
                 self.updateGUIFromMRML()
         except:
             qt.QApplication.restoreOverrideCursor()
-            progressBar.close()
+            self.progressBar.hide()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
 
         qt.QApplication.restoreOverrideCursor()
-        progressBar.close()
+        self.progressBar.hide()
 
-        msg = 'Run annotation for ({}): {}\t\nTime Consumed: {} (sec)'.format(model, result, (time.time() - start))
+        msg = 'Run annotation for ({0}): {1}\t\nTime Consumed: {2:3.1f} (sec)'.format(model, result, (time.time() - start))
         logging.info(msg)
-        qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
 
     def onClickEditPoints(self):
-        segmentID = self.scriptedEffect.parameterSetNode().GetSelectedSegmentID()
-        segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-        segment = segmentationNode.GetSegmentation().GetSegment(segmentID)
-        label = segment.GetName()
+        segment = self.currentSegment()
+        segmentId = self.currentSegmentID()
 
         self.segmentMarkupNode.RemoveAllMarkups()
 
-        v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-        IjkToRasMatrix = vtk.vtkMatrix4x4()
-        v.GetIJKToRASMatrix(IjkToRasMatrix)
+        if segmentId:
+            v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
+            IjkToRasMatrix = vtk.vtkMatrix4x4()
+            v.GetIJKToRASMatrix(IjkToRasMatrix)
 
-        fPosStr = vtk.mutable("")
-        segment.GetTag("DExtr3DExtremePoints", fPosStr)
-        pointset = str(fPosStr)
-        logging.debug('{} => {} Extreme points are: {}'.format(segmentID, label, pointset))
+            fPosStr = vtk.mutable("")
+            segment.GetTag("AIAA.DExtr3DExtremePoints", fPosStr)
+            pointset = str(fPosStr)
+            logging.debug('{} => {} Extreme points are: {}'.format(segmentId, segment.GetName(), pointset))
 
-        if fPosStr is not None and len(pointset) > 0:
-            points = json.loads(pointset)
-            for p in points:
-                p_Ijk = [p[0], p[1], p[2], 1.0]
-                p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
-                logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
-                self.segmentMarkupNode.AddFiducialFromArray(p_Ras[0:3])
+            if fPosStr is not None and len(pointset) > 0:
+                points = json.loads(pointset)
+                for p in points:
+                    p_Ijk = [p[0], p[1], p[2], 1.0]
+                    p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
+                    logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
+                    self.segmentMarkupNode.AddFiducialFromArray(p_Ras[0:3])
+
         self.updateGUIFromMRML()
 
     def reset(self):
-        if self.fiducialPlacementToggle.placeModeEnabled:
-            self.fiducialPlacementToggle.setPlaceModeEnabled(False)
+        if self.ui.fiducialPlacementWidget.placeModeEnabled:
+            self.ui.fiducialPlacementWidget.setPlaceModeEnabled(False)
 
         if self.segmentMarkupNode:
             slicer.mrmlScene.RemoveNode(self.segmentMarkupNode)
             self.setAndObserveSegmentMarkupNode(None)
 
     def activate(self):
-        logging.debug('+++ Activated')
+        logging.debug('NVidia AIAA effect activated')
+
+        if not self.logic:
+            self.logic = AIAALogic()
+            self.logic.scriptedEffect = self.scriptedEffect
+            self.logic.setProgressCallback(progress_callback=lambda progressPercentage: self.reportProgress(progressPercentage))
+
         self.isActivated = True
         self.scriptedEffect.showEffectCursorInSliceView = False
+
+        self.updateServerUrlGUIFromSettings()
 
         # Create empty markup fiducial node
         if not self.segmentMarkupNode:
             self.createNewMarkupNode()
-            self.fiducialPlacementToggle.setCurrentNode(self.segmentMarkupNode)
+            self.ui.fiducialPlacementWidget.setCurrentNode(self.segmentMarkupNode)
             self.setAndObserveSegmentMarkupNode(self.segmentMarkupNode)
-            self.fiducialPlacementToggle.setPlaceModeEnabled(False)
+            self.ui.fiducialPlacementWidget.setPlaceModeEnabled(False)
 
         self.updateGUIFromMRML()
 
-        self.onClickModels()
-        if self.connectedToEditorForSegmentChange is False:
-            self.connectedToEditorForSegmentChange = True
-            editorWidget = slicer.modules.segmenteditor.widgetRepresentation().self()
-            getattr(editorWidget.editor.currentSegmentIDChanged, "connect")(self.onCurrentSegmentIDChanged)
+        self.onClickFetchModels()
+
+        self.observeParameterNode(True)
+        self.observeSegmentation(True)
 
     def deactivate(self):
-        logging.debug('+++ DeActivated')
+        logging.debug('NVidia AIAA effect deactivated')
         self.isActivated = False
+        self.observeSegmentation(False)
+        self.observeParameterNode(False)
         self.reset()
 
     def createCursor(self, widget):
@@ -444,41 +432,183 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return slicer.util.mainWindow().cursor
 
     def setMRMLDefaults(self):
-        pass
+        self.scriptedEffect.setParameterDefault("ModelFilterLabel", "")
+        self.scriptedEffect.setParameterDefault("SegmentationModel", "")
+        self.scriptedEffect.setParameterDefault("AnnotationModel", "")
+        self.scriptedEffect.setParameterDefault("AnnotationModelFiltered", 0)
+
+    def observeParameterNode(self, observationEnabled):
+        parameterSetNode = self.scriptedEffect.parameterSetNode()
+        if observationEnabled and self.observedParameterSetNode == parameterSetNode:
+          return
+        if not observationEnabled and not self.observedSegmentation:
+          return
+        # Need to update the observer
+        # Remove old observer
+        if self.observedParameterSetNode:
+          for tag in self.parameterSetNodeObserverTags:
+            self.observedParameterSetNode.RemoveObserver(tag)
+          self.parameterSetNodeObserverTags = []
+          self.observedParameterSetNode = None
+        # Add new observer
+        if observationEnabled and parameterSetNode is not None:
+          self.observedParameterSetNode = parameterSetNode
+          observedEvents = [
+            vtk.vtkCommand.ModifiedEvent
+            ]
+          for eventId in observedEvents:
+            self.parameterSetNodeObserverTags.append(self.observedParameterSetNode.AddObserver(eventId, self.onParameterSetNodeModified))
+
+    def observeSegmentation(self, observationEnabled):
+        segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
+        segmentation = segmentationNode.GetSegmentation() if segmentationNode else None
+        if observationEnabled and self.observedSegmentation == segmentation:
+          return
+        if not observationEnabled and not self.observedSegmentation:
+          return
+        # Need to update the observer
+        # Remove old observer
+        if self.observedSegmentation:
+          for tag in self.segmentationNodeObserverTags:
+            self.observedSegmentation.RemoveObserver(tag)
+          self.segmentationNodeObserverTags = []
+          self.observedSegmentation = None
+        # Add new observer
+        if observationEnabled and segmentation is not None:
+          self.observedSegmentation = segmentation
+          observedEvents = [
+            slicer.vtkSegmentation.SegmentModified
+            ]
+          for eventId in observedEvents:
+            self.segmentationNodeObserverTags.append(self.observedSegmentation.AddObserver(eventId, self.onSegmentationModified))
+
+    def onParameterSetNodeModified(self, caller, event):
+        self.updateGUIFromMRML()
+
+    def onSegmentationModified(self, caller, event):
+        self.updateGUIFromMRML()
+
+    def updateServerUrlGUIFromSettings(self):
+        # Save current server URL to the top of history
+        settings = qt.QSettings()
+        serverUrlHistory = settings.value("NVIDIA-AIAA/serverUrlHistory")
+        wasBlocked = self.ui.serverComboBox.blockSignals(True)
+        self.ui.serverComboBox.clear()
+        if serverUrlHistory:
+            self.ui.serverComboBox.addItems(serverUrlHistory.split(";"))
+        self.ui.serverComboBox.setCurrentText(settings.value("NVIDIA-AIAA/serverUrl"))
+        self.ui.serverComboBox.blockSignals(wasBlocked)
 
     def updateGUIFromMRML(self):
-        if self.segmentMarkupNode:
-            self.dextr3DButton.setEnabled(self.segmentMarkupNode.GetNumberOfFiducials() >= 6)
-        else:
-            self.dextr3DButton.setEnabled(False)
+        modelFilterLabel = self.scriptedEffect.parameter("ModelFilterLabel") if self.scriptedEffect.parameterDefined("ModelFilterLabel") else ""
+        wasBlocked = self.ui.modelFilterLabelLineEdit.blockSignals(True)
+        self.ui.modelFilterLabelLineEdit.setText(modelFilterLabel)
+        self.ui.modelFilterLabelLineEdit.blockSignals(wasBlocked)
 
-        segmentID = self.scriptedEffect.parameterSetNode().GetSelectedSegmentID()
-        segmentationNode = self.scriptedEffect.parameterSetNode().GetSegmentationNode()
-        if segmentID and segmentationNode and self.annotationModelSelector.count > 0:
-            segment = segmentationNode.GetSegmentation().GetSegment(segmentID)
-            self.annoEditButton.setEnabled(True)
-            self.annoEditButton.setVisible(segment.HasTag("DExtr3DExtremePoints"))
+        annotationModelFiltered = self.scriptedEffect.integerParameter("AnnotationModelFiltered") != 0
+        wasBlocked = self.ui.annotationModelFilterPushButton.blockSignals(True)
+        self.ui.annotationModelFilterPushButton.checked = annotationModelFiltered
+        self.ui.annotationModelFilterPushButton.blockSignals(wasBlocked)
+
+        wasSegmentationModelSelectorBlocked = self.ui.segmentationModelSelector.blockSignals(True)
+        wasAnnotationModelSelectorBlocked = self.ui.annotationModelSelector.blockSignals(True)
+        self.ui.segmentationModelSelector.clear()
+        self.ui.annotationModelSelector.clear()
+        currentSegment = self.currentSegment()
+        currentSegmentName = currentSegment.GetName().lower() if currentSegment else ""
+        for model_name, model in self.models.items():
+            if model['type'] == 'segmentation':
+                modelWidget = self.ui.segmentationModelSelector
+            else:
+                if annotationModelFiltered and not (currentSegmentName in model_name.lower()):
+                    continue
+                modelWidget = self.ui.annotationModelSelector
+            modelWidget.addItem(model_name)
+            modelWidget.setItemData(modelWidget.count-1, model['description'], qt.Qt.ToolTipRole)
+
+        segmentationModel = self.scriptedEffect.parameter("SegmentationModel") if self.scriptedEffect.parameterDefined("SegmentationModel") else ""
+        segmentationModelIndex = self.ui.segmentationModelSelector.findText(segmentationModel)
+        self.ui.segmentationModelSelector.setCurrentIndex(segmentationModelIndex)
+        try:
+            modelInfo = self.models[segmentationModel]
+            self.ui.segmentationModelSelector.setToolTip(modelInfo["description"])
+        except:
+            self.ui.segmentationModelSelector.setToolTip("")
+
+        annotationModel = vtk.mutable("")
+        currentSegment = self.currentSegment()
+        if currentSegment:
+            currentSegment.GetTag("AIAA.AnnotationModel", annotationModel)
+        annotationModelIndex = self.ui.annotationModelSelector.findText(annotationModel)
+        self.ui.annotationModelSelector.setCurrentIndex(annotationModelIndex)
+        try:
+            modelInfo = self.models[annotationModel]
+            self.ui.annotationModelSelector.setToolTip(modelInfo["description"])
+        except:
+            self.ui.annotationModelSelector.setToolTip("")
+
+        self.ui.segmentationModelSelector.blockSignals(wasSegmentationModelSelectorBlocked)
+        self.ui.annotationModelSelector.blockSignals(wasAnnotationModelSelectorBlocked)
+
+        self.ui.segmentationButton.setEnabled(self.ui.segmentationModelSelector.currentText)
+
+        if self.currentSegment() and self.segmentMarkupNode and self.ui.annotationModelSelector.currentText:
+            numberOfDefinedPoints = self.segmentMarkupNode.GetNumberOfDefinedControlPoints()
+            if numberOfDefinedPoints >= 6:
+                self.ui.annotationButton.setEnabled(True)
+                self.ui.annotationButton.setToolTip("Segment the object based on specified boundary points")
+            else:
+                self.ui.annotationButton.setEnabled(False)
+                self.ui.annotationButton.setToolTip("Not enough points. Place at least 6 points near the boundaries of the object (one or more on each side).")
+        else:
+            self.ui.annotationButton.setEnabled(False)
+            self.ui.annotationButton.setToolTip("Select a segment from the segment list and place boundary points.")
+
+        segment = self.currentSegment()
+        self.ui.fiducialEditButton.setEnabled(segment and segment.HasTag("AIAA.DExtr3DExtremePoints"))
 
     def updateMRMLFromGUI(self):
-        pass
 
-    def onFiducialPlacementToggleChanged(self):
-        if self.fiducialPlacementToggle.placeButton().isChecked():
-            # Create empty markup fiducial node
-            if self.segmentMarkupNode is None:
-                self.createNewMarkupNode()
-                self.fiducialPlacementToggle.setCurrentNode(self.segmentMarkupNode)
+        wasModified = self.scriptedEffect.parameterSetNode().StartModify()
+        self.scriptedEffect.setParameter("ModelFilterLabel", self.ui.modelFilterLabelLineEdit.text)
+
+        segmentationModelIndex = self.ui.segmentationModelSelector.currentIndex
+        if segmentationModelIndex >= 0:
+            # Only overwrite segmentation model in MRML node if there is a valid selection
+            # (to not clear the model if it is temporarily not available)
+            segmentationModel = self.ui.segmentationModelSelector.itemText(segmentationModelIndex)
+            self.scriptedEffect.setParameter("SegmentationModel", segmentationModel)
+
+        annotationModelIndex = self.ui.annotationModelSelector.currentIndex
+        if annotationModelIndex >= 0:
+            # Only overwrite annotation model in MRML node if there is a valid selection
+            # (to not clear the model if it is temporarily not available)
+            annotationModel = self.ui.annotationModelSelector.itemText(annotationModelIndex)
+            currentSegment = self.currentSegment()
+            if currentSegment:
+                currentSegment.SetTag("AIAA.AnnotationModel", annotationModel)
+
+        self.scriptedEffect.setParameter("AnnotationModelFiltered", 1 if self.ui.annotationModelFilterPushButton.checked else 0)
+        self.scriptedEffect.parameterSetNode().EndModify(wasModified)
+
+    def onfiducialPlacementWidgetChanged(self):
+        if self.segmentMarkupNode or not self.ui.fiducialPlacementWidget.placeButton().isChecked():
+            return
+        # Create empty markup fiducial node if it does not exist already
+        self.createNewMarkupNode()
+        self.ui.fiducialPlacementWidget.setCurrentNode(self.segmentMarkupNode)
 
     def createNewMarkupNode(self):
         # Create empty markup fiducial node
-        if self.segmentMarkupNode is None:
-            displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
-            displayNode.SetTextScale(0)
-            self.segmentMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
-            self.segmentMarkupNode.SetName('A')
-            self.segmentMarkupNode.SetAndObserveDisplayNodeID(displayNode.GetID())
-            self.setAndObserveSegmentMarkupNode(self.segmentMarkupNode)
-            self.updateGUIFromMRML()
+        if self.segmentMarkupNode:
+            return
+        displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
+        displayNode.SetTextScale(0)
+        self.segmentMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
+        self.segmentMarkupNode.SetName('A')
+        self.segmentMarkupNode.SetAndObserveDisplayNodeID(displayNode.GetID())
+        self.setAndObserveSegmentMarkupNode(self.segmentMarkupNode)
+        self.updateGUIFromMRML()
 
     def setAndObserveSegmentMarkupNode(self, segmentMarkupNode):
         if segmentMarkupNode == self.segmentMarkupNode and self.segmentMarkupNodeObservers:
@@ -494,13 +624,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         # Set and observe new parameter node
         self.segmentMarkupNode = segmentMarkupNode
         if self.segmentMarkupNode:
-            if (slicer.app.majorVersion >= 5) or (slicer.app.majorVersion >= 4 and slicer.app.minorVersion >= 11):
-                eventIds = [vtk.vtkCommand.ModifiedEvent,
-                            slicer.vtkMRMLMarkupsNode.PointModifiedEvent,
-                            slicer.vtkMRMLMarkupsNode.PointAddedEvent,
-                            slicer.vtkMRMLMarkupsNode.PointRemovedEvent]
-            else:
-                eventIds = [vtk.vtkCommand.ModifiedEvent]
+            eventIds = [vtk.vtkCommand.ModifiedEvent,
+                        slicer.vtkMRMLMarkupsNode.PointModifiedEvent,
+                        slicer.vtkMRMLMarkupsNode.PointAddedEvent,
+                        slicer.vtkMRMLMarkupsNode.PointRemovedEvent]
             for eventId in eventIds:
                 self.segmentMarkupNodeObservers.append(
                     self.segmentMarkupNode.AddObserver(eventId, self.onSegmentMarkupNodeModified))
@@ -518,69 +645,76 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def interactionNodeModified(self, interactionNode):
         self.updateGUIFromMRML()
 
-
-# Create Single AIAA Client Instance
-aiaaClient = AIAAClient()
-volumeToImageFiles = dict()
-
-# TODO:: Support multiple slicer instances running in same box
-aiaa_tmpdir = os.path.join(tempfile.gettempdir(), 'slicer-aiaa')
-shutil.rmtree(aiaa_tmpdir, ignore_errors=True)
-if not os.path.exists(aiaa_tmpdir):
-    os.makedirs(aiaa_tmpdir)
-
-
-def goodbye():
-    print('GOOD BYE!! Removing Temp Dir: {}'.format(aiaa_tmpdir))
-    shutil.rmtree(aiaa_tmpdir, ignore_errors=True)
-
-
-atexit.register(goodbye)
-
-
 class AIAALogic():
-    def __init__(self, server_url='http://0.0.0.0:5000', server_version='v1', progress_callback=None):
-        logging.debug('Using AIAA: {}'.format(server_url))
-        self.progress_callback = progress_callback
+    def __init__(self, server_url=None, server_version=None, progress_callback=None):
 
-        aiaaClient.server_url = server_url
-        aiaaClient.api_version = server_version
-        self.client = aiaaClient
+        self.aiaa_tmpdir = slicer.util.tempDirectory('slicer-aiaa')
+        self.volumeToImageFiles = dict()
+        self.progress_callback = progress_callback
+        self.useCompression = True
+
+        # Create Single AIAA Client Instance
+        self.aiaaClient = AIAAClient()
+        self.setServer(server_url, server_version)
+
+    def __del__(self):
+        shutil.rmtree(self.aiaa_tmpdir, ignore_errors=True)
+
+    def inputFileExtension(self):
+        return ".nii.gz" if self.useCompression else ".nii"
+
+    def outputFileExtension(self):
+        # output is currently always generated as .nii.gz
+        return ".nii.gz"
+
+    def setServer(self, server_url=None, server_version=None):
+        if not server_url:
+            server_url='http://0.0.0.0:5000'
+        if not server_version:
+            server_version='v1'
+        logging.debug('Using AIAA server {}: {}'.format(server_version, server_url))
+        self.aiaaClient.server_url = server_url
+        self.aiaaClient.api_version = server_version
+
+    def setUseCompression(self, useCompression):
+        self.useCompression = useCompression
+
+    def setProgressCallback(self, progress_callback=None):
+        self.progress_callback = progress_callback
 
     def reportProgress(self, progress):
         if self.progress_callback:
             self.progress_callback(progress)
 
     def list_models(self, label=None):
-        self.reportProgress(0)
+        #self.reportProgress(0)
         logging.debug('Fetching List of Models for label: {}'.format(label))
-        result = self.client.model_list(label)
-        self.reportProgress(100)
+        result = self.aiaaClient.model_list(label)
+        #self.reportProgress(100)
         return result
 
+    def nodeCacheKey(self, mrmlNode):
+        return mrmlNode.GetID()+"*"+str(mrmlNode.GetMTime())
+
     def segmentation(self, model, inputVolume):
+        logging.debug('Preparing input data for segmentation')
         self.reportProgress(0)
-        logging.debug('Preparing for Segmentation Action')
-
-        node_id = inputVolume.GetID()
-        in_file = volumeToImageFiles.get(node_id)
-        logging.debug('Node Id: {} => {}'.format(node_id, in_file))
-
+        in_file = self.volumeToImageFiles.get(self.nodeCacheKey(inputVolume))
         if in_file is None:
-            in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz', dir=aiaa_tmpdir).name
-
+            # No cached file
+            in_file = tempfile.NamedTemporaryFile(suffix=self.inputFileExtension(), dir=self.aiaa_tmpdir).name
             self.reportProgress(5)
+            start = time.time()
             slicer.util.saveNode(inputVolume, in_file)
-
-            volumeToImageFiles[node_id] = in_file
-            logging.debug('Saved Input Node into: {}'.format(in_file))
+            logging.info('Saved Input Node into {0} in {1:3.1f}s'.format(in_file, time.time() - start))
+            self.volumeToImageFiles[self.nodeCacheKey(inputVolume)] = in_file
         else:
-            logging.debug('Using Saved Node from: {}'.format(in_file))
+            logging.debug('Using cached image file: {}'.format(in_file))
 
         self.reportProgress(30)
 
-        result_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
-        params = self.client.segmentation(model, in_file, result_file, save_doc=True)
+        result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
+        params = self.aiaaClient.segmentation(model, in_file, result_file, save_doc=True)
 
         extreme_points = params.get('points', params.get('extreme_points'))
         logging.debug('Extreme Points: {}'.format(extreme_points))
@@ -590,20 +724,22 @@ class AIAALogic():
 
     def dextr3d(self, model, pointset, inputVolume, modelInfo):
         self.reportProgress(0)
+
         logging.debug('Preparing for Annotation/Dextr3D Action')
 
         node_id = inputVolume.GetID()
-        in_file = volumeToImageFiles.get(node_id)
+        in_file = self.volumeToImageFiles.get(self.nodeCacheKey(inputVolume))
         logging.debug('Node Id: {} => {}'.format(node_id, in_file))
 
         if in_file is None:
-            in_file = tempfile.NamedTemporaryFile(suffix='.nii.gz', dir=aiaa_tmpdir).name
+            in_file = tempfile.NamedTemporaryFile(suffix=self.inputFileExtension(), dir=self.aiaa_tmpdir).name
 
             self.reportProgress(5)
+            start = time.time()
             slicer.util.saveNode(inputVolume, in_file)
+            logging.info('Saved Input Node into {0} in {1:3.1f}s'.format(in_file, time.time() - start))
 
-            volumeToImageFiles[node_id] = in_file
-            logging.debug('Saved Input Node into: {}'.format(in_file))
+            self.volumeToImageFiles[self.nodeCacheKey(inputVolume)] = in_file
         else:
             logging.debug('Using Saved Node from: {}'.format(in_file))
 
@@ -616,8 +752,8 @@ class AIAALogic():
             pad = modelInfo['padding']
             roi_size = 'x'.join(map(str, modelInfo['roi']))
 
-        result_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
-        self.client.dextr3d(model, pointset, in_file, result_file, pad, roi_size)
+        result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
+        self.aiaaClient.dextr3d(model, pointset, in_file, result_file, pad, roi_size)
 
         self.reportProgress(100)
         return result_file

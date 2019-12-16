@@ -61,18 +61,26 @@ class _ui_SegmentEditorNvidiaAIAASettingsPanel(object):
     aiaaGroupBox.title = "AI-Assisted Annotation Server"
     aiaaGroupLayout = qt.QFormLayout(aiaaGroupBox)
 
-    serverUrl = qt.QLineEdit("http://0.0.0.0:5000")
-    aiaaGroupLayout.addRow("Server IP:", serverUrl)
+    serverUrl = qt.QLineEdit()
+    aiaaGroupLayout.addRow("Server address:", serverUrl)
     parent.registerProperty(
       "NVIDIA-AIAA/serverUrl", serverUrl,
       "text", str(qt.SIGNAL("textChanged(QString)")))
 
-    filterByLabel = qt.QCheckBox()
-    filterByLabel.setChecked(True)
-    aiaaGroupLayout.addRow("Filter By Label:", filterByLabel)
-    filterByLabelMapper = ctk.ctkBooleanMapper(filterByLabel, "checked", str(qt.SIGNAL("toggled(bool)")))
+    serverUrlHistory = qt.QLineEdit()
+    aiaaGroupLayout.addRow("Server address history:", serverUrlHistory)
     parent.registerProperty(
-      "NVIDIA-AIAA/filterByLabel", filterByLabelMapper,
+      "NVIDIA-AIAA/serverUrlHistory", serverUrlHistory,
+      "text", str(qt.SIGNAL("textChanged(QString)")))
+
+    compressDataCheckBox = qt.QCheckBox()
+    compressDataCheckBox.checked = True
+    compressDataCheckBox.toolTip = ("Enable this option on computer with slow network upload speed."
+      " Data compression reduces network transfer time but increases preprocessing time.")
+    aiaaGroupLayout.addRow("Compress data:", compressDataCheckBox)
+    compressDataMapper = ctk.ctkBooleanMapper(compressDataCheckBox, "checked", str(qt.SIGNAL("toggled(bool)")))
+    parent.registerProperty(
+      "NVIDIA-AIAA/compressData", compressDataMapper,
       "valueAsInt", str(qt.SIGNAL("valueAsIntChanged(int)")))
 
     vBoxLayout.addWidget(aiaaGroupBox)

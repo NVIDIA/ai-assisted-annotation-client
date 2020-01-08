@@ -135,6 +135,7 @@ class AIAAClient:
         logger.debug('Using Fields: {}'.format(fields))
         logger.debug('Using Files: {}'.format(files))
 
+        self.doc_id = None
         form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
         form = json.loads(form) if isinstance(form, str) else form
 

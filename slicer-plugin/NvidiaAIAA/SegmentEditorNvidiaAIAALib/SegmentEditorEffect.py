@@ -714,7 +714,7 @@ class AIAALogic():
         self.reportProgress(30)
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
-        params = self.aiaaClient.segmentation(model, in_file, result_file, save_doc=True)
+        params = self.aiaaClient.segmentation(model, in_file, result_file, save_doc=False)
 
         extreme_points = params.get('points', params.get('extreme_points'))
         logging.debug('Extreme Points: {}'.format(extreme_points))

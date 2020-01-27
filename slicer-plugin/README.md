@@ -17,7 +17,7 @@ If you have any questions or suggestions, post it on [3D Slicer forum](https://d
 - Install NvidiaAIAssistedAnnotation extension (in Segmentation category), wait for the installation to complete, and click Restart
 - Optional: set annotation server settings in menu: Edit / Application settings / NVidia. If server address is left empty then a default public server will be used. There is no guarantee for availability of the server or quality of the offered models.
 
-To set up your own segmentation server, follow [these instructions](https://docs.nvidia.com/clara/aiaa/tlt-mi-ai-an-sdk-getting-started/index.html). For running pre-trained models A moderate desktop computer with strong NVidia GPU (for example, a few years old computer with 8GB memory and an RTX 2070 GPU) will suffice. Linux operating system is required on the server.
+To set up your own segmentation server, follow [these instructions](https://docs.nvidia.com/clara/tlt-mi/clara-train-sdk-v2.0/aiaa/index.html). For running pre-trained models A moderate desktop computer with strong NVidia GPU (for example, a few years old computer with 8GB memory and an RTX 2070 GPU) will suffice. Linux operating system is required on the server.
 
 The computer running 3D Slicer does not have any special requirements to run AI-assisted segmentation. Fast network upload speed is recommended for large data sets, as segmentation typically takes just seconds, while image data transfer takes minutes.
 

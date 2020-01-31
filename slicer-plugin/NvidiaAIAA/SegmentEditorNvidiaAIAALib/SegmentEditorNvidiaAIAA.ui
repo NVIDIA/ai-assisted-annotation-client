@@ -87,6 +87,9 @@
      <property name="text">
       <string>Auto-segmentation</string>
      </property>
+     <property name="collapsed">
+      <bool>true</bool>
+     </property>
      <property name="collapsedHeight">
       <number>9</number>
      </property>
@@ -125,10 +128,14 @@
      </layout>
     </widget>
    </item>
+
    <item>
     <widget class="ctkCollapsibleButton" name="annotationCollapsibleButton">
      <property name="text">
       <string>Segment from boundary points (DExtr3D)</string>
+     </property>
+     <property name="collapsed">
+      <bool>true</bool>
      </property>
      <property name="collapsedHeight">
       <number>9</number>
@@ -152,7 +159,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="qSlicerMarkupsPlaceWidget" name="fiducialPlacementWidget">
+       <widget class="qSlicerMarkupsPlaceWidget" name="annotationFiducialPlacementWidget">
         <property name="buttonsVisible">
          <bool>true</bool>
         </property>
@@ -162,7 +169,7 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QPushButton" name="fiducialEditButton">
+       <widget class="QPushButton" name="annotationFiducialEditButton">
         <property name="enabled">
          <bool>false</bool>
         </property>
@@ -225,8 +232,53 @@
      </layout>
     </widget>
    </item>
+
+   <item>
+    <widget class="ctkCollapsibleButton" name="deepgrowCollapsibleButton">
+     <property name="text">
+      <string>Segment from DeepGrow</string>
+     </property>
+     <property name="collapsedHeight">
+      <number>9</number>
+     </property>
+
+     <layout class="QGridLayout" name="gridLayout_3">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Foreground (+ve) Points:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="qSlicerMarkupsPlaceWidget" name="dgPositiveFiducialPlacementWidget">
+        <property name="placeMultipleMarkups">
+         <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
+        </property>
+       </widget>
+      </item>
+
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>Background (-ve) Points:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="qSlicerMarkupsPlaceWidget" name="dgNegativeFiducialPlacementWidget">
+        <property name="placeMultipleMarkups">
+         <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+
   </layout>
  </widget>
+
  <customwidgets>
   <customwidget>
    <class>ctkCollapsibleButton</class>

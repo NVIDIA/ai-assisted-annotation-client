@@ -32,8 +32,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.models = OrderedDict()
 
         # Effect-specific members
-        self.segmentMarkupNode = None
-        self.segmentMarkupNodeObservers = []
+        self.annotationFiducialNode = None
+        self.annotationFiducialNodeObservers = []
+
+        self.dgPositiveFiducialNode = None
+        self.dgPositiveFiducialNodeObservers = []
+        self.dgNegativeFiducialNode = None
+        self.dgNegativeFiducialNodeObservers = []
 
         self.connectedToEditorForSegmentChange = False
         self.isActivated = False
@@ -93,23 +98,26 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.segmentationButton.setIcon(self.icon('nvidia-icon.png'))
         self.ui.annotationModelFilterPushButton.setIcon(self.icon('filter-icon.png'))
         self.ui.fetchModelsButton.setIcon(slicer.util.mainWindow().style().standardIcon(qt.QStyle.SP_BrowserReload))
-        self.ui.fiducialEditButton.setIcon(self.icon('edit-icon.png'))
         self.ui.annotationButton.setIcon(self.icon('nvidia-icon.png'))
 
-        self.ui.fiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
-        self.ui.fiducialPlacementWidget.buttonsVisible = False
-        self.ui.fiducialPlacementWidget.show()
-        self.ui.fiducialPlacementWidget.placeButton().show()
-        self.ui.fiducialPlacementWidget.deleteButton().show()
+        self.ui.annotationFiducialEditButton.setIcon(self.icon('edit-icon.png'))
+        self.ui.annotationFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
+        #self.ui.annotationFiducialPlacementWidget.placeButton().show()
+        #self.ui.annotationFiducialPlacementWidget.deleteButton().show()
+
+        self.ui.dgPositiveFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
+        self.ui.dgPositiveFiducialPlacementWidget.placeButton().toolTip = "Select +ve points"
+
+        self.ui.dgNegativeFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
+        self.ui.dgNegativeFiducialPlacementWidget.placeButton().toolTip = "Select -ve points"
 
         # Connections
         self.ui.fetchModelsButton.connect('clicked(bool)', self.onClickFetchModels)
         self.ui.segmentationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
         self.ui.segmentationButton.connect('clicked(bool)', self.onClickSegmentation)
         self.ui.annotationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
-        self.ui.fiducialEditButton.connect('clicked(bool)', self.onClickEditPoints)
         self.ui.annotationModelFilterPushButton.connect('toggled(bool)', self.updateMRMLFromGUI)
-        self.ui.fiducialPlacementWidget.placeButton().clicked.connect(self.onfiducialPlacementWidgetChanged)
+        self.ui.annotationFiducialEditButton.connect('clicked(bool)', self.onClickEditAnnotationFiducialPoints)
         self.ui.annotationButton.connect('clicked(bool)', self.onClickAnnotation)
 
     def onCurrentSegmentIDChanged(self, segmentID):
@@ -134,7 +142,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.logic.setUseCompression(slicer.util.settingsValue("NVIDIA-AIAA/compressData", True, converter=slicer.util.toBool))
 
     def onClickFetchModels(self):
-
         self.updateMRMLFromGUI()
 
         # Save selected server URL
@@ -152,6 +159,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             serverUrlHistory.remove(serverUrl)
         except ValueError:
             pass
+
         serverUrlHistory.insert(0, serverUrl)
         serverUrlHistory = serverUrlHistory[:10]  # keep up to first 10 elements
         settings.setValue("NVIDIA-AIAA/serverUrlHistory", ";".join(serverUrlHistory))
@@ -190,6 +198,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         msg += 'Segmentation Models: \t' + str(self.ui.segmentationModelSelector.count) + '\t\n'
         msg += 'Annotation Models: \t' + str(self.ui.annotationModelSelector.count) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
+
         # qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
         logging.debug(msg)
         logging.info("Time consumed by onClickFetchModels: {0:3.1f}".format(time.time() - start))
@@ -214,10 +223,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         modelLabels = modelInfo['labels']
         numberOfAddedSegments = segmentation.GetNumberOfSegments() - numberOfExistingSegments
         logging.debug('Adding {} segments'.format(numberOfAddedSegments))
+
         addedSegmentIds = [segmentation.GetNthSegmentID(numberOfExistingSegments + i) for i in range(numberOfAddedSegments)]
         for i, segmentId in enumerate(addedSegmentIds):
             segment = segmentation.GetSegment(segmentId)
-            if i==0 and overwriteCurrentSegment and currentSegment:
+            if i == 0 and overwriteCurrentSegment and currentSegment:
                 logging.debug('Update current segment with id: {} => {}'.format(segmentId, segment.GetName()))
                 # Copy labelmap representation to the current segment then remove the imported segment
                 labelmap = slicer.vtkOrientedImageData()
@@ -229,7 +239,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 if i<len(modelLabels):
                     segment.SetName(modelLabels[i])
                 else:
-                    # we did not get enough labels (for exampe annotation_mri_prostate_cg_and_pz model returns a labelmap with
+                    # we did not get enough labels (for example annotation_mri_prostate_cg_and_pz model returns a labelmap with
                     # 2 labels but in the model infor only 1 label is provided)
                     segment.SetName("unknown {}".format(i))
 
@@ -287,7 +297,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             extreme_points, result_file = self.logic.segmentation(model, inputVolume)
             if self.updateSegmentationMask(extreme_points, result_file, modelInfo):
                 result = 'SUCCESS'
-                self.segmentMarkupNode.RemoveAllMarkups()
                 self.updateGUIFromMRML()
         except:
             qt.QApplication.restoreOverrideCursor()
@@ -300,19 +309,18 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         msg = 'Run segmentation for ({0}): {1}\t\nTime Consumed: {2:3.1f} (sec)'.format(model, result, (time.time() - start))
         logging.info(msg)
+        self.onClickEditAnnotationFiducialPoints()
 
-        self.onClickEditPoints()
-
-    def getFiducialPointsXYZ(self):
+    def getFiducialPointsXYZ(self, fiducialNode):
         v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
         RasToIjkMatrix = vtk.vtkMatrix4x4()
         v.GetRASToIJKMatrix(RasToIjkMatrix)
 
         point_set = []
-        n = self.segmentMarkupNode.GetNumberOfFiducials()
+        n = fiducialNode.GetNumberOfFiducials()
         for i in range(n):
             coord = [0.0, 0.0, 0.0]
-            self.segmentMarkupNode.GetNthFiducialPosition(i, coord)
+            fiducialNode.GetNthFiducialPosition(i, coord)
 
             p_Ras = [coord[0], coord[1], coord[2], 1.0]
             p_Ijk = RasToIjkMatrix.MultiplyDoublePoint(p_Ras)
@@ -328,24 +336,25 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return
 
         start = time.time()
-        self.ui.fiducialPlacementWidget.placeModeEnabled = False
+        self.ui.annotationFiducialPlacementWidget.placeModeEnabled = False
+
         model = self.ui.annotationModelSelector.currentText
         label = self.currentSegment().GetName()
         operationDescription = 'Run Annotation for model: {} for segment: {}'.format(model, label)
         logging.debug(operationDescription)
         self.setProgressBarLabelText(operationDescription)
         slicer.app.processEvents()
+
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
             modelInfo = self.models[model]
-            pointSet = self.getFiducialPointsXYZ()
+            pointSet = self.getFiducialPointsXYZ(self.annotationFiducialNode)
             self.updateServerSettings()
             result_file = self.logic.dextr3d(model, pointSet, inputVolume, modelInfo)
             result = 'FAILED'
             if self.updateSegmentationMask(pointSet, result_file, modelInfo, overwriteCurrentSegment=True):
                 result = 'SUCCESS'
-                self.segmentMarkupNode.RemoveAllMarkups()
                 self.updateGUIFromMRML()
         except:
             qt.QApplication.restoreOverrideCursor()
@@ -358,40 +367,49 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         msg = 'Run annotation for ({0}): {1}\t\nTime Consumed: {2:3.1f} (sec)'.format(model, result, (time.time() - start))
         logging.info(msg)
+        self.onClickEditAnnotationFiducialPoints()
 
-    def onClickEditPoints(self):
+    def onClickEditAnnotationFiducialPoints(self):
+        self.onEditFiducialPoints(self.annotationFiducialNode, "AIAA.DExtr3DExtremePoints")
+
+    def onEditFiducialPoints(self, fiducialNode, tagName):
         segment = self.currentSegment()
         segmentId = self.currentSegmentID()
+        logging.debug('Current SegmentID: {}; Segment: {}'.format(segmentId, segment))
 
-        self.segmentMarkupNode.RemoveAllMarkups()
-
-        if segmentId:
+        if segment and segmentId:
             v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
             IjkToRasMatrix = vtk.vtkMatrix4x4()
             v.GetIJKToRASMatrix(IjkToRasMatrix)
 
             fPosStr = vtk.mutable("")
-            segment.GetTag("AIAA.DExtr3DExtremePoints", fPosStr)
+            segment.GetTag(tagName, fPosStr)
             pointset = str(fPosStr)
             logging.debug('{} => {} Extreme points are: {}'.format(segmentId, segment.GetName(), pointset))
 
             if fPosStr is not None and len(pointset) > 0:
                 points = json.loads(pointset)
+                fiducialNode.RemoveAllMarkups()
+
                 for p in points:
                     p_Ijk = [p[0], p[1], p[2], 1.0]
                     p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
                     logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
-                    self.segmentMarkupNode.AddFiducialFromArray(p_Ras[0:3])
+                    fiducialNode.AddFiducialFromArray(p_Ras[0:3])
 
         self.updateGUIFromMRML()
 
     def reset(self):
-        if self.ui.fiducialPlacementWidget.placeModeEnabled:
-            self.ui.fiducialPlacementWidget.setPlaceModeEnabled(False)
+        self.resetFiducial(self.ui.annotationFiducialPlacementWidget, self.annotationFiducialNode, self.annotationFiducialNodeObservers)
+        self.annotationFiducialNode = None
 
-        if self.segmentMarkupNode:
-            slicer.mrmlScene.RemoveNode(self.segmentMarkupNode)
-            self.setAndObserveSegmentMarkupNode(None)
+    def resetFiducial(self, fiducialWidget, fiducialNode, fiducialNodeObservers):
+        if fiducialWidget.placeModeEnabled:
+            fiducialWidget.setPlaceModeEnabled(False)
+
+        if fiducialNode:
+            slicer.mrmlScene.RemoveNode(fiducialNode)
+            self.removeFiducialNodeObservers(fiducialNode, fiducialNodeObservers)
 
     def activate(self):
         logging.debug('NVidia AIAA effect activated')
@@ -407,11 +425,20 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.updateServerUrlGUIFromSettings()
 
         # Create empty markup fiducial node
-        if not self.segmentMarkupNode:
-            self.createNewMarkupNode()
-            self.ui.fiducialPlacementWidget.setCurrentNode(self.segmentMarkupNode)
-            self.setAndObserveSegmentMarkupNode(self.segmentMarkupNode)
-            self.ui.fiducialPlacementWidget.setPlaceModeEnabled(False)
+        if not self.annotationFiducialNode:
+            self.annotationFiducialNode, self.annotationFiducialNodeObservers = self.createFiducialNode('A', self.onSegmentMarkupNodeModified)
+            self.ui.annotationFiducialPlacementWidget.setCurrentNode(self.annotationFiducialNode)
+            self.ui.annotationFiducialPlacementWidget.setPlaceModeEnabled(False)
+
+        # Create empty markup fiducial node for deep grow +ve and -ve
+        if not self.dgPositiveFiducialNode:
+            self.dgPositiveFiducialNode, self.dgPositiveFiducialNodeObservers = self.createFiducialNode('P', self.onSegmentMarkupNodeModified)
+            self.ui.dgPositiveFiducialPlacementWidget.setCurrentNode(self.dgPositiveFiducialNode)
+            self.ui.dgPositiveFiducialPlacementWidget.setPlaceModeEnabled(True)
+        if not self.dgNegativeFiducialNode:
+            self.dgNegativeFiducialNode, self.dgNegativeFiducialNodeObservers = self.createFiducialNode('N', self.onSegmentMarkupNodeModified)
+            self.ui.dgNegativeFiducialPlacementWidget.setCurrentNode(self.dgNegativeFiducialNode)
+            self.ui.dgNegativeFiducialPlacementWidget.setPlaceModeEnabled(True)
 
         self.updateGUIFromMRML()
 
@@ -552,8 +579,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         self.ui.segmentationButton.setEnabled(self.ui.segmentationModelSelector.currentText)
 
-        if self.currentSegment() and self.segmentMarkupNode and self.ui.annotationModelSelector.currentText:
-            numberOfDefinedPoints = self.segmentMarkupNode.GetNumberOfDefinedControlPoints()
+        if self.currentSegment() and self.annotationFiducialNode and self.ui.annotationModelSelector.currentText:
+            numberOfDefinedPoints = self.annotationFiducialNode.GetNumberOfDefinedControlPoints()
             if numberOfDefinedPoints >= 6:
                 self.ui.annotationButton.setEnabled(True)
                 self.ui.annotationButton.setToolTip("Segment the object based on specified boundary points")
@@ -565,7 +592,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.ui.annotationButton.setToolTip("Select a segment from the segment list and place boundary points.")
 
         segment = self.currentSegment()
-        self.ui.fiducialEditButton.setEnabled(segment and segment.HasTag("AIAA.DExtr3DExtremePoints"))
+        #self.ui.annotationFiducialEditButton.setEnabled(segment and segment.HasTag("AIAA.DExtr3DExtremePoints"))
+        #self.ui.annotationFiducialPlacementWidget.setPlaceModeEnabled(segment is not None)
 
     def updateMRMLFromGUI(self):
 
@@ -591,49 +619,32 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.scriptedEffect.setParameter("AnnotationModelFiltered", 1 if self.ui.annotationModelFilterPushButton.checked else 0)
         self.scriptedEffect.parameterSetNode().EndModify(wasModified)
 
-    def onfiducialPlacementWidgetChanged(self):
-        if self.segmentMarkupNode or not self.ui.fiducialPlacementWidget.placeButton().isChecked():
-            return
-        # Create empty markup fiducial node if it does not exist already
-        self.createNewMarkupNode()
-        self.ui.fiducialPlacementWidget.setCurrentNode(self.segmentMarkupNode)
-
-    def createNewMarkupNode(self):
-        # Create empty markup fiducial node
-        if self.segmentMarkupNode:
-            return
+    def createFiducialNode(self, name, onMarkupNodeModified):
         displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
         displayNode.SetTextScale(0)
-        self.segmentMarkupNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
-        self.segmentMarkupNode.SetName('A')
-        self.segmentMarkupNode.SetAndObserveDisplayNodeID(displayNode.GetID())
-        self.setAndObserveSegmentMarkupNode(self.segmentMarkupNode)
-        self.updateGUIFromMRML()
+        fiducialNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
+        fiducialNode.SetName(name)
+        fiducialNode.SetAndObserveDisplayNodeID(displayNode.GetID())
 
-    def setAndObserveSegmentMarkupNode(self, segmentMarkupNode):
-        if segmentMarkupNode == self.segmentMarkupNode and self.segmentMarkupNodeObservers:
-            # no change and node is already observed
-            return
+        fiducialNodeObservers = []
+        self.addFiducialNodeObserver(fiducialNode, onMarkupNodeModified)
+        return fiducialNode, fiducialNodeObservers
 
-        # Remove observer to old parameter node
-        if self.segmentMarkupNode and self.segmentMarkupNodeObservers:
-            for observer in self.segmentMarkupNodeObservers:
-                self.segmentMarkupNode.RemoveObserver(observer)
-            self.segmentMarkupNodeObservers = []
+    def removeFiducialNodeObservers(self, fiducialNode, fiducialNodeObservers):
+        if fiducialNode and fiducialNodeObservers:
+            for observer in fiducialNodeObservers:
+                fiducialNode.RemoveObserver(observer)
 
-        # Set and observe new parameter node
-        self.segmentMarkupNode = segmentMarkupNode
-        if self.segmentMarkupNode:
+    def addFiducialNodeObserver(self, fiducialNode, onMarkupNodeModified):
+        fiducialNodeObservers = []
+        if fiducialNode:
             eventIds = [vtk.vtkCommand.ModifiedEvent,
                         slicer.vtkMRMLMarkupsNode.PointModifiedEvent,
                         slicer.vtkMRMLMarkupsNode.PointAddedEvent,
                         slicer.vtkMRMLMarkupsNode.PointRemovedEvent]
             for eventId in eventIds:
-                self.segmentMarkupNodeObservers.append(
-                    self.segmentMarkupNode.AddObserver(eventId, self.onSegmentMarkupNodeModified))
-
-        # Update GUI
-        self.updateModelFromSegmentMarkupNode()
+                fiducialNodeObservers.append(fiducialNode.AddObserver(eventId, onMarkupNodeModified))
+        return fiducialNodeObservers
 
     def onSegmentMarkupNodeModified(self, observer, eventid):
         self.updateModelFromSegmentMarkupNode()

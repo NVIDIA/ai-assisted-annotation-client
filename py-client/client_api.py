@@ -201,6 +201,50 @@ class AIAAClient:
         os.unlink(cropped_file)
         return params
 
+    def deepgrow(self, model, params, image_in, image_out, save_doc=False):
+        """
+        2D/3D image segmentation using DeepGrow method
+
+        :param model: model name according to the output of model_list()
+        :param params: params for deepgrow model e.g. foreground (+ve) clicks, background (-ve) clicks, etc..
+        :param image_in: input 2D/3D image file name
+        :param image_out: output files will be stored
+
+        Output 2D/3D binary mask will be saved to the specified file
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for DeepGrow Action')
+
+        # DeepGrow
+        selector = '/' + self.api_version + '/deepgrow?model=' + AIAAUtils.urllib_quote_plus(model)
+        selector += '&save_doc=' + ('true' if save_doc else 'false')
+        if self.doc_id:
+            selector += '&doc=' + AIAAUtils.urllib_quote_plus(self.doc_id)
+
+        fields = {'params': json.dumps(params)}
+        files = {'datapoint': image_in} if self.doc_id is None else {}
+
+        logger.debug('Using Selector: {}'.format(selector))
+        logger.debug('Using Fields: {}'.format(fields))
+        logger.debug('Using Files: {}'.format(files))
+
+        self.doc_id = None
+        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        form = json.loads(form) if isinstance(form, str) else form
+
+        params = form.get('params')
+        if params is None:
+            points = json.loads(form.get('points', '[]'))
+            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
+        else:
+            params = json.loads(params) if isinstance(params, str) else params
+
+        self.doc_id = params.get('doc')
+        logger.info('Saving Doc-ID: {}'.format(self.doc_id))
+
+        AIAAUtils.save_result(files, image_out)
+        return params
+
     def mask2polygon(self, image_in, point_ratio):
         """
         3D binary mask to polygon representation conversion

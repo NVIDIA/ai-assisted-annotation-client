@@ -204,7 +204,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         logging.debug(msg)
         logging.info("Time consumed by onClickFetchModels: {0:3.1f}".format(time.time() - start))
 
-    def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False):
+    def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False, unionLabel=False):
         start = time.time()
         logging.debug('Update Segmentation Mask from: {}'.format(in_file))
         if in_file is None or os.path.exists(in_file) is False:
@@ -233,7 +233,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 # Copy labelmap representation to the current segment then remove the imported segment
                 labelmap = slicer.vtkOrientedImageData()
                 segmentationNode.GetBinaryLabelmapRepresentation(segmentId, labelmap)
-                self.scriptedEffect.modifySelectedSegmentByLabelmap(labelmap, slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet)
+
+                labelOp = slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeAdd if unionLabel else slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet
+                self.scriptedEffect.modifySelectedSegmentByLabelmap(labelmap, labelOp)
                 segmentationNode.RemoveSegment(segmentId)
             else:
                 logging.debug('Setting new segmentation with id: {} => {}'.format(segmentId, segment.GetName()))
@@ -415,11 +417,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.updateServerSettings()
 
             #TODO:: Slice Index is currently from window A
-            result_file = self.logic.deepgrow(foreground, background, current_point[2], inputVolume)
+            slice_index = current_point[2]
+            result_file = self.logic.deepgrow(foreground, background, slice_index, inputVolume)
             result = 'FAILED'
 
             #TODO:: OR the segmentation mask instead of overwrite
-            if self.updateSegmentationMask(None, result_file, None, overwriteCurrentSegment=True):
+            if self.updateSegmentationMask(None, result_file, None, overwriteCurrentSegment=True, unionLabel=True):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except:

@@ -39,6 +39,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.dgPositiveFiducialNodeObservers = []
         self.dgNegativeFiducialNode = None
         self.dgNegativeFiducialNodeObservers = []
+        self.ignoreFiducialNodeAddEvent = False
 
         self.seedFiducialsNodeSelector = None
 
@@ -120,11 +121,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.annotationModelFilterPushButton.connect('toggled(bool)', self.updateMRMLFromGUI)
         self.ui.annotationFiducialEditButton.connect('clicked(bool)', self.onClickEditAnnotationFiducialPoints)
         self.ui.annotationButton.connect('clicked(bool)', self.onClickAnnotation)
-
-    def onCurrentSegmentIDChanged(self, segmentID):
-        logging.debug('onCurrentSegmentIDChanged: {}'.format(segmentID))
-        if self.isActivated:
-            self.updateGUIFromMRML()
 
     def currentSegment(self):
         pnode = self.scriptedEffect.parameterSetNode()
@@ -234,6 +230,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 labelmap = slicer.vtkOrientedImageData()
                 segmentationNode.GetBinaryLabelmapRepresentation(segmentId, labelmap)
 
+                # TODO:: Reset current slice and then union/add
                 labelOp = slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeAdd if unionLabel else slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet
                 self.scriptedEffect.modifySelectedSegmentByLabelmap(labelmap, labelOp)
                 segmentationNode.RemoveSegment(segmentId)
@@ -389,7 +386,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.onClickEditAnnotationFiducialPoints()
 
     def onClickDeepgrow(self, current_point):
-        if not self.currentSegment():
+        segment = self.currentSegment()
+        if not segment:
             return
 
         if not self.getPermissionForImageDataUpload():
@@ -401,12 +399,20 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         operationDescription = 'Run Deepgrow for for segment: {}'.format(label)
         logging.debug(operationDescription)
 
+        showProgressBar = not self.logic.is_doc_saved()
+        if showProgressBar:
+            self.setProgressBarLabelText(operationDescription)
+            slicer.app.processEvents()
+
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
             inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
 
             foreground_all = self.getFiducialPointsXYZ(self.dgPositiveFiducialNode)
             background_all = self.getFiducialPointsXYZ(self.dgNegativeFiducialNode)
+
+            segment.SetTag("AIAA.ForegroundPoints", json.dumps(foreground_all))
+            segment.SetTag("AIAA.BackgroundPoints", json.dumps(background_all))
 
             foreground = [x for x in foreground_all if x[2] == current_point[2]]
             background = [x for x in background_all if x[2] == current_point[2]]
@@ -421,16 +427,19 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             result_file = self.logic.deepgrow(foreground, background, slice_index, inputVolume)
             result = 'FAILED'
 
-            #TODO:: OR the segmentation mask instead of overwrite
             if self.updateSegmentationMask(None, result_file, None, overwriteCurrentSegment=True, unionLabel=True):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except:
+            if showProgressBar:
+                self.progressBar.hide()
             qt.QApplication.restoreOverrideCursor()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
 
         qt.QApplication.restoreOverrideCursor()
+        if showProgressBar:
+            self.progressBar.hide()
         msg = 'Run deepgrow for ({0}): {1}\t\nTime Consumed: {2:3.1f} (sec)'.format(label, result, (time.time() - start))
         logging.info(msg)
 
@@ -442,7 +451,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         segmentId = self.currentSegmentID()
         logging.debug('Current SegmentID: {}; Segment: {}'.format(segmentId, segment))
 
-        if segment and segmentId:
+        if fiducialNode and segment and segmentId:
+            fiducialNode.RemoveAllMarkups()
+
             v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
             IjkToRasMatrix = vtk.vtkMatrix4x4()
             v.GetIJKToRASMatrix(IjkToRasMatrix)
@@ -450,19 +461,17 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             fPosStr = vtk.mutable("")
             segment.GetTag(tagName, fPosStr)
             pointset = str(fPosStr)
-            logging.debug('{} => {} Extreme points are: {}'.format(segmentId, segment.GetName(), pointset))
+            logging.debug('{} => {} Fiducial points are: {}'.format(segmentId, segment.GetName(), pointset))
 
             if fPosStr is not None and len(pointset) > 0:
                 points = json.loads(pointset)
-                fiducialNode.RemoveAllMarkups()
-
                 for p in points:
                     p_Ijk = [p[0], p[1], p[2], 1.0]
                     p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
                     logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
                     fiducialNode.AddFiducialFromArray(p_Ras[0:3])
 
-        self.updateGUIFromMRML()
+            self.updateGUIFromMRML()
 
     def reset(self):
         self.resetFiducial(self.ui.annotationFiducialPlacementWidget, self.annotationFiducialNode, self.annotationFiducialNodeObservers)
@@ -528,7 +537,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.scriptedEffect.setParameterDefault("ModelFilterLabel", "")
         self.scriptedEffect.setParameterDefault("SegmentationModel", "")
         self.scriptedEffect.setParameterDefault("AnnotationModel", "")
-        self.scriptedEffect.setParameterDefault("AnnotationModelFiltered", 0)
+        self.scriptedEffect.setParameterDefault("AnnotationModelFiltered", 1)
 
     def observeParameterNode(self, observationEnabled):
         parameterSetNode = self.scriptedEffect.parameterSetNode()
@@ -576,9 +585,20 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.segmentationNodeObserverTags.append(self.observedSegmentation.AddObserver(eventId, self.onSegmentationModified))
 
     def onParameterSetNodeModified(self, caller, event):
-        self.updateGUIFromMRML()
+        logging.debug("Parameter Node Modified: {}".format(event))
+        if self.isActivated:
+            self.onClickFetchModels()
+
+            self.ignoreFiducialNodeAddEvent = True
+            self.onEditFiducialPoints(self.annotationFiducialNode, "AIAA.DExtr3DExtremePoints")
+            self.onEditFiducialPoints(self.dgPositiveFiducialNode, "AIAA.ForegroundPoints")
+            self.onEditFiducialPoints(self.dgNegativeFiducialNode, "AIAA.BackgroundPoints")
+            self.ignoreFiducialNodeAddEvent = False
+        else:
+            self.updateGUIFromMRML()
 
     def onSegmentationModified(self, caller, event):
+        logging.debug("Segmentation Modified: {}".format(event))
         self.updateGUIFromMRML()
 
     def updateServerUrlGUIFromSettings(self):
@@ -607,9 +627,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         wasAnnotationModelSelectorBlocked = self.ui.annotationModelSelector.blockSignals(True)
         self.ui.segmentationModelSelector.clear()
         self.ui.annotationModelSelector.clear()
+
         currentSegment = self.currentSegment()
         currentSegmentName = currentSegment.GetName().lower() if currentSegment else ""
         for model_name, model in self.models.items():
+            if len(model["labels"]) == 0:
+                continue
             if model['type'] == 'segmentation':
                 modelWidget = self.ui.segmentationModelSelector
             else:
@@ -724,6 +747,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def onDeepGrowFiducialNodeModified(self, observer, eventid):
         self.updateGUIFromMRML()
 
+        if self.ignoreFiducialNodeAddEvent:
+            return
+
         markupsNode = observer
         movingMarkupIndex = markupsNode.GetDisplayNode().GetActiveControlPoint()
         logging.debug("Markup point added; point ID = {}".format(movingMarkupIndex))
@@ -731,8 +757,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         current_point = self.getFiducialPointXYZ(markupsNode, movingMarkupIndex)
         logging.debug("Current Point: {}".format(current_point))
 
-        #self.onEditFiducialPoints(self.dgPositiveFiducialNode, "AIAA.ForegroundPoints")
-        #self.onEditFiducialPoints(self.dgNegativeFiducialNode, "AIAA.BackgroundPoints")
         self.onClickDeepgrow(current_point)
 
     def updateModelFromSegmentMarkupNode(self):
@@ -781,6 +805,9 @@ class AIAALogic():
     def reportProgress(self, progress):
         if self.progress_callback:
             self.progress_callback(progress)
+
+    def is_doc_saved(self):
+        return self.aiaaClient.doc_id is not None
 
     def list_models(self, label=None):
         #self.reportProgress(0)
@@ -867,17 +894,28 @@ class AIAALogic():
         in_file = self.volumeToImageFiles.get(self.nodeCacheKey(inputVolume))
         logging.debug('Node Id: {} => {}'.format(node_id, in_file))
 
+        showProgress = not self.is_doc_saved()
         if in_file is None:
+            if showProgress:
+                self.reportProgress(0)
             in_file = tempfile.NamedTemporaryFile(suffix=self.inputFileExtension(), dir=self.aiaa_tmpdir).name
+
+            if showProgress:
+                self.reportProgress(10)
 
             start = time.time()
             slicer.util.saveNode(inputVolume, in_file)
             logging.info('Saved Input Node into {0} in {1:3.1f}s'.format(in_file, time.time() - start))
 
             self.volumeToImageFiles[self.nodeCacheKey(inputVolume)] = in_file
+            if showProgress:
+                self.reportProgress(50)
         else:
             logging.debug('Using Saved Node from: {}'.format(in_file))
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         self.aiaaClient.deepgrow('clara_deepgrow', params, in_file, result_file, True)
+
+        if showProgress:
+            self.reportProgress(100)
         return result_file

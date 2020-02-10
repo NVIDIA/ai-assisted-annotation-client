@@ -99,7 +99,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         self.ui.segmentationButton.setIcon(self.icon('nvidia-icon.png'))
         self.ui.annotationModelFilterPushButton.setIcon(self.icon('filter-icon.png'))
-        self.ui.fetchModelsButton.setIcon(slicer.util.mainWindow().style().standardIcon(qt.QStyle.SP_BrowserReload))
         self.ui.annotationButton.setIcon(self.icon('nvidia-icon.png'))
 
         self.ui.annotationFiducialEditButton.setIcon(self.icon('edit-icon.png'))
@@ -114,7 +113,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.dgNegativeFiducialPlacementWidget.placeButton().toolTip = "Select -ve points"
 
         # Connections
-        self.ui.fetchModelsButton.connect('clicked(bool)', self.onClickFetchModels)
         self.ui.segmentationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
         self.ui.segmentationButton.connect('clicked(bool)', self.onClickSegmentation)
         self.ui.annotationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
@@ -137,6 +135,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def updateServerSettings(self):
         self.logic.setServer(self.serverUrl())
         self.logic.setUseCompression(slicer.util.settingsValue("NVIDIA-AIAA/compressData", True, converter=slicer.util.toBool))
+        self.logic.setDeepGrowModel(slicer.util.settingsValue("NVIDIA-AIAA/deepgrowModel", "clara_deepgrow"))
 
     def onClickFetchModels(self):
         self.updateMRMLFromGUI()
@@ -166,15 +165,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         start = time.time()
         try:
             self.updateServerSettings()
-            models = self.logic.list_models(self.ui.modelFilterLabelLineEdit.text)
+            models = self.logic.list_models()
         except:
             slicer.util.errorDisplay(
-                "Failed to fetch models from remote server. Make sure server address is correct and retry.",
+                "Failed to fetch models from remote server. Make sure server address is correct and {}/v1/models is accessible in browser".format(self.serverUrl()),
                 detailedText=traceback.format_exc())
-            self.ui.modelsCollapsibleButton.collapsed = False
             return
-
-        self.ui.modelsCollapsibleButton.collapsed = True
 
         self.models.clear()
         for model in models:
@@ -187,9 +183,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         msg = ''
         msg += '-----------------------------------------------------\t\n'
-        label = self.ui.modelFilterLabelLineEdit.text
-        if label:
-            msg += 'Using Label: \t\t' + label + '\t\n'
         msg += 'Total Models Loaded: \t' + str(len(models)) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
         msg += 'Segmentation Models: \t' + str(self.ui.segmentationModelSelector.count) + '\t\n'
@@ -396,7 +389,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         start = time.time()
 
         label = self.currentSegment().GetName()
-        operationDescription = 'Run Deepgrow for for segment: {}'.format(label)
+        operationDescription = 'Run Deepgrow for segment: {}'.format(label)
         logging.debug(operationDescription)
 
         showProgressBar = not self.logic.is_doc_saved()
@@ -613,11 +606,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.serverComboBox.blockSignals(wasBlocked)
 
     def updateGUIFromMRML(self):
-        modelFilterLabel = self.scriptedEffect.parameter("ModelFilterLabel") if self.scriptedEffect.parameterDefined("ModelFilterLabel") else ""
-        wasBlocked = self.ui.modelFilterLabelLineEdit.blockSignals(True)
-        self.ui.modelFilterLabelLineEdit.setText(modelFilterLabel)
-        self.ui.modelFilterLabelLineEdit.blockSignals(wasBlocked)
-
         annotationModelFiltered = self.scriptedEffect.integerParameter("AnnotationModelFiltered") != 0
         wasBlocked = self.ui.annotationModelFilterPushButton.blockSignals(True)
         self.ui.annotationModelFilterPushButton.checked = annotationModelFiltered
@@ -680,23 +668,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             self.ui.annotationButton.setEnabled(False)
             self.ui.annotationButton.setToolTip("Select a segment from the segment list and place boundary points.")
 
-        '''
-        segment = self.currentSegment()
-        if segment is None:
-            self.ui.annotationFiducialPlacementWidget.setPlaceModeEnabled(False)
-            self.ui.dgNegativeFiducialPlacementWidget.setPlaceModeEnabled(False)
-            self.ui.dgPositiveFiducialPlacementWidget.setPlaceModeEnabled(False)
-        else:
-            self.ui.annotationFiducialPlacementWidget.setPlaceModeEnabled(True)
-            self.ui.dgNegativeFiducialPlacementWidget.setPlaceModeEnabled(True)
-            self.ui.dgPositiveFiducialPlacementWidget.setPlaceModeEnabled(True)
-        #self.ui.annotationFiducialEditButton.setEnabled(segment and segment.HasTag("AIAA.DExtr3DExtremePoints"))
-        '''
-
     def updateMRMLFromGUI(self):
-
         wasModified = self.scriptedEffect.parameterSetNode().StartModify()
-        self.scriptedEffect.setParameter("ModelFilterLabel", self.ui.modelFilterLabelLineEdit.text)
 
         segmentationModelIndex = self.ui.segmentationModelSelector.currentIndex
         if segmentationModelIndex >= 0:
@@ -772,6 +745,7 @@ class AIAALogic():
         self.volumeToImageFiles = dict()
         self.progress_callback = progress_callback
         self.useCompression = True
+        self.deepgrowModel = 'clara_deepgrow'
 
         # Create Single AIAA Client Instance
         self.aiaaClient = AIAAClient()
@@ -792,12 +766,16 @@ class AIAALogic():
             server_url='http://0.0.0.0:5000'
         if not server_version:
             server_version='v1'
+
         logging.debug('Using AIAA server {}: {}'.format(server_version, server_url))
         self.aiaaClient.server_url = server_url
         self.aiaaClient.api_version = server_version
 
     def setUseCompression(self, useCompression):
         self.useCompression = useCompression
+
+    def setDeepGrowModel(self, deepgrowModel):
+        self.deepgrowModel = deepgrowModel
 
     def setProgressCallback(self, progress_callback=None):
         self.progress_callback = progress_callback
@@ -882,7 +860,7 @@ class AIAALogic():
         return result_file
 
     def deepgrow(self, foreground_point_set, background_point_set, slice_index, inputVolume):
-        logging.debug('Preparing for Deepgrow Action')
+        logging.debug('Preparing for Deepgrow Action (model: {})'.format(self.deepgrowModel))
         params = {
             'foreground': foreground_point_set,
             'background': background_point_set,
@@ -914,7 +892,7 @@ class AIAALogic():
             logging.debug('Using Saved Node from: {}'.format(in_file))
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
-        self.aiaaClient.deepgrow('clara_deepgrow', params, in_file, result_file, True)
+        self.aiaaClient.deepgrow(self.deepgrowModel, params, in_file, result_file, True)
 
         if showProgress:
             self.reportProgress(100)

@@ -23,46 +23,13 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
+
    <item>
-    <widget class="ctkCollapsibleButton" name="modelsCollapsibleButton">
-     <property name="text">
-      <string>Models</string>
-     </property>
-     <property name="collapsed">
-      <bool>true</bool>
-     </property>
-     <property name="collapsedHeight">
-      <number>9</number>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_3">
+     <layout class="QGridLayout" name="serverSettings">
       <item row="0" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>NVidia AIAA server:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Model filter:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="modelFilterLabelLineEdit">
-        <property name="toolTip">
-         <string>This label is used for filtering the list of models fetched from the server</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0" colspan="2">
-       <widget class="QPushButton" name="fetchModelsButton">
-        <property name="toolTip">
-         <string>Fetch models from server</string>
-        </property>
-        <property name="text">
-         <string>  Fetch models</string>
         </property>
        </widget>
       </item>
@@ -80,8 +47,8 @@
        </widget>
       </item>
      </layout>
-    </widget>
    </item>
+
    <item>
     <widget class="ctkCollapsibleButton" name="segmentationCollapsibleButton">
      <property name="text">
@@ -236,7 +203,7 @@
    <item>
     <widget class="ctkCollapsibleButton" name="deepgrowCollapsibleButton">
      <property name="text">
-      <string>Segment from DeepGrow</string>
+      <string>DeepGrow</string>
      </property>
      <property name="collapsedHeight">
       <number>9</number>

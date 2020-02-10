@@ -83,6 +83,12 @@ class _ui_SegmentEditorNvidiaAIAASettingsPanel(object):
       "NVIDIA-AIAA/compressData", compressDataMapper,
       "valueAsInt", str(qt.SIGNAL("valueAsIntChanged(int)")))
 
+    deepgrowModel = qt.QLineEdit("clara_deepgrow")
+    aiaaGroupLayout.addRow("DeepGrow Model:", deepgrowModel)
+    parent.registerProperty(
+      "NVIDIA-AIAA/deepgrowModel", deepgrowModel,
+      "text", str(qt.SIGNAL("textChanged(QString)")))
+
     vBoxLayout.addWidget(aiaaGroupBox)
     vBoxLayout.addStretch(1)
 

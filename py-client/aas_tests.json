@@ -8,7 +8,7 @@
     },
     {
       "name": "test_model",
-      "disabled": true,
+      "disabled": false,
       "api": "models",
       "model": "segmentation_ct_spleen"
     },
@@ -30,7 +30,7 @@
     },
     {
       "name": "test_segmentation_spleen",
-      "disabled": true,
+      "disabled": false,
       "api": "segmentation",
       "model": "segmentation_ct_spleen",
       "image_in": "test-data/image.nii.gz",
@@ -38,7 +38,7 @@
     },
     {
       "name": "test_annotation_spleen",
-      "disabled": true,
+      "disabled": false,
       "api": "dextr3d",
       "model": "annotation_ct_spleen",
       "point_set": [[52,181,126],[137,152,171],[97,113,148],[78,227,115],[72,178,80],[97,175,188]],
@@ -49,7 +49,7 @@
     },
     {
       "name": "test_deepgrow_spleen",
-      "disabled": true,
+      "disabled": false,
       "api": "deepgrow",
       "model": "clara_deepgrow",
       "params": {"foreground": "[[285, 207, 105.0]]", "background": "[]", "slice": 105},
@@ -58,14 +58,14 @@
     },
     {
       "name": "test_mask2polygon_spleen",
-      "disabled": true,
+      "disabled": false,
       "api": "mask2polygon",
       "image_in": "test-data/mask2polygon.input.nii.gz",
       "point_ratio": 10
     },
     {
       "name": "test_fixpolygon_spleen",
-      "disabled": true,
+      "disabled": false,
       "api": "fixpolygon",
       "image_in": "test-data/fixpolygon.input.png",
       "image_out": "test-data/output/fixpolygon_spleen.png",
@@ -76,7 +76,7 @@
     },
     {
       "name": "test_fixpolygon_3d_spleen",
-      "disabled": true,
+      "disabled": false,
       "api": "fixpolygon",
       "image_in": "test-data/image.nii.gz",
       "image_out": "test-data/output/fixpolygon.output.nii.gz",

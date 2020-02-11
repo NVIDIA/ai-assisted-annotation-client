@@ -8,13 +8,29 @@
     },
     {
       "name": "test_model",
-      "disabled": false,
+      "disabled": true,
       "api": "models",
       "model": "segmentation_ct_spleen"
     },
     {
-      "name": "test_segmentation_spleen",
+      "name": "test_create_session",
       "disabled": false,
+      "api": "create_session",
+      "image_in": "test-data/image.nii.gz"
+    },
+    {
+      "name": "test_get_session",
+      "disabled": false,
+      "api": "get_session"
+    },
+    {
+      "name": "test_close_session",
+      "disabled": false,
+      "api": "close_session"
+    },
+    {
+      "name": "test_segmentation_spleen",
+      "disabled": true,
       "api": "segmentation",
       "model": "segmentation_ct_spleen",
       "image_in": "test-data/image.nii.gz",
@@ -22,7 +38,7 @@
     },
     {
       "name": "test_annotation_spleen",
-      "disabled": false,
+      "disabled": true,
       "api": "dextr3d",
       "model": "annotation_ct_spleen",
       "point_set": [[52,181,126],[137,152,171],[97,113,148],[78,227,115],[72,178,80],[97,175,188]],
@@ -32,15 +48,24 @@
       "roi_size": "128x128x128"
     },
     {
+      "name": "test_deepgrow_spleen",
+      "disabled": true,
+      "api": "deepgrow",
+      "model": "clara_deepgrow",
+      "params": {"foreground": "[[285, 207, 105.0]]", "background": "[]", "slice": 105},
+      "image_in": "test-data/image.nii.gz",
+      "image_out": "test-data/output/deepgrow_spleen.nii.gz"
+    },
+    {
       "name": "test_mask2polygon_spleen",
-      "disabled": false,
+      "disabled": true,
       "api": "mask2polygon",
       "image_in": "test-data/mask2polygon.input.nii.gz",
       "point_ratio": 10
     },
     {
       "name": "test_fixpolygon_spleen",
-      "disabled": false,
+      "disabled": true,
       "api": "fixpolygon",
       "image_in": "test-data/fixpolygon.input.png",
       "image_out": "test-data/output/fixpolygon_spleen.png",
@@ -51,7 +76,7 @@
     },
     {
       "name": "test_fixpolygon_3d_spleen",
-      "disabled": false,
+      "disabled": true,
       "api": "fixpolygon",
       "image_in": "test-data/image.nii.gz",
       "image_out": "test-data/output/fixpolygon.output.nii.gz",

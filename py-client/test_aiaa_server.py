@@ -72,7 +72,6 @@ def _byteify(data, ignore_dicts=False):
 def call_server():
     parser = argparse.ArgumentParser()
     parser.add_argument('--server_url', default='http://0.0.0.0:5000')
-    parser.add_argument('--api_version', default='v1')
     parser.add_argument('--test_config', required=True)
     parser.add_argument('--debug', default=False)
 
@@ -89,7 +88,8 @@ def call_server():
     if not tests:
         raise ValueError('no tests defined')
 
-    client = client_api.AIAAClient(args.server_url, args.api_version)
+    client = client_api.AIAAClient(args.server_url)
+    session_id = None
     for test in tests:
         name = test.get('name')
         disabled = test.get('disabled', False)
@@ -114,6 +114,24 @@ def call_server():
             print('++++ Listed Models: {}'.format(json.dumps(models)))
             continue
 
+        if api == 'create_session':
+            image_in = test.get('image_in')
+
+            response = client.create_session(image_in)
+            print('++++ Session Response: {}'.format(json.dumps(response)))
+            session_id = response.get('session_id')
+            continue
+
+        if api == 'get_session':
+            response = client.get_session(session_id)
+            print('++++ Session Info: {}'.format(json.dumps(response)))
+            continue
+
+        if api == 'close_session':
+            response = client.close_session(session_id)
+            print('++++ Session ({}) closed: {}'.format(session_id, response))
+            continue
+
         if api == 'segmentation':
             model = test.get('model')
             image_in = test.get('image_in')
@@ -133,6 +151,16 @@ def call_server():
 
             result = client.dextr3d(model, point_set, image_in, image_out, pad, roi_size)
             print('++++ dextr3d result: {}'.format(json.dumps(result)))
+            continue
+
+        if api == 'deepgrow':
+            model = test.get('model')
+            params = test.get('params')
+            image_in = test.get('image_in')
+            image_out = test.get('image_out')
+
+            result = client.deepgrow(model, params, image_in, image_out)
+            print('++++ Deepgrow Result: {}'.format(json.dumps(result)))
             continue
 
         if api == 'mask2polygon':

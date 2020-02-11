@@ -833,11 +833,19 @@ class AIAALogic():
             session_id = t[1]
             server_url = t[2]
 
-            if server_url == self.server_url and session_id:
+            from AIAAClient import urlparse
+            parsed_uri1 = urlparse(server_url)
+            result1 = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri1)
+
+            parsed_uri2 = urlparse(self.server_url)
+            result2 = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri2)
+            logging.debug("Compare URL-1: {} v/s URL-2: {}".format(result1, result2))
+
+            if result1 == result2 and session_id:
                 logging.debug('Session already exists; session-id: {}'.format(session_id))
                 return in_file, session_id
 
-            logging.info('Close Mismatched Session; url {} => {}'.format(server_url, self.server_url))
+            logging.info('Close Mismatched Session; url {} => {}'.format(result1, result2))
             aiaaClient = AIAAClient(server_url)
             aiaaClient.close_session(session_id)
         return None, None

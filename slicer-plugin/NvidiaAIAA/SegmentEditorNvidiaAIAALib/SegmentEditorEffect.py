@@ -13,7 +13,7 @@ import slicer
 import vtk
 from SegmentEditorEffects import *
 
-from NvidiaAIAAClientAPI.client_api import AIAAClient, urlparse
+from NvidiaAIAAClientAPI.client_api import AIAAClient, AIAAException, urlparse
 
 
 class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
@@ -82,7 +82,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         serverUrl = self.ui.serverComboBox.currentText
         if not serverUrl:
             # Default Slicer AIAA server
-            serverUrl = "http://skull.cs.queensu.ca:8123"
+            # serverUrl = "http://skull.cs.queensu.ca:8123"
+            return slicer.util.settingsValue("NVIDIA-AIAA/serverUrl", "http://0.0.0.0:5000")
+
+        self.saveServerUrl()
         return serverUrl
 
     def setupOptionsFrame(self):
@@ -99,11 +102,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         # Set icons and tune widget properties
 
+        self.ui.fetchModelsButton.setIcon(self.icon('refresh-icon.png'))
         self.ui.segmentationButton.setIcon(self.icon('nvidia-icon.png'))
         self.ui.annotationModelFilterPushButton.setIcon(self.icon('filter-icon.png'))
         self.ui.annotationButton.setIcon(self.icon('nvidia-icon.png'))
-
         self.ui.annotationFiducialEditButton.setIcon(self.icon('edit-icon.png'))
+
         self.ui.annotationFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
         # self.ui.annotationFiducialPlacementWidget.placeButton().show()
         # self.ui.annotationFiducialPlacementWidget.deleteButton().show()
@@ -115,6 +119,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.dgNegativeFiducialPlacementWidget.placeButton().toolTip = "Select -ve points"
 
         # Connections
+        self.ui.fetchModelsButton.connect('clicked(bool)', self.onClickFetchModels)
         self.ui.segmentationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
         self.ui.segmentationButton.connect('clicked(bool)', self.onClickSegmentation)
         self.ui.annotationModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
@@ -141,7 +146,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                                                                converter=slicer.util.toBool))
         self.logic.setDeepGrowModel(slicer.util.settingsValue("NVIDIA-AIAA/deepgrowModel",
                                                               "clara_deepgrow"))
-
         self.saveServerUrl()
 
     def saveServerUrl(self):
@@ -169,7 +173,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         self.updateServerUrlGUIFromSettings()
 
-    def fetchAIAAModels(self):
+    def onClickFetchModels(self):
+        self.fetchAIAAModels(showInfo=True)
+
+    def fetchAIAAModels(self, showInfo=False):
+        if not self.logic:
+            return
+
         start = time.time()
         try:
             self.updateServerSettings()
@@ -182,9 +192,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return
 
         self.models.clear()
+        model_count = {'segmentation': 0, 'annotation': 0}
         for model in models:
             model_name = model['name']
             model_type = model['type']
+            model_count[model['type']] = model_count[model['type']] + 1
             logging.debug('{} = {}'.format(model_name, model_type))
             self.models[model_name] = model
 
@@ -192,13 +204,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         msg = ''
         msg += '-----------------------------------------------------\t\n'
-        msg += 'Total Models Loaded: \t' + str(len(models)) + '\t\n'
+        msg += 'Total Models Available: \t' + str(len(models)) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
-        msg += 'Segmentation Models: \t' + str(self.ui.segmentationModelSelector.count) + '\t\n'
-        msg += 'Annotation Models: \t' + str(self.ui.annotationModelSelector.count) + '\t\n'
+        msg += 'Segmentation Models: \t' + str(model_count['segmentation']) + '\t\n'
+        msg += 'Annotation Models: \t' + str(model_count['annotation']) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
 
-        # qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
+        if showInfo:
+            qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
         logging.debug(msg)
         logging.info("Time consumed by fetchAIAAModels: {0:3.1f}".format(time.time() - start))
 
@@ -283,6 +296,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             "Click 'Cancel' to not upload any data and cancel segmentation.\n".format(self.serverUrl()),
             dontShowAgainSettingsKey="NVIDIA-AIAA/showImageDataSendWarning")
 
+    def closeAiaaSession(self):
+        inputVolume = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
+        self.logic.closeSession(inputVolume)
+
     def createAiaaSessionIfNotExists(self):
         operationDescription = 'Please wait while uploading the volume to AIAA Server'
         logging.debug(operationDescription)
@@ -293,6 +310,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         in_file, session_id = self.logic.getSession(inputVolume)
         if session_id:
             return in_file, session_id
+
+        if not self.getPermissionForImageDataUpload():
+            return
 
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
@@ -311,9 +331,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return in_file, session_id
 
     def onClickSegmentation(self):
-        if not self.getPermissionForImageDataUpload():
-            return
-
         in_file, session_id = self.createAiaaSessionIfNotExists()
 
         start = time.time()
@@ -334,6 +351,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             if self.updateSegmentationMask(extreme_points, result_file, modelInfo):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
+        except AIAAException:
+            self.closeAiaaSession()
+            qt.QApplication.restoreOverrideCursor()
+            self.progressBar.hide()
+            slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
+            return
         except:
             qt.QApplication.restoreOverrideCursor()
             self.progressBar.hide()
@@ -386,9 +409,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return pt
 
     def onClickAnnotation(self):
-        if not self.getPermissionForImageDataUpload():
-            return
-
         in_file, session_id = self.createAiaaSessionIfNotExists()
         start = time.time()
 
@@ -406,6 +426,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             if self.updateSegmentationMask(pointSet, result_file, None, overwriteCurrentSegment=True):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
+        except AIAAException:
+            self.closeAiaaSession()
+            qt.QApplication.restoreOverrideCursor()
+            slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
+            return
         except:
             qt.QApplication.restoreOverrideCursor()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
@@ -420,9 +445,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def onClickDeepgrow(self, current_point):
         segment = self.currentSegment()
         if not segment:
-            return
-
-        if not self.getPermissionForImageDataUpload():
             return
 
         in_file, session_id = self.createAiaaSessionIfNotExists()
@@ -456,6 +478,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             if self.updateSegmentationMask(None, result_file, None, overwriteCurrentSegment=True, merge=True):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
+        except AIAAException:
+            self.closeAiaaSession()
+            qt.QApplication.restoreOverrideCursor()
+            slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
+            return
         except:
             qt.QApplication.restoreOverrideCursor()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
@@ -845,9 +872,18 @@ class AIAALogic():
                 return in_file, session_id
 
             logging.info('Close Mismatched Session; url {} => {}'.format(result1, result2))
+            self.closeSession(inputVolume)
+        return None, None
+
+    def closeSession(self, inputVolume):
+        t = self.volumeToAiaaSessions.get(self.nodeCacheKey(inputVolume))
+        if t:
+            session_id = t[1]
+            server_url = t[2]
+
             aiaaClient = AIAAClient(server_url)
             aiaaClient.close_session(session_id)
-        return None, None
+            self.volumeToAiaaSessions.pop(self.nodeCacheKey(inputVolume))
 
     def createSession(self, inputVolume):
         t = self.volumeToAiaaSessions.get(self.nodeCacheKey(inputVolume))

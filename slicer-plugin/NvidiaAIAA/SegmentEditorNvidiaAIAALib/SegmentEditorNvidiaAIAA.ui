@@ -46,6 +46,23 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="fetchModelsButton">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="toolTip" >
+         <string>Fetch/Refresh models from AIAA</string>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>refresh-icon.png</normaloff>refresh-icon.png</iconset>
+        </property>
+       </widget>
+      </item>
      </layout>
    </item>
 

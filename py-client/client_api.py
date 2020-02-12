@@ -89,10 +89,10 @@ class AIAAClient:
         """
         Get Session Info
 
-        :param image_in: valid image which will be stored as part of session
+        :param image_in: valid image which will be stored as part of the new session
         :return: returns json containing **session_id** and any other details from server
 
-        valid session_id from the result will be stored as active session for future use
+        valid *session_id* from result can be used for future reference
         """
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for Create Session Action')
@@ -134,7 +134,7 @@ class AIAAClient:
         Close an existing session
 
         :param session_id: valid session id
-        :return: returns True if a valid session is closed, else False
+        :return: returns True if a session is closed, else False
         """
         logger = logging.getLogger(__name__)
         logger.debug('Fetching Session Details')
@@ -194,7 +194,7 @@ class AIAAClient:
         :param model: model name according to the output of model_list()
         :param image_in: input 2D/3D image file name
         :param image_out: output mask will be stored
-        :param session_id: if session id is provided (not None) then image_in will be ignored
+        :param session_id: if session id is provided (not None) then *image_in* will be ignored
         :return: returns json containing extreme points for the segmentation mask and other info
 
         Output 2D/3D binary mask will be saved to the specified file;  Throws AIAAException in case of Error
@@ -233,16 +233,16 @@ class AIAAClient:
                 pre_process=True,
                 session_id=None):
         """
-        3D image segmentation using DEXTR3D method
+        3D image annotation using DEXTR3D method
 
         :param model: model name according to the output of model_list()
         :param point_set: point set json containing the extreme points' indices
         :param image_in: input 3D image file name
-        :param image_out: output files will be stored
+        :param image_out: output mask will be stored
         :param pad: padding size (default is 20)
         :param roi_size:  image resize value (default is 128x128x128)
         :param pre_process: pre-process (crop) input volume at client side for DEXTR3D action
-        :param session_id: if session id is provided (not None) and pre_process is False then image_in will be ignored
+        :param session_id: if *session_id* is not None and *pre_process* is False then *image_in* will be ignored
 
 
         Output 3D binary mask will be saved to the specified file;  Throws AIAAException in case of Error
@@ -297,13 +297,13 @@ class AIAAClient:
 
     def deepgrow(self, model, params, image_in, image_out, session_id=None):
         """
-        2D/3D image segmentation using DeepGrow method
+        2D/3D image annotation using DeepGrow method
 
         :param model: model name according to the output of model_list()
         :param params: params for deepgrow model e.g. foreground (+ve) clicks, background (-ve) clicks, etc..
         :param image_in: input 2D/3D image file name
-        :param image_out: output files will be stored
-        :param session_id: if session id is provided (not None) then image_in will be ignored
+        :param image_out: output mask will be stored
+        :param session_id: if session id is provided (not None) then *image_in* will be ignored
 
         Output 2D/3D binary mask will be saved to the specified file;  Throws AIAAException in case of Error
         """
@@ -582,10 +582,13 @@ class AIAAUtils:
         logger.debug('HTTP Response Headers: {}'.format(response.getheaders()))
 
         if multipart_response:
-            form, files = AIAAUtils.parse_multipart(response.fp if response.fp else response, response.msg)
-            logger.debug('Response FORM: {}'.format(form))
-            logger.debug('Response FILES: {}'.format(files.keys()))
-            return response.status, form, files
+            if response.status == 200:
+                form, files = AIAAUtils.parse_multipart(response.fp if response.fp else response, response.msg)
+                logger.debug('Response FORM: {}'.format(form))
+                logger.debug('Response FILES: {}'.format(files.keys()))
+                return response.status, form, files
+            else:
+                return response.status, None, None
 
         return response.status, response.read()
 

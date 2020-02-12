@@ -13,7 +13,7 @@ import slicer
 import vtk
 from SegmentEditorEffects import *
 
-from NvidiaAIAAClientAPI.client_api import AIAAClient
+from NvidiaAIAAClientAPI.client_api import AIAAClient, urlparse
 
 
 class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
@@ -169,7 +169,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         self.updateServerUrlGUIFromSettings()
 
-    def onClickFetchModels(self):
+    def fetchAIAAModels(self):
         start = time.time()
         try:
             self.updateServerSettings()
@@ -200,7 +200,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         # qt.QMessageBox.information(slicer.util.mainWindow(), 'NVIDIA AIAA', msg)
         logging.debug(msg)
-        logging.info("Time consumed by onClickFetchModels: {0:3.1f}".format(time.time() - start))
+        logging.info("Time consumed by fetchAIAAModels: {0:3.1f}".format(time.time() - start))
 
     def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False, merge=False):
         start = time.time()
@@ -548,7 +548,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         self.updateGUIFromMRML()
         self.saveServerUrl()
-        self.onClickFetchModels()
+        self.fetchAIAAModels()
 
         self.observeParameterNode(True)
         self.observeSegmentation(True)
@@ -626,7 +626,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def onParameterSetNodeModified(self, caller, event):
         logging.debug("Parameter Node Modified: {}".format(event))
         if self.isActivated:
-            self.onClickFetchModels()
+            self.fetchAIAAModels()
 
             self.ignoreFiducialNodeAddEvent = True
             self.onEditFiducialPoints(self.annotationFiducialNode, "AIAA.DExtr3DExtremePoints")
@@ -833,7 +833,6 @@ class AIAALogic():
             session_id = t[1]
             server_url = t[2]
 
-            from AIAAClient import urlparse
             parsed_uri1 = urlparse(server_url)
             result1 = '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri1)
 

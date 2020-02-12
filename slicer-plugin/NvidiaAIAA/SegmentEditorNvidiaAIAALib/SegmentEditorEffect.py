@@ -353,18 +353,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.updateGUIFromMRML()
         except AIAAException:
             self.closeAiaaSession()
-            qt.QApplication.restoreOverrideCursor()
-            self.progressBar.hide()
             slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
             return
         except:
-            qt.QApplication.restoreOverrideCursor()
-            self.progressBar.hide()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
-
-        qt.QApplication.restoreOverrideCursor()
-        self.progressBar.hide()
+        finally:
+            qt.QApplication.restoreOverrideCursor()
+            self.progressBar.hide()
 
         msg = 'Run segmentation for ({0}): {1}\t\n' \
               'Time Consumed: {2:3.1f} (sec)'.format(model, result, (time.time() - start))
@@ -428,15 +424,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.updateGUIFromMRML()
         except AIAAException:
             self.closeAiaaSession()
-            qt.QApplication.restoreOverrideCursor()
             slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
             return
         except:
-            qt.QApplication.restoreOverrideCursor()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
-
-        qt.QApplication.restoreOverrideCursor()
+        finally:
+            qt.QApplication.restoreOverrideCursor()
 
         msg = 'Run annotation for ({0}): {1}\t\n' \
               'Time Consumed: {2:3.1f} (sec)'.format(model, result, (time.time() - start))
@@ -470,9 +464,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             logging.debug('Foreground: {}'.format(foreground))
             logging.debug('Background: {}'.format(background))
 
-            # TODO:: Slice Index is currently from window A
-            slice_index = current_point[2]
-            result_file = self.logic.deepgrow(in_file, session_id, foreground, background, slice_index)
+            result_file = self.logic.deepgrow(in_file, session_id, foreground, background)
             result = 'FAILED'
 
             if self.updateSegmentationMask(None, result_file, None, overwriteCurrentSegment=True, merge=True):
@@ -480,15 +472,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.updateGUIFromMRML()
         except AIAAException:
             self.closeAiaaSession()
-            qt.QApplication.restoreOverrideCursor()
             slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
             return
         except:
-            qt.QApplication.restoreOverrideCursor()
             slicer.util.errorDisplay(operationDescription + " - unexpected error.", detailedText=traceback.format_exc())
             return
+        finally:
+            qt.QApplication.restoreOverrideCursor()
 
-        qt.QApplication.restoreOverrideCursor()
         msg = 'Run deepgrow for ({0}): {1}\t\n' \
               'Time Consumed: {2:3.1f} (sec)'.format(label, result, (time.time() - start))
         logging.info(msg)
@@ -953,17 +944,11 @@ class AIAALogic():
         aiaaClient.dextr3d(model, pointset, image_in, result_file, pre_process=False, session_id=session_id)
         return result_file
 
-    def deepgrow(self, image_in, session_id, foreground_point_set, background_point_set, slice_index):
+    def deepgrow(self, image_in, session_id, foreground_point_set, background_point_set):
         logging.debug('Preparing for Deepgrow Action (model: {})'.format(self.deepgrowModel))
-
-        params = {
-            'foreground': foreground_point_set,
-            'background': background_point_set,
-            'slice': int(slice_index)
-        }
-        logging.debug('Params: {}'.format(params))
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        aiaaClient.deepgrow(self.deepgrowModel, params, image_in, result_file, session_id=session_id)
+        aiaaClient.deepgrow(self.deepgrowModel, foreground_point_set, background_point_set, image_in, result_file,
+                            session_id=session_id)
         return result_file

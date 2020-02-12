@@ -295,12 +295,13 @@ class AIAAClient:
             AIAAUtils.save_result(files, image_out)
         return params
 
-    def deepgrow(self, model, params, image_in, image_out, session_id=None):
+    def deepgrow(self, model, foreground, background, image_in, image_out, session_id=None):
         """
         2D/3D image annotation using DeepGrow method
 
         :param model: model name according to the output of model_list()
-        :param params: params for deepgrow model e.g. foreground (+ve) clicks, background (-ve) clicks, etc..
+        :param foreground: foreground (+ve) clicks/points
+        :param background: background (-ve) clicks/points
         :param image_in: input 2D/3D image file name
         :param image_out: output mask will be stored
         :param session_id: if session id is provided (not None) then *image_in* will be ignored
@@ -314,14 +315,14 @@ class AIAAClient:
         if session_id:
             selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
-        fields = {'params': json.dumps(params)}
-        files = {'image': image_in} if not session_id else {}
+        in_fields = {'params': json.dumps({'foreground': foreground, 'background': background})}
+        in_files = {'image': image_in} if not session_id else {}
 
         logger.debug('Using Selector: {}'.format(selector))
-        logger.debug('Using Fields: {}'.format(fields))
-        logger.debug('Using Files: {}'.format(files))
+        logger.debug('Using Fields: {}'.format(in_fields))
+        logger.debug('Using Files: {}'.format(in_files))
 
-        status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files)
+        status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
         if status == 440:
             raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
 

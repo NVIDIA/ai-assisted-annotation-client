@@ -52,7 +52,8 @@
       "disabled": false,
       "api": "deepgrow",
       "model": "clara_deepgrow",
-      "params": {"foreground": "[[285, 207, 105.0]]", "background": "[]", "slice": 105},
+      "foreground": [[285, 207, 105.0]],
+      "background": [],
       "image_in": "test-data/image.nii.gz",
       "image_out": "test-data/output/deepgrow_spleen.nii.gz"
     },

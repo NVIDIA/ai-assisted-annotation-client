@@ -155,11 +155,12 @@ def call_server():
 
         if api == 'deepgrow':
             model = test.get('model')
-            params = test.get('params')
+            foreground = test.get('foreground')
+            background = test.get('background')
             image_in = test.get('image_in')
             image_out = test.get('image_out')
 
-            result = client.deepgrow(model, params, image_in, image_out)
+            result = client.deepgrow(model, foreground, background, image_in, image_out)
             print('++++ Deepgrow Result: {}'.format(json.dumps(result)))
             continue
 

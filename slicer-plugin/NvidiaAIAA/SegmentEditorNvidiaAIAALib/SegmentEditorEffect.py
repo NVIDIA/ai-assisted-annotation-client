@@ -112,6 +112,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         # self.ui.annotationFiducialPlacementWidget.placeButton().show()
         # self.ui.annotationFiducialPlacementWidget.deleteButton().show()
 
+        # TODO:: choose different color for +ve and -ve Fiducial Points
         self.ui.dgPositiveFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
         self.ui.dgPositiveFiducialPlacementWidget.placeButton().toolTip = "Select +ve points"
 
@@ -175,6 +176,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
     def onClickFetchModels(self):
         self.fetchAIAAModels(showInfo=True)
+        self.saveServerUrl()
 
     def fetchAIAAModels(self, showInfo=False):
         if not self.logic:
@@ -246,9 +248,10 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 labelmap = slicer.vtkOrientedImageData()
                 segmentationNode.GetBinaryLabelmapRepresentation(segmentId, labelmap)
 
-                # TODO:: Reset current slice and then union/add
+                # TODO:: Reset current slice and then union/add (deepgrow provides the mask for current slice only)
                 labelOp = slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeAdd \
                     if merge else slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet
+
                 self.scriptedEffect.modifySelectedSegmentByLabelmap(labelmap, labelOp)
                 segmentationNode.RemoveSegment(segmentId)
             else:

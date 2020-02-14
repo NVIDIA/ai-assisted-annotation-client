@@ -415,7 +415,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
             p_Ras = [coord[0], coord[1], coord[2], 1.0]
             p_Ijk = RasToIjkMatrix.MultiplyDoublePoint(p_Ras)
-            p_Ijk = [int(i) for i in p_Ijk]
+            p_Ijk = [round(i) for i in p_Ijk]
 
             logging.debug('RAS: {}; WORLD: {}; IJK: '.format(coord, world, p_Ijk))
             point_set.append(p_Ijk[0:3])
@@ -436,7 +436,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         p_Ras = [coord[0], coord[1], coord[2], 1.0]
         p_Ijk = RasToIjkMatrix.MultiplyDoublePoint(p_Ras)
-        p_Ijk = [int(i) for i in p_Ijk]
+        p_Ijk = [round(i) for i in p_Ijk]
 
         logging.debug('RAS: {}; WORLD: {}; IJK: '.format(coord, world, p_Ijk))
         return p_Ijk[0:3]

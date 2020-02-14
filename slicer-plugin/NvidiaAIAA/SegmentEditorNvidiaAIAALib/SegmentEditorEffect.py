@@ -217,7 +217,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         logging.debug(msg)
         logging.info("Time consumed by fetchAIAAModels: {0:3.1f}".format(time.time() - start))
 
-    def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False, merge=False):
+    def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False,
+                               sliceIndex=None):
         start = time.time()
         logging.debug('Update Segmentation Mask from: {}'.format(in_file))
         if in_file is None or os.path.exists(in_file) is False:
@@ -244,15 +245,41 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             segment = segmentation.GetSegment(segmentId)
             if i == 0 and overwriteCurrentSegment and currentSegment:
                 logging.debug('Update current segment with id: {} => {}'.format(segmentId, segment.GetName()))
+
                 # Copy labelmap representation to the current segment then remove the imported segment
                 labelmap = slicer.vtkOrientedImageData()
                 segmentationNode.GetBinaryLabelmapRepresentation(segmentId, labelmap)
 
-                # TODO:: Reset current slice and then union/add (deepgrow provides the mask for current slice only)
-                labelOp = slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeAdd \
-                    if merge else slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet
+                # TODO:: May be there is a better option (faster than this)
+                if sliceIndex:
+                    selectedSegmentLabelmap = self.scriptedEffect.selectedSegmentLabelmap()
+                    dims = selectedSegmentLabelmap.GetDimensions()
+                    count = 0
 
-                self.scriptedEffect.modifySelectedSegmentByLabelmap(labelmap, labelOp)
+                    for i in range(dims[0]):
+                        for j in range(dims[1]):
+                            v = selectedSegmentLabelmap.GetScalarComponentAsDouble(i, j, sliceIndex, 0)
+                            if v:
+                                count = count + 1
+                            selectedSegmentLabelmap.SetScalarComponentFromDouble(i, j, sliceIndex, 0, 0)
+
+                    logging.debug('Total Non Zero: {}'.format(count))
+
+                    # Clear the Slice
+                    if count:
+                        self.scriptedEffect.modifySelectedSegmentByLabelmap(
+                            selectedSegmentLabelmap,
+                            slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet)
+
+                    # Union LableMap
+                    self.scriptedEffect.modifySelectedSegmentByLabelmap(
+                        labelmap,
+                        slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeAdd)
+                else:
+                    self.scriptedEffect.modifySelectedSegmentByLabelmap(
+                        labelmap,
+                        slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet)
+
                 segmentationNode.RemoveSegment(segmentId)
             else:
                 logging.debug('Setting new segmentation with id: {} => {}'.format(segmentId, segment.GetName()))
@@ -315,7 +342,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return in_file, session_id
 
         if not self.getPermissionForImageDataUpload():
-            return
+            return None, None
 
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
@@ -335,6 +362,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
     def onClickSegmentation(self):
         in_file, session_id = self.createAiaaSessionIfNotExists()
+        if session_id is None:
+            return
 
         start = time.time()
         model = self.ui.segmentationModelSelector.currentText
@@ -381,10 +410,14 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             coord = [0.0, 0.0, 0.0]
             fiducialNode.GetNthFiducialPosition(i, coord)
 
+            world = [0, 0, 0, 0]
+            fiducialNode.GetNthFiducialWorldCoordinates(i, world)
+
             p_Ras = [coord[0], coord[1], coord[2], 1.0]
             p_Ijk = RasToIjkMatrix.MultiplyDoublePoint(p_Ras)
+            p_Ijk = [int(i) for i in p_Ijk]
 
-            logging.debug('From Fiducial: {} => {}'.format(coord, p_Ijk))
+            logging.debug('RAS: {}; WORLD: {}; IJK: '.format(coord, world, p_Ijk))
             point_set.append(p_Ijk[0:3])
 
         logging.info('Current Fiducials-Points: {}'.format(point_set))
@@ -398,17 +431,21 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         coord = [0.0, 0.0, 0.0]
         fiducialNode.GetNthFiducialPosition(index, coord)
 
+        world = [0, 0, 0, 0]
+        fiducialNode.GetNthFiducialWorldCoordinates(index, world)
+
         p_Ras = [coord[0], coord[1], coord[2], 1.0]
         p_Ijk = RasToIjkMatrix.MultiplyDoublePoint(p_Ras)
+        p_Ijk = [int(i) for i in p_Ijk]
 
-        logging.debug('From Fiducial: {} => {}'.format(coord, p_Ijk))
-
-        pt = p_Ijk[0:3]
-        logging.info('Current Fiducials-Point[{}]: {}'.format(index, pt))
-        return pt
+        logging.debug('RAS: {}; WORLD: {}; IJK: '.format(coord, world, p_Ijk))
+        return p_Ijk[0:3]
 
     def onClickAnnotation(self):
         in_file, session_id = self.createAiaaSessionIfNotExists()
+        if session_id is None:
+            return
+
         start = time.time()
 
         model = self.ui.annotationModelSelector.currentText
@@ -442,9 +479,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
     def onClickDeepgrow(self, current_point):
         segment = self.currentSegment()
         if not segment:
+            slicer.util.warningDisplay("Please add/select a segment to run deepgrow")
             return
 
         in_file, session_id = self.createAiaaSessionIfNotExists()
+        if session_id is None:
+            return
 
         start = time.time()
 
@@ -461,8 +501,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             segment.SetTag("AIAA.ForegroundPoints", json.dumps(foreground_all))
             segment.SetTag("AIAA.BackgroundPoints", json.dumps(background_all))
 
-            foreground = [x for x in foreground_all if x[2] == current_point[2]]
-            background = [x for x in background_all if x[2] == current_point[2]]
+            sliceIndex = current_point[2]
+            logging.debug('Slice Index: {}'.format(sliceIndex))
+
+            foreground = [x for x in foreground_all if x[2] == sliceIndex]
+            background = [x for x in background_all if x[2] == sliceIndex]
 
             logging.debug('Foreground: {}'.format(foreground))
             logging.debug('Background: {}'.format(background))
@@ -470,7 +513,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             result_file = self.logic.deepgrow(in_file, session_id, foreground, background)
             result = 'FAILED'
 
-            if self.updateSegmentationMask(None, result_file, None, overwriteCurrentSegment=True, merge=True):
+            if self.updateSegmentationMask(None, result_file, None,
+                                           overwriteCurrentSegment=True,
+                                           sliceIndex=sliceIndex):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except AIAAException:
@@ -522,6 +567,15 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                            self.annotationFiducialNode,
                            self.annotationFiducialNodeObservers)
         self.annotationFiducialNode = None
+        self.resetFiducial(self.ui.dgPositiveFiducialPlacementWidget,
+                           self.dgPositiveFiducialNode,
+                           self.dgPositiveFiducialNodeObservers)
+        self.dgPositiveFiducialNode = None
+        self.resetFiducial(self.ui.dgNegativeFiducialPlacementWidget,
+                           self.dgNegativeFiducialNode,
+                           self.dgNegativeFiducialNodeObservers)
+        self.dgNegativeFiducialNode = None
+
 
     def resetFiducial(self, fiducialWidget, fiducialNode, fiducialNodeObservers):
         if fiducialWidget.placeModeEnabled:
@@ -581,7 +635,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.observeParameterNode(False)
         self.reset()
 
-        self.logic.closeAllSessions()
+        # TODO:: Call this on Exit event
+        # self.logic.closeAllSessions()
 
     def createCursor(self, widget):
         # Turn off effect-specific cursor for this effect

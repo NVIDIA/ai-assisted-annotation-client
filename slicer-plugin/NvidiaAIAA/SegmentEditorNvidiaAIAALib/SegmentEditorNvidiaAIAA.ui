@@ -1,287 +1,309 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SegmentEditorNvidiaAIAA</class>
- <widget class="QWidget" name="SegmentEditorNvidiaAIAA">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>445</width>
-    <height>210</height>
-   </rect>
-  </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="leftMargin">
-    <number>0</number>
-   </property>
-   <property name="topMargin">
-    <number>0</number>
-   </property>
-   <property name="rightMargin">
-    <number>0</number>
-   </property>
-   <property name="bottomMargin">
-    <number>0</number>
-   </property>
+    <class>SegmentEditorNvidiaAIAA</class>
+    <widget class="QWidget" name="SegmentEditorNvidiaAIAA">
+        <property name="geometry">
+            <rect>
+                <x>0</x>
+                <y>0</y>
+                <width>445</width>
+                <height>210</height>
+            </rect>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="leftMargin">
+                <number>0</number>
+            </property>
+            <property name="topMargin">
+                <number>0</number>
+            </property>
+            <property name="rightMargin">
+                <number>0</number>
+            </property>
+            <property name="bottomMargin">
+                <number>0</number>
+            </property>
 
-   <item>
-     <layout class="QGridLayout" name="serverSettings">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>NVidia AIAA server:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="serverComboBox">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="editable">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="fetchModelsButton">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="toolTip" >
-         <string>Fetch/Refresh models from AIAA</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>refresh-icon.png</normaloff>refresh-icon.png</iconset>
-        </property>
-       </widget>
-      </item>
-     </layout>
-   </item>
+            <item>
+                <layout class="QGridLayout" name="serverSettings">
+                    <item row="0" column="0">
+                        <widget class="QLabel" name="label">
+                            <property name="text">
+                                <string>NVidia AIAA server:</string>
+                            </property>
+                        </widget>
+                    </item>
+                    <item row="0" column="1">
+                        <widget class="QComboBox" name="serverComboBox">
+                            <property name="sizePolicy">
+                                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                    <horstretch>0</horstretch>
+                                    <verstretch>0</verstretch>
+                                </sizepolicy>
+                            </property>
+                            <property name="editable">
+                                <bool>true</bool>
+                            </property>
+                        </widget>
+                    </item>
+                    <item row="0" column="2">
+                        <widget class="QPushButton" name="fetchModelsButton">
+                            <property name="enabled">
+                                <bool>true</bool>
+                            </property>
+                            <property name="toolTip">
+                                <string>Fetch/Refresh models from AIAA</string>
+                            </property>
+                            <property name="text">
+                                <string/>
+                            </property>
+                            <property name="icon">
+                                <iconset>
+                                    <normaloff>refresh-icon.png</normaloff>refresh-icon.png
+                                </iconset>
+                            </property>
+                        </widget>
+                    </item>
+                </layout>
+            </item>
 
-   <item>
-    <widget class="ctkCollapsibleButton" name="segmentationCollapsibleButton">
-     <property name="text">
-      <string>Auto-segmentation</string>
-     </property>
-     <property name="collapsed">
-      <bool>false</bool>
-     </property>
-     <property name="collapsedHeight">
-      <number>9</number>
-     </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="1">
-       <widget class="QComboBox" name="segmentationModelSelector">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Model:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="segmentationButton">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="text">
-         <string>  Start</string>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>nvidia-icon.png</normaloff>nvidia-icon.png</iconset>
-        </property>
-       </widget>
-      </item>
-     </layout>
+            <item>
+                <widget class="ctkCollapsibleButton" name="segmentationCollapsibleButton">
+                    <property name="text">
+                        <string>Auto-segmentation</string>
+                    </property>
+                    <property name="collapsed">
+                        <bool>false</bool>
+                    </property>
+                    <property name="collapsedHeight">
+                        <number>9</number>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout">
+                        <item row="0" column="1">
+                            <widget class="QComboBox" name="segmentationModelSelector">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="0">
+                            <widget class="QLabel" name="label_5">
+                                <property name="text">
+                                    <string>Model:</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="2">
+                            <widget class="QPushButton" name="segmentationButton">
+                                <property name="enabled">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="text">
+                                    <string>Start</string>
+                                </property>
+                                <property name="icon">
+                                    <iconset>
+                                        <normaloff>nvidia-icon.png</normaloff>nvidia-icon.png
+                                    </iconset>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </widget>
+            </item>
+
+            <item>
+                <widget class="ctkCollapsibleButton" name="annotationCollapsibleButton">
+                    <property name="text">
+                        <string>Segment from boundary points (DExtr3D)</string>
+                    </property>
+                    <property name="collapsed">
+                        <bool>true</bool>
+                    </property>
+                    <property name="collapsedHeight">
+                        <number>9</number>
+                    </property>
+                    <layout class="QGridLayout" name="gridLayout_2">
+                        <item row="0" column="2">
+                            <widget class="QPushButton" name="annotationModelFilterPushButton">
+                                <property name="toolTip">
+                                    <string>Filter models based on name of current segment</string>
+                                </property>
+                                <property name="text">
+                                    <string/>
+                                </property>
+                                <property name="icon">
+                                    <iconset>
+                                        <normaloff>filter-icon.png</normaloff>filter-icon.png
+                                    </iconset>
+                                </property>
+                                <property name="checkable">
+                                    <bool>true</bool>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="1">
+                            <widget class="qSlicerMarkupsPlaceWidget" name="annotationFiducialPlacementWidget">
+                                <property name="buttonsVisible">
+                                    <bool>true</bool>
+                                </property>
+                                <property name="placeMultipleMarkups">
+                                    <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="2">
+                            <widget class="QPushButton" name="annotationFiducialEditButton">
+                                <property name="enabled">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="toolTip">
+                                    <string>Edit the previously placed group of points.</string>
+                                </property>
+                                <property name="text">
+                                    <string/>
+                                </property>
+                                <property name="icon">
+                                    <iconset>
+                                        <normaloff>edit-icon.png</normaloff>edit-icon.png
+                                    </iconset>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="0">
+                            <widget class="QLabel" name="label_6">
+                                <property name="text">
+                                    <string>Model:</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="1">
+                            <widget class="QComboBox" name="annotationModelSelector">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="3" rowspan="2">
+                            <widget class="QPushButton" name="annotationButton">
+                                <property name="enabled">
+                                    <bool>false</bool>
+                                </property>
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                                <property name="text">
+                                    <string>Start</string>
+                                </property>
+                                <property name="icon">
+                                    <iconset>
+                                        <normaloff>nvidia-icon.png</normaloff>nvidia-icon.png
+                                    </iconset>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="0">
+                            <widget class="QLabel" name="label_7">
+                                <property name="text">
+                                    <string>Boundary:</string>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </widget>
+            </item>
+
+            <item>
+                <widget class="ctkCollapsibleButton" name="deepgrowCollapsibleButton">
+                    <property name="text">
+                        <string>DeepGrow</string>
+                    </property>
+                    <property name="collapsedHeight">
+                        <number>9</number>
+                    </property>
+
+                    <layout class="QGridLayout" name="gridLayout_3">
+                        <item row="0" column="1">
+                            <widget class="QComboBox" name="deepgrowModelSelector">
+                                <property name="sizePolicy">
+                                    <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                        <horstretch>0</horstretch>
+                                        <verstretch>0</verstretch>
+                                    </sizepolicy>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="0" column="0">
+                            <widget class="QLabel" name="label_7">
+                                <property name="text">
+                                    <string>Model:</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="0">
+                            <widget class="QLabel" name="label_8">
+                                <property name="text">
+                                    <string>Foreground (+ve) Points:</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="1" column="1">
+                            <widget class="qSlicerMarkupsPlaceWidget" name="dgPositiveFiducialPlacementWidget">
+                                <property name="placeMultipleMarkups">
+                                    <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
+                                </property>
+                            </widget>
+                        </item>
+
+                        <item row="2" column="0">
+                            <widget class="QLabel" name="label_9">
+                                <property name="text">
+                                    <string>Background (-ve) Points:</string>
+                                </property>
+                            </widget>
+                        </item>
+                        <item row="2" column="1">
+                            <widget class="qSlicerMarkupsPlaceWidget" name="dgNegativeFiducialPlacementWidget">
+                                <property name="placeMultipleMarkups">
+                                    <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
+                                </property>
+                            </widget>
+                        </item>
+                    </layout>
+                </widget>
+            </item>
+
+        </layout>
     </widget>
-   </item>
 
-   <item>
-    <widget class="ctkCollapsibleButton" name="annotationCollapsibleButton">
-     <property name="text">
-      <string>Segment from boundary points (DExtr3D)</string>
-     </property>
-     <property name="collapsed">
-      <bool>true</bool>
-     </property>
-     <property name="collapsedHeight">
-      <number>9</number>
-     </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="2">
-       <widget class="QPushButton" name="annotationModelFilterPushButton">
-        <property name="toolTip">
-         <string>Filter models based on name of current segment</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>filter-icon.png</normaloff>filter-icon.png</iconset>
-        </property>
-        <property name="checkable">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="qSlicerMarkupsPlaceWidget" name="annotationFiducialPlacementWidget">
-        <property name="buttonsVisible">
-         <bool>true</bool>
-        </property>
-        <property name="placeMultipleMarkups">
-         <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QPushButton" name="annotationFiducialEditButton">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="toolTip">
-         <string>Edit the previously placed group of points.</string>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>edit-icon.png</normaloff>edit-icon.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_6">
-        <property name="text">
-         <string>Model:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="annotationModelSelector">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="3" rowspan="2">
-       <widget class="QPushButton" name="annotationButton">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>  Start</string>
-        </property>
-        <property name="icon">
-         <iconset>
-          <normaloff>nvidia-icon.png</normaloff>nvidia-icon.png</iconset>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Boundary:</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-
-   <item>
-    <widget class="ctkCollapsibleButton" name="deepgrowCollapsibleButton">
-     <property name="text">
-      <string>DeepGrow</string>
-     </property>
-     <property name="collapsedHeight">
-      <number>9</number>
-     </property>
-
-     <layout class="QGridLayout" name="gridLayout_3">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Foreground (+ve) Points:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qSlicerMarkupsPlaceWidget" name="dgPositiveFiducialPlacementWidget">
-        <property name="placeMultipleMarkups">
-         <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
-        </property>
-       </widget>
-      </item>
-
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>Background (-ve) Points:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="qSlicerMarkupsPlaceWidget" name="dgNegativeFiducialPlacementWidget">
-        <property name="placeMultipleMarkups">
-         <enum>qSlicerMarkupsPlaceWidget::ForcePlaceMultipleMarkups</enum>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-
-  </layout>
- </widget>
-
- <customwidgets>
-  <customwidget>
-   <class>ctkCollapsibleButton</class>
-   <extends>QWidget</extends>
-   <header>ctkCollapsibleButton.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>qSlicerWidget</class>
-   <extends>QWidget</extends>
-   <header>qSlicerWidget.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>qSlicerMarkupsPlaceWidget</class>
-   <extends>qSlicerWidget</extends>
-   <header>qSlicerMarkupsPlaceWidget.h</header>
-  </customwidget>
- </customwidgets>
- <resources/>
- <connections/>
+    <customwidgets>
+        <customwidget>
+            <class>ctkCollapsibleButton</class>
+            <extends>QWidget</extends>
+            <header>ctkCollapsibleButton.h</header>
+            <container>1</container>
+        </customwidget>
+        <customwidget>
+            <class>qSlicerWidget</class>
+            <extends>QWidget</extends>
+            <header>qSlicerWidget.h</header>
+            <container>1</container>
+        </customwidget>
+        <customwidget>
+            <class>qSlicerMarkupsPlaceWidget</class>
+            <extends>qSlicerWidget</extends>
+            <header>qSlicerMarkupsPlaceWidget.h</header>
+        </customwidget>
+    </customwidgets>
+    <resources/>
+    <connections/>
 </ui>

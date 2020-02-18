@@ -127,6 +127,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.annotationModelFilterPushButton.connect('toggled(bool)', self.updateMRMLFromGUI)
         self.ui.annotationFiducialEditButton.connect('clicked(bool)', self.onClickEditAnnotationFiducialPoints)
         self.ui.annotationButton.connect('clicked(bool)', self.onClickAnnotation)
+        self.ui.deepgrowModelSelector.connect("currentIndexChanged(int)", self.updateMRMLFromGUI)
 
     def currentSegment(self):
         pnode = self.scriptedEffect.parameterSetNode()
@@ -145,8 +146,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.logic.setUseCompression(slicer.util.settingsValue("NVIDIA-AIAA/compressData",
                                                                True,
                                                                converter=slicer.util.toBool))
-        self.logic.setDeepGrowModel(slicer.util.settingsValue("NVIDIA-AIAA/deepgrowModel",
-                                                              "clara_deepgrow"))
         self.saveServerUrl()
 
     def saveServerUrl(self):
@@ -194,11 +193,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return
 
         self.models.clear()
-        model_count = {'segmentation': 0, 'annotation': 0}
+        model_count = {}
         for model in models:
             model_name = model['name']
             model_type = model['type']
-            model_count[model['type']] = model_count[model['type']] + 1
+            model_count[model_type] = model_count.get(model_type, 0) + 1
+
             logging.debug('{} = {}'.format(model_name, model_type))
             self.models[model_name] = model
 
@@ -208,8 +208,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         msg += '-----------------------------------------------------\t\n'
         msg += 'Total Models Available: \t' + str(len(models)) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
-        msg += 'Segmentation Models: \t' + str(model_count['segmentation']) + '\t\n'
-        msg += 'Annotation Models: \t' + str(model_count['annotation']) + '\t\n'
+        for model_type in model_count.keys():
+            msg += model_type.capitalize() + ' Models: \t' + str(model_count[model_type]) + '\t\n'
         msg += '-----------------------------------------------------\t\n'
 
         if showInfo:
@@ -488,8 +488,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         start = time.time()
 
+        model = self.ui.deepgrowModelSelector.currentText
+        if not model:
+            slicer.util.warningDisplay("Please select a deepgrow model")
+            return
+
         label = self.currentSegment().GetName()
-        operationDescription = 'Run Deepgrow for segment: {}'.format(label)
+        operationDescription = 'Run Deepgrow for segment: {}; model: {}'.format(label, model)
         logging.debug(operationDescription)
 
         try:
@@ -510,7 +515,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             logging.debug('Foreground: {}'.format(foreground))
             logging.debug('Background: {}'.format(background))
 
-            result_file = self.logic.deepgrow(in_file, session_id, foreground, background)
+            result_file = self.logic.deepgrow(in_file, session_id, model, foreground, background)
             result = 'FAILED'
 
             if self.updateSegmentationMask(None, result_file, None,
@@ -540,25 +545,26 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         segmentId = self.currentSegmentID()
         logging.debug('Current SegmentID: {}; Segment: {}'.format(segmentId, segment))
 
-        if fiducialNode and segment and segmentId:
+        if fiducialNode:
             fiducialNode.RemoveAllMarkups()
 
-            v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
-            IjkToRasMatrix = vtk.vtkMatrix4x4()
-            v.GetIJKToRASMatrix(IjkToRasMatrix)
+            if segment and segmentId:
+                v = self.scriptedEffect.parameterSetNode().GetMasterVolumeNode()
+                IjkToRasMatrix = vtk.vtkMatrix4x4()
+                v.GetIJKToRASMatrix(IjkToRasMatrix)
 
-            fPosStr = vtk.mutable("")
-            segment.GetTag(tagName, fPosStr)
-            pointset = str(fPosStr)
-            logging.debug('{} => {} Fiducial points are: {}'.format(segmentId, segment.GetName(), pointset))
+                fPosStr = vtk.mutable("")
+                segment.GetTag(tagName, fPosStr)
+                pointset = str(fPosStr)
+                logging.debug('{} => {} Fiducial points are: {}'.format(segmentId, segment.GetName(), pointset))
 
-            if fPosStr is not None and len(pointset) > 0:
-                points = json.loads(pointset)
-                for p in points:
-                    p_Ijk = [p[0], p[1], p[2], 1.0]
-                    p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
-                    logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
-                    fiducialNode.AddFiducialFromArray(p_Ras[0:3])
+                if fPosStr is not None and len(pointset) > 0:
+                    points = json.loads(pointset)
+                    for p in points:
+                        p_Ijk = [p[0], p[1], p[2], 1.0]
+                        p_Ras = IjkToRasMatrix.MultiplyDoublePoint(p_Ijk)
+                        logging.debug('Add Fiducial: {} => {}'.format(p_Ijk, p_Ras))
+                        fiducialNode.AddFiducialFromArray(p_Ras[0:3])
 
             self.updateGUIFromMRML()
 
@@ -575,7 +581,6 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                            self.dgNegativeFiducialNode,
                            self.dgNegativeFiducialNodeObservers)
         self.dgNegativeFiducialNode = None
-
 
     def resetFiducial(self, fiducialWidget, fiducialNode, fiducialNodeObservers):
         if fiducialWidget.placeModeEnabled:
@@ -727,59 +732,59 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.serverComboBox.setCurrentText(settings.value("NVIDIA-AIAA/serverUrl"))
         self.ui.serverComboBox.blockSignals(wasBlocked)
 
+    def updateSelector(self, selector, model_type, param, filtered):
+        wasSelectorBlocked = selector.blockSignals(True)
+        selector.clear()
+
+        currentSegment = self.currentSegment()
+        currentSegmentName = currentSegment.GetName().lower() if currentSegment else ""
+
+        for model_name, model in self.models.items():
+            # TODO:: Remove deepgrow check in final release
+            if len(model["labels"]) == 0 and model_type != 'deepgrow':
+                continue
+            if model['type'] == model_type or (len(model["labels"]) == 0 and model_type == 'deepgrow'):
+                if filtered and not (currentSegmentName in model_name.lower()):
+                    continue
+                selector.addItem(model_name)
+                selector.setItemData(selector.count - 1, model['description'], qt.Qt.ToolTipRole)
+
+        model = self.scriptedEffect.parameter(param) if self.scriptedEffect.parameterDefined(param) else ""
+        if not model and currentSegment:
+            model = vtk.mutable("")
+            currentSegment.GetTag(param, model)
+
+        modelIndex = selector.findText(model)
+        modelIndex = 0 if modelIndex < 0 and selector.count > 0 else 0
+        selector.setCurrentIndex(modelIndex)
+
+        try:
+            modelInfo = self.models[model]
+            selector.setToolTip(modelInfo["description"])
+        except:
+            selector.setToolTip("")
+        selector.blockSignals(wasSelectorBlocked)
+
     def updateGUIFromMRML(self):
         annotationModelFiltered = self.scriptedEffect.integerParameter("AnnotationModelFiltered") != 0
         wasBlocked = self.ui.annotationModelFilterPushButton.blockSignals(True)
         self.ui.annotationModelFilterPushButton.checked = annotationModelFiltered
         self.ui.annotationModelFilterPushButton.blockSignals(wasBlocked)
 
-        wasSegmentationModelSelectorBlocked = self.ui.segmentationModelSelector.blockSignals(True)
-        wasAnnotationModelSelectorBlocked = self.ui.annotationModelSelector.blockSignals(True)
-        self.ui.segmentationModelSelector.clear()
-        self.ui.annotationModelSelector.clear()
+        self.updateSelector(self.ui.segmentationModelSelector, 'segmentation', 'SegmentationModel', False)
+        self.updateSelector(self.ui.annotationModelSelector, 'annotation', 'AIAA.AnnotationModel',
+                            annotationModelFiltered)
+        self.updateSelector(self.ui.deepgrowModelSelector, 'deepgrow', 'DeepgrowModel', False)
 
-        currentSegment = self.currentSegment()
-        currentSegmentName = currentSegment.GetName().lower() if currentSegment else ""
-        for model_name, model in self.models.items():
-            if len(model["labels"]) == 0:
-                continue
-            if model['type'] == 'segmentation':
-                modelWidget = self.ui.segmentationModelSelector
-            else:
-                if annotationModelFiltered and not (currentSegmentName in model_name.lower()):
-                    continue
-                modelWidget = self.ui.annotationModelSelector
-            modelWidget.addItem(model_name)
-            modelWidget.setItemData(modelWidget.count - 1, model['description'], qt.Qt.ToolTipRole)
-
-        segmentationModel = self.scriptedEffect.parameter("SegmentationModel") if self.scriptedEffect.parameterDefined(
-            "SegmentationModel") else ""
-        segmentationModelIndex = self.ui.segmentationModelSelector.findText(segmentationModel)
-        self.ui.segmentationModelSelector.setCurrentIndex(segmentationModelIndex)
-        try:
-            modelInfo = self.models[segmentationModel]
-            self.ui.segmentationModelSelector.setToolTip(modelInfo["description"])
-        except:
-            self.ui.segmentationModelSelector.setToolTip("")
-
-        annotationModel = vtk.mutable("")
-        currentSegment = self.currentSegment()
-        if currentSegment:
-            currentSegment.GetTag("AIAA.AnnotationModel", annotationModel)
-        annotationModelIndex = self.ui.annotationModelSelector.findText(annotationModel)
-        self.ui.annotationModelSelector.setCurrentIndex(annotationModelIndex)
-        try:
-            modelInfo = self.models[annotationModel]
-            self.ui.annotationModelSelector.setToolTip(modelInfo["description"])
-        except:
-            self.ui.annotationModelSelector.setToolTip("")
-
-        self.ui.segmentationModelSelector.blockSignals(wasSegmentationModelSelectorBlocked)
-        self.ui.annotationModelSelector.blockSignals(wasAnnotationModelSelectorBlocked)
-
+        # Enable/Disable
         self.ui.segmentationButton.setEnabled(self.ui.segmentationModelSelector.currentText)
 
-        if self.currentSegment() and self.annotationFiducialNode and self.ui.annotationModelSelector.currentText:
+        currentSegment = self.currentSegment()
+        if currentSegment:
+            self.ui.dgNegativeFiducialPlacementWidget.setEnabled(self.ui.deepgrowModelSelector.currentText)
+            self.ui.dgNegativeFiducialPlacementWidget.setEnabled(self.ui.deepgrowModelSelector.currentText)
+
+        if currentSegment and self.annotationFiducialNode and self.ui.annotationModelSelector.currentText:
             numberOfDefinedPoints = self.annotationFiducialNode.GetNumberOfDefinedControlPoints()
             if numberOfDefinedPoints >= 6:
                 self.ui.annotationButton.setEnabled(True)
@@ -801,6 +806,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             # (to not clear the model if it is temporarily not available)
             segmentationModel = self.ui.segmentationModelSelector.itemText(segmentationModelIndex)
             self.scriptedEffect.setParameter("SegmentationModel", segmentationModel)
+
+        deepgrowModelIndex = self.ui.deepgrowModelSelector.currentIndex
+        if deepgrowModelIndex >= 0:
+            deepgrowModel = self.ui.deepgrowModelSelector.itemText(deepgrowModelIndex)
+            self.scriptedEffect.setParameter("DeepgrowModel", deepgrowModel)
 
         annotationModelIndex = self.ui.annotationModelSelector.currentIndex
         if annotationModelIndex >= 0:
@@ -873,7 +883,6 @@ class AIAALogic():
 
         self.server_url = server_url
         self.useCompression = True
-        self.deepgrowModel = 'clara_deepgrow'
 
     def __del__(self):
         shutil.rmtree(self.aiaa_tmpdir, ignore_errors=True)
@@ -891,9 +900,6 @@ class AIAALogic():
 
     def setUseCompression(self, useCompression):
         self.useCompression = useCompression
-
-    def setDeepGrowModel(self, deepgrowModel):
-        self.deepgrowModel = deepgrowModel
 
     def setProgressCallback(self, progress_callback=None):
         self.progress_callback = progress_callback
@@ -1002,11 +1008,11 @@ class AIAALogic():
         aiaaClient.dextr3d(model, pointset, image_in, result_file, pre_process=False, session_id=session_id)
         return result_file
 
-    def deepgrow(self, image_in, session_id, foreground_point_set, background_point_set):
-        logging.debug('Preparing for Deepgrow Action (model: {})'.format(self.deepgrowModel))
+    def deepgrow(self, image_in, session_id, model, foreground_point_set, background_point_set):
+        logging.debug('Preparing for Deepgrow Action (model: {})'.format(model))
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        aiaaClient.deepgrow(self.deepgrowModel, foreground_point_set, background_point_set, image_in, result_file,
+        aiaaClient.deepgrow(model, foreground_point_set, background_point_set, image_in, result_file,
                             session_id=session_id)
         return result_file

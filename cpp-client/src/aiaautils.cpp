@@ -221,7 +221,7 @@ PointSet postProcessImage(typename TImage::Pointer image, const std::string &out
     recoverSize[i] = imageInfo.cropSize[i];
   }
 
-  AIAA_LOG_DEBUG("Recover resizing... ");
+  AIAA_LOG_DEBUG("Recover resizing: " << recoverSize);
   typename ImageType::Pointer segLocalResizeImage;
   segLocalResizeImage = resizeImage<ImageType>(segLocalImage, recoverSize, false);
 
@@ -248,6 +248,7 @@ PointSet postProcessImage(typename TImage::Pointer image, const std::string &out
 
   segRecoverImage = padFilter->GetOutput();
   segRecoverImage->SetOrigin(segLocalImage->GetOrigin());
+  AIAA_LOG_DEBUG("++++ Recovered Image: " << segRecoverImage->GetLargestPossibleRegion());
 
   auto writer = itk::ImageFileWriter<ImageType>::New();
   writer->SetInput(segRecoverImage);
@@ -385,7 +386,7 @@ PointSet processImage(const itk::ImageIOBase::IOComponentType componentType, con
   throw exception(exception::ITK_PROCESS_ERROR, "Unknown and unsupported component type!");
 }
 
-PointSet imageProcess(const PointSet &pointSet, const std::string &inputImage, const std::string &outputImage, ImageInfo &imageInfo, double PAD,
+PointSet processImage(const PointSet &pointSet, const std::string &inputImage, const std::string &outputImage, ImageInfo &imageInfo, double PAD,
                       const Point &ROI, bool pre = true) {
 
   try {
@@ -426,12 +427,12 @@ PointSet imageProcess(const PointSet &pointSet, const std::string &inputImage, c
 
 PointSet AiaaUtils::imagePreProcess(const PointSet &pointSet, const std::string &inputImage, const std::string &outputImage, ImageInfo &imageInfo,
                                     double PAD, const Point &ROI) {
-  return imageProcess(pointSet, inputImage, outputImage, imageInfo, PAD, ROI, true);
+  return processImage(pointSet, inputImage, outputImage, imageInfo, PAD, ROI, true);
 }
 
 void AiaaUtils::imagePostProcess(const std::string &inputImage, const std::string &outputImage, const ImageInfo &imageInfo) {
   ImageInfo info = imageInfo;
-  imageProcess(PointSet(), inputImage, outputImage, info, 0.0, Point(), false);
+  processImage(PointSet(), inputImage, outputImage, info, 0.0, Point(), false);
 }
 
 }

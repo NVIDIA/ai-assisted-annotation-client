@@ -62,7 +62,16 @@ class AIAA_CLIENT_API Client {
   Client(const std::string &serverUri, const int timeoutInSec = 60);
 
   /*!
-   @brief This API is used to fetch all the possible Models support by AIAA Server
+   @brief This API is used to fetch a specific Model supported by AIAA Server
+   @return ModelList object representing a list of Models
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   */
+  Model model(const std::string &name) const;
+
+  /*!
+   @brief This API is used to fetch all the possible Models supported by AIAA Server
    @return ModelList object representing a list of Models
 
    @throw nvidia.aiaa.error.101 in case of connect error
@@ -71,7 +80,7 @@ class AIAA_CLIENT_API Client {
   ModelList models() const;
 
   /*!
-   @brief This API is used to fetch all the possible Models support by AIAA Server for matching label and model type
+   @brief This API is used to fetch all the possible Models supported by AIAA Server for matching label and model type
    @param[in] label  Filter models by matching label
    @param[in] type  Filter models by matching model type (segmentation/annotation)
    @return ModelList object representing a list of Models

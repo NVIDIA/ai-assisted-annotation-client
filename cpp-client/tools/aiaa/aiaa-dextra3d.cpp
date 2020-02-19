@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
 
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string model = getCmdOption(argv, argv + argc, "-model");
@@ -89,8 +89,18 @@ int main(int argc, char **argv) {
     nvidia::aiaa::PointSet pointSet = nvidia::aiaa::PointSet::fromJson(points);
     nvidia::aiaa::Client client(serverUri, timeout);
 
-    nvidia::aiaa::ModelList models = client.models();
-    nvidia::aiaa::Model m = models.getMatchingModel(label);
+    nvidia::aiaa::Model m;
+    if (model.empty()) {
+      nvidia::aiaa::ModelList models = client.models();
+      m = models.getMatchingModel(label, nvidia::aiaa::Model::annotation);
+    } else {
+      m = client.model(model);
+    }
+
+    if (m.name.empty()) {
+      std::cerr << "Couldn't find a model for name: " << model << "; label: " << label << "\n";
+      return -1;
+    }
 
     // overrides
     if (!model.empty()) {

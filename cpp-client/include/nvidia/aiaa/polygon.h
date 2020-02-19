@@ -88,7 +88,7 @@ struct AIAA_CLIENT_API Polygons {
 
    @return Polygons object
    */
-  static Polygons fromJson(const std::string &json);
+  static Polygons fromJson(const std::string &json, const std::string &key = "");
 
   /*!
    @brief convert Polygons to JSON String
@@ -134,7 +134,7 @@ struct AIAA_CLIENT_API PolygonsList {
 
    @return PolygonsList object
    */
-  static PolygonsList fromJson(const std::string &json);
+  static PolygonsList fromJson(const std::string &json, const std::string &key = "");
 
   /*!
    @brief convert PolygonsList to JSON String

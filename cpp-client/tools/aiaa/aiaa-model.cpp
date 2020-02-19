@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string type = getCmdOption(argv, argv + argc, "-type");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");

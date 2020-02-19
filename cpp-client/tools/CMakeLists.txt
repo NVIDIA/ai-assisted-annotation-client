@@ -67,6 +67,9 @@ target_link_libraries(nvidiaAIAAMaskPolygon NvidiaAIAAClient ${CMAKE_DL_LIBS})
 add_executable(nvidiaAIAASession aiaa/aiaa-session.cpp)
 target_link_libraries(nvidiaAIAASession NvidiaAIAAClient ${CMAKE_DL_LIBS})
 
+add_executable(nvidiaAIAADeepgrow aiaa/aiaa-deepgrow.cpp)
+target_link_libraries(nvidiaAIAADeepgrow NvidiaAIAAClient ${CMAKE_DL_LIBS})
+
 # Install Targets
 install(TARGETS DicomToNifti           DESTINATION bin)
 install(TARGETS NiftiToDicom           DESTINATION bin)
@@ -78,3 +81,4 @@ install(TARGETS nvidiaAIAAFixPolygon   DESTINATION bin)
 install(TARGETS nvidiaAIAAMaskPolygon  DESTINATION bin)
 install(TARGETS nvidiaAIAASampling3D   DESTINATION bin)
 install(TARGETS nvidiaAIAASession      DESTINATION bin)
+install(TARGETS nvidiaAIAADeepgrow     DESTINATION bin)

@@ -37,10 +37,12 @@ int main(int argc, char **argv) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
               "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
-              " *|-op       Operation (create|get|delete)                                                |\n"
-              "  |-image    Input Image File in case of (create) operation                               |\n"
-              "  |-expiry   Session expiry time in minutes (default: 0)                                  |\n"
-              "  |-session  Session ID in case of (get|delete) operation                                 |\n"
+              " *|-model    Model Name        [either -label or -model is required]                      |\n"
+              " *|-fpoints  Foreground Clicks [[x,y,z]+]     Example: [[70,172,86],...,[105,161,86]]     |\n"
+              " *|-bpoints  Background Clicks [[x,y,z]+]     Example: [[80,172,86],...,[102,161,86]]     |\n"
+              " *|-image    Input Image File                                                             |\n"
+              " *|-session  Session ID                                                                   |\n"
+              " *|-output   Output Image File                                                            |\n"
               "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";
     return 0;
@@ -48,49 +50,48 @@ int main(int argc, char **argv) {
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
 
-  std::string operation = getCmdOption(argv, argv + argc, "-op");
+  std::string model = getCmdOption(argv, argv + argc, "-model");
+  std::string fpoints = getCmdOption(argv, argv + argc, "-fpoints", "[]");
+  std::string bpoints = getCmdOption(argv, argv + argc, "-bpoints", "[]");
+
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
-  int expiry = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-expiry", "0"));
   std::string sessionId = getCmdOption(argv, argv + argc, "-session");
+  std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
 
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
-  if (operation.empty()) {
-    std::cerr << "Operation is Missing\n";
+  if (model.empty()) {
+    std::cerr << "Model is required\n";
     return -1;
   }
-  if (!(operation == "create" || operation == "get" || operation == "delete")) {
-    std::cerr << "Operation is Invalid\n";
-    return -1;
-  }
-  if (operation == "create" && inputImageFile.empty()) {
+  if (inputImageFile.empty() && sessionId.empty()) {
     std::cerr << "Input Image file is missing (Either session-id or input image should be provided)\n";
     return -1;
   }
-  if ((operation == "get" || operation == "delete") && sessionId.empty()) {
-    std::cerr << "Session ID is missing\n";
+  if (outputImageFile.empty()) {
+    std::cerr << "Output Image file is missing\n";
     return -1;
   }
 
   try {
+    nvidia::aiaa::PointSet foreground = nvidia::aiaa::PointSet::fromJson(fpoints);
+    nvidia::aiaa::PointSet background = nvidia::aiaa::PointSet::fromJson(bpoints);
     nvidia::aiaa::Client client(serverUri, timeout);
 
-    auto begin = std::chrono::high_resolution_clock::now();
-    if (operation == "create") {
-      std::string result = client.createSession(inputImageFile, expiry);
-      std::cout << "New Session ID: " << result << std::endl;
-    } else if (operation == "get") {
-      std::string result = client.getSession(sessionId);
-      std::cout << "Session Info: " << result << std::endl;
-    } else if (operation == "delete") {
-      client.closeSession(sessionId);
-      std::cout << "Session Closed: " << sessionId << std::endl;
+    nvidia::aiaa::Model m = client.model(model);
+    if (m.name.empty()) {
+      std::cerr << "Couldn't find a model for name: " << model << "\n";
+      return -1;
     }
+
+    auto begin = std::chrono::high_resolution_clock::now();
+    int ret = client.deepgrow(m, foreground, background, inputImageFile, outputImageFile, sessionId);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
+    std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
     if (printTs) {
       std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }

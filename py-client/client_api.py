@@ -104,6 +104,9 @@ class AIAAClient:
 
         status, response = AIAAUtils.http_multipart('PUT', self._server_url, selector, fields, files,
                                                     multipart_response=False)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         logger.debug('Response: {}'.format(response))
         return json.loads(response)
@@ -123,8 +126,8 @@ class AIAAClient:
 
         selector = '/session/' + AIAAUtils.urllib_quote_plus(session_id)
         status, response = AIAAUtils.http_method('GET', self._server_url, selector)
-        if status is not 200:
-            return None
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
 
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         logger.debug('Response: {}'.format(response))
@@ -160,11 +163,14 @@ class AIAAClient:
         logger.debug('Fetching Model Details')
 
         selector = '/v1/models'
-        selector += '?model=' + AIAAUtils.urllib_quote_plus(model)
+        if model:
+            selector += '?model=' + AIAAUtils.urllib_quote_plus(model)
 
         status, response = AIAAUtils.http_method('GET', self._server_url, selector)
-        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
 
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
         logger.debug('Response: {}'.format(response))
         return json.loads(response)
 
@@ -183,6 +189,9 @@ class AIAAClient:
             selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
 
         status, response = AIAAUtils.http_method('GET', self._server_url, selector)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
         response = response.decode('utf-8') if isinstance(response, bytes) else response
 
         logger.debug('Response: {}'.format(response))
@@ -217,15 +226,12 @@ class AIAAClient:
         status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
         if status == 440:
             raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
 
         form = json.loads(form) if isinstance(form, str) else form
-
         params = form.get('params')
-        if params is None:  # Backward Compatibility
-            points = json.loads(form.get('points', '[]'))
-            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
-        else:
-            params = json.loads(params) if isinstance(params, str) else params
+        params = json.loads(params) if isinstance(params, str) else params
 
         AIAAUtils.save_result(files, image_out)
         return params
@@ -275,13 +281,12 @@ class AIAAClient:
         status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
         if status == 440:
             raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
 
+        form = json.loads(form) if isinstance(form, str) else form
         params = form.get('params')
-        if params is None:  # Backward Compatibility
-            points = json.loads(form.get('points'))
-            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
-        else:
-            params = json.loads(params) if isinstance(params, str) else params
+        params = json.loads(params) if isinstance(params, str) else params
 
         # Post Process
         if pre_process:
@@ -326,14 +331,12 @@ class AIAAClient:
         status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
         if status == 440:
             raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
 
         form = json.loads(form) if isinstance(form, str) else form
         params = form.get('params')
-        if params is None:  # Backward Compatibility
-            points = json.loads(form.get('points'))
-            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
-        else:
-            params = json.loads(params) if isinstance(params, str) else params
+        params = json.loads(params) if isinstance(params, str) else params
 
         AIAAUtils.save_result(files, image_out)
         return params
@@ -359,6 +362,9 @@ class AIAAClient:
 
         status, response = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files,
                                                     multipart_response=False)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -389,27 +395,34 @@ class AIAAClient:
         dimension = len(index)
 
         params = dict()
-        params['prev_poly'] = polygons
+        params['poly'] = polygons
         params['vertex_offset'] = vertex_offset
         params['dimension'] = dimension
 
         if dimension == 3:
-            params['sliceIndex'] = index[0]
-            params['polygonIndex'] = index[1]
-            params['vertexIndex'] = index[2]
+            params['slice_index'] = index[0]
+            params['polygon_index'] = index[1]
+            params['vertex_index'] = index[2]
             params['propagate_neighbor_3d'] = propagate_neighbor[0]
             params['propagate_neighbor'] = propagate_neighbor[1]
         else:
-            params['polygonIndex'] = index[0]
-            params['vertexIndex'] = index[1]
+            params['polygon_index'] = index[0]
+            params['vertex_index'] = index[1]
             params['propagate_neighbor'] = propagate_neighbor
 
         fields = {'params': json.dumps(params)}
         files = {'image': image_in}
 
         status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
+
+        form = json.loads(form) if isinstance(form, str) else form
+        params = form.get('params')
+        params = json.loads(params) if isinstance(params, str) else params
+
         AIAAUtils.save_result(files, image_out)
-        return form
+        return params
 
 
 class AIAAError:
@@ -590,7 +603,7 @@ class AIAAUtils:
                 logger.debug('Response FILES: {}'.format(files.keys()))
                 return response.status, form, files
             else:
-                return response.status, None, None
+                return response.status, response.read(), None
 
         return response.status, response.read()
 

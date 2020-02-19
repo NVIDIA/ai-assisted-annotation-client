@@ -75,10 +75,19 @@ Client::Client(const std::string &uri, int timeout)
   }
 }
 
+Model Client::model(const std::string &name) const {
+  if (name.empty()) {
+    AIAA_LOG_ERROR("Model Name is empty");
+    throw exception(exception::INVALID_ARGS_ERROR, "Model is EMPTY");
+  }
+
+  std::string uri = serverUri + EP_MODELS;
+  uri += "?model=" + CurlUtils::encode(name);
+  return Model::fromJson(CurlUtils::doMethod("GET", uri, timeoutInSec));
+}
+
 ModelList Client::models() const {
   std::string uri = serverUri + EP_MODELS;
-  AIAA_LOG_DEBUG("URI: " << uri);
-
   return ModelList::fromJson(CurlUtils::doMethod("GET", uri, timeoutInSec));
 }
 
@@ -94,7 +103,6 @@ ModelList Client::models(const std::string &label, const Model::ModelType type) 
     uri += (first ? "?" : "&");
     uri += std::string("type=") + Model::toString(type);
   }
-  AIAA_LOG_DEBUG("URI: " << uri);
 
   return ModelList::fromJson(CurlUtils::doMethod("GET", uri, timeoutInSec));
 }
@@ -119,7 +127,7 @@ PointSet Client::segmentation(const Model &model, const std::string &inputImageF
   std::string paramStr = "{}";
 
   std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
-  return PointSet::fromJson(response);
+  return PointSet::fromJson(response, "points");
 }
 
 int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile,
@@ -150,10 +158,12 @@ int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::str
   AutoRemoveFiles autoRemoveFiles;
 
   if (preProcess) {
-    croppedInputFile = Utils::tempfilename();
-    croppedOutputFile = Utils::tempfilename();
-    pointSetROI = AiaaUtils::imagePreProcess(pointSet, inputImageFile, croppedInputFile, imageInfo, model.padding, model.roi);
+    croppedInputFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
+    croppedOutputFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
+    AIAA_LOG_DEBUG("Cropped Input File: " << croppedInputFile);
+    AIAA_LOG_DEBUG("Cropped Output File: " << croppedOutputFile);
 
+    pointSetROI = AiaaUtils::imagePreProcess(pointSet, inputImageFile, croppedInputFile, imageInfo, model.padding, model.roi);
     autoRemoveFiles.add(croppedInputFile);
   }
 
@@ -224,11 +234,11 @@ Polygons Client::fixPolygon(const Polygons &poly, int neighborhoodSize, int poly
 
   std::string paramStr = "{\"propagate_neighbor\":" + Utils::lexical_cast<std::string>(neighborhoodSize) + ",";
   paramStr = paramStr + "\"dimension\":2,";
-  paramStr = paramStr + "\"polygonIndex\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
-  paramStr = paramStr + "\"vertexIndex\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
-  paramStr = paramStr + "\"vertexOffset\": [" + Utils::lexical_cast<std::string>(vertexOffset[0]) + ","
+  paramStr = paramStr + "\"polygon_index\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
+  paramStr = paramStr + "\"vertex_index\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
+  paramStr = paramStr + "\"vertex_offset\":[" + Utils::lexical_cast<std::string>(vertexOffset[0]) + ","
       + Utils::lexical_cast<std::string>(vertexOffset[1]) + "],";
-  paramStr = paramStr + "\"prev_poly\":" + poly.toJson() + "}";
+  paramStr = paramStr + "\"poly\":" + poly.toJson() + "}";
 
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
@@ -237,7 +247,7 @@ Polygons Client::fixPolygon(const Polygons &poly, int neighborhoodSize, int poly
   std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
   AIAA_LOG_DEBUG("Response: \n" << response);
 
-  return PolygonsList::fromJson(response).list[0];
+  return Polygons::fromJson(response, "poly");
 }
 
 PolygonsList Client::fixPolygon(const PolygonsList &poly, int neighborhoodSize, int neighborhoodSize3D, int sliceIndex, int polyIndex,
@@ -248,12 +258,12 @@ PolygonsList Client::fixPolygon(const PolygonsList &poly, int neighborhoodSize, 
   std::string paramStr = "{\"propagate_neighbor\":" + Utils::lexical_cast<std::string>(neighborhoodSize) + ",";
   paramStr = paramStr + "\"propagate_neighbor_3d\":" + Utils::lexical_cast<std::string>(neighborhoodSize3D) + ",";
   paramStr = paramStr + "\"dimension\":3,";
-  paramStr = paramStr + "\"sliceIndex\":" + Utils::lexical_cast<std::string>(sliceIndex) + ",";
-  paramStr = paramStr + "\"polygonIndex\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
-  paramStr = paramStr + "\"vertexIndex\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
-  paramStr = paramStr + "\"vertexOffset\": [" + Utils::lexical_cast<std::string>(vertexOffset[0]) + ","
+  paramStr = paramStr + "\"slice_index\":" + Utils::lexical_cast<std::string>(sliceIndex) + ",";
+  paramStr = paramStr + "\"polygon_index\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
+  paramStr = paramStr + "\"vertex_index\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
+  paramStr = paramStr + "\"vertex_offset\":[" + Utils::lexical_cast<std::string>(vertexOffset[0]) + ","
       + Utils::lexical_cast<std::string>(vertexOffset[1]) + "],";
-  paramStr = paramStr + "\"prev_poly\":" + poly.toJson() + "}";
+  paramStr = paramStr + "\"poly\":" + poly.toJson() + "}";
 
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
@@ -262,7 +272,7 @@ PolygonsList Client::fixPolygon(const PolygonsList &poly, int neighborhoodSize, 
   std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
   AIAA_LOG_DEBUG("Response: \n" << response);
 
-  return PolygonsList::fromJson(response);
+  return PolygonsList::fromJson(response, "poly");
 }
 
 std::string Client::createSession(const std::string &inputImageFile, const int expiry) const {

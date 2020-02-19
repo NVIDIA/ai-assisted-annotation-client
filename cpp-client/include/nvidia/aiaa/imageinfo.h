@@ -63,24 +63,5 @@ struct AIAA_CLIENT_API ImageInfo {
   std::string dump();
 };
 
-namespace Pixel {
-enum Type {
-  CHAR,
-  UCHAR,
-  SHORT,
-  USHORT,
-  INT,
-  UINT,
-  LONG,
-  ULONG,
-  FLOAT,
-  DOUBLE,
-  UNKNOWN
-};
-}
-
-AIAA_CLIENT_API std::string getPixelTypeStr(const Pixel::Type type);
-AIAA_CLIENT_API Pixel::Type getPixelType(const std::string &type);
-
 }
 }

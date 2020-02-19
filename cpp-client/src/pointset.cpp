@@ -61,10 +61,10 @@ PointSet PointSet::fromJson(const std::string &json) {
       pointSet.push_back(point);
     }
     return pointSet;
-  } catch (nlohmann::json::parse_error& e) {
+  } catch (nlohmann::json::parse_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-  } catch (nlohmann::json::type_error& e) {
+  } catch (nlohmann::json::type_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
   }

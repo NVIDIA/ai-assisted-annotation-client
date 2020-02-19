@@ -36,10 +36,11 @@ int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
-              "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+              "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
               " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
               " *|-model    Model Name        [either -label or -model is required]                      |\n"
               " *|-image    Input Image File                                                             |\n"
+              " *|-session  Session ID                                                                   |\n"
               " *|-output   Output Image File                                                            |\n"
               "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";
@@ -47,10 +48,14 @@ int main(int argc, char **argv) {
   }
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string model = getCmdOption(argv, argv + argc, "-model");
+
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
+  std::string sessionId = getCmdOption(argv, argv + argc, "-session");
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
+
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
@@ -58,8 +63,8 @@ int main(int argc, char **argv) {
     std::cerr << "Either Label or Model is required\n";
     return -1;
   }
-  if (inputImageFile.empty()) {
-    std::cerr << "Input Image file is missing\n";
+  if (inputImageFile.empty() && sessionId.empty()) {
+    std::cerr << "Input Image file is missing (Either session-id or input image should be provided)\n";
     return -1;
   }
   if (outputImageFile.empty()) {
@@ -68,21 +73,13 @@ int main(int argc, char **argv) {
   }
 
   try {
-    nvidia::aiaa::PointSet pointSet;
     nvidia::aiaa::Client client(serverUri, timeout);
 
     nvidia::aiaa::ModelList models = client.models();
     nvidia::aiaa::Model m = models.getMatchingModel(label, nvidia::aiaa::Model::segmentation);
 
-    // overrides
-    if (!model.empty()) {
-      m.name = model;
-      m.type = nvidia::aiaa::Model::segmentation;
-    }
-
-    const int DIM = 3;
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::PointSet extremePoints = client.segmentation(m, pointSet, inputImageFile, DIM, outputImageFile);
+    nvidia::aiaa::PointSet extremePoints = client.segmentation(m, inputImageFile, outputImageFile, sessionId);
     std::cout << "Extreme Points: " << extremePoints.toJson() << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -92,7 +89,7 @@ int main(int argc, char **argv) {
       std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }
     return 0;
-  } catch (nvidia::aiaa::exception& e) {
+  } catch (nvidia::aiaa::exception &e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
   }
   return -1;

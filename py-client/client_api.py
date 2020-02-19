@@ -85,11 +85,12 @@ class AIAAClient:
         """
         self._server_url = server_url
 
-    def create_session(self, image_in):
+    def create_session(self, image_in, expiry=0):
         """
-        Get Session Info
+        Create New Session
 
         :param image_in: valid image which will be stored as part of the new session
+        :param expiry: expiry in seconds.  min(AIAASessionExpiry, expiry) will be selected by AIAA
         :return: returns json containing **session_id** and any other details from server
 
         valid *session_id* from result can be used for future reference
@@ -97,7 +98,7 @@ class AIAAClient:
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for Create Session Action')
 
-        selector = '/session/'
+        selector = '/session/?expiry=' + str(expiry)
         fields = {}
         files = {'image': image_in}
 

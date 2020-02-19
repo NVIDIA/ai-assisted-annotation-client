@@ -28,6 +28,7 @@
 
 #include <nvidia/aiaa/client.h>
 #include <nvidia/aiaa/utils.h>
+
 #include "../commonutils.h"
 #include <chrono>
 
@@ -35,54 +36,67 @@ int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
-              "  |-server   Server URI  {default: http://0.0.0.0:5000}                                   |\n"
-              "  |-ratio    Point Ratio {default: 10}                                                    |\n"
-              " *|-image    Input Image File                                                             |\n"
-              "  |-output   Output File Name to store result                                             |\n"
-              "  |-format   Format Output Json                                                           |\n"
-              "  |-timeout      Timeout In Seconds {default: 60}                                         |\n"
+              "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
+              " *|-op       Operation (create|get|delete)                                                |\n"
+              "  |-image    Input Image File in case of (create) operation                               |\n"
+              "  |-expiry   Session expiry time in minutes (default: 0)                                  |\n"
+              "  |-session  Session ID in case of (get|delete) operation                                 |\n"
+              "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";
     return 0;
   }
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
-  int ratio = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-ratio", "10"));
+
+  std::string operation = getCmdOption(argv, argv + argc, "-op");
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
-  std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");
-  int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
+  int expiry = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-expiry", "0"));
+  std::string sessionId = getCmdOption(argv, argv + argc, "-session");
+
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
-  if (ratio < 1) {
-    std::cerr << "Invalid Point Ratio (should be > 0)\n";
+  if (operation.empty()) {
+    std::cerr << "Operation is Missing\n";
     return -1;
   }
-  if (inputImageFile.empty()) {
-    std::cerr << "Input Image file is missing\n";
+  if (!(operation == "create" || operation == "get" || operation == "delete")) {
+    std::cerr << "Operation is Invalid\n";
+    return -1;
+  }
+  if (operation == "create" && inputImageFile.empty()) {
+    std::cerr << "Input Image file is missing (Either session-id or input image should be provided)\n";
+    return -1;
+  }
+  if ((operation == "get" || operation == "delete") && sessionId.empty()) {
+    std::cerr << "Session ID is missing\n";
     return -1;
   }
 
   try {
-    auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri, timeout);
-    nvidia::aiaa::PolygonsList result = client.maskToPolygon(ratio, inputImageFile);
+
+    auto begin = std::chrono::high_resolution_clock::now();
+    if (operation == "create") {
+      std::string result = client.createSession(inputImageFile, expiry);
+      std::cout << "New Session ID: " << result << std::endl;
+    } else if (operation == "get") {
+      std::string result = client.getSession(sessionId);
+      std::cout << "Session Info: " << result << std::endl;
+    } else if (operation == "delete") {
+      client.closeSession(sessionId);
+      std::cout << "Session Closed: " << sessionId << std::endl;
+    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
-
-    if (outputJsonFile.empty()) {
-      std::cout << result.toJson(jsonSpace) << std::endl;
-    } else {
-      stringToFile(result.toJson(jsonSpace), outputJsonFile);
-    }
 
     if (printTs) {
       std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }
     return 0;
-  } catch (nvidia::aiaa::exception& e) {
+  } catch (nvidia::aiaa::exception &e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
   }
-
   return -1;
 }

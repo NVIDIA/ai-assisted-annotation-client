@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   if (cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
         "  |-h        (Help) Print this information                                                |\n"
-        "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+        "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
         "  |-label    Find Matching Model for this label; If absent, output full Model List        |\n"
         "  |-type     Find Matching Model of type (segmentation/annotation)                        |\n"
         "  |-output   Output File Name to store result                                             |\n"
@@ -58,10 +58,7 @@ int main(int argc, char **argv) {
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri, timeout);
 
-    nvidia::aiaa::Model::ModelType mt = nvidia::aiaa::Model::unknown;
-    mt = type == "segmentation" ? nvidia::aiaa::Model::segmentation : mt;
-    mt = type == "annotation" ? nvidia::aiaa::Model::annotation : mt;
-
+    nvidia::aiaa::Model::ModelType mt = nvidia::aiaa::Model::toModelType(type);
     nvidia::aiaa::ModelList modelList = type.empty() && label.empty() ? client.models() : client.models(label, mt);
 
     auto end = std::chrono::high_resolution_clock::now();

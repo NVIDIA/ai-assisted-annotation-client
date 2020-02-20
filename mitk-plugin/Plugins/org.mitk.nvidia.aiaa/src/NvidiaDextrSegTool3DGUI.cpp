@@ -93,13 +93,23 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
 
 void NvidiaDextrSegTool3DGUI::OnAutoSegmentation() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    m_NvidiaDextrSegTool3D->RunAutoSegmentation(m_Ui->segmentationCombo->currentText().toStdString());
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    try {
+      m_NvidiaDextrSegTool3D->RunAutoSegmentation(m_Ui->segmentationCombo->currentText().toStdString());
+    } catch(...) {
+    }
+    QApplication::restoreOverrideCursor();
   }
 }
 
 void NvidiaDextrSegTool3DGUI::OnConfirmPoints() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    m_NvidiaDextrSegTool3D->ConfirmPoints(m_Ui->annotationCombo->currentText().toStdString());
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    try {
+      m_NvidiaDextrSegTool3D->ConfirmPoints(m_Ui->annotationCombo->currentText().toStdString());
+    } catch(...) {
+    }
+    QApplication::restoreOverrideCursor();
   }
 }
 

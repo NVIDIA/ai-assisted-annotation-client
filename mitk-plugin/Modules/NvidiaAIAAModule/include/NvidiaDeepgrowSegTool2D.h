@@ -78,7 +78,7 @@ public:
   ~NvidiaDeepgrowSegTool2D() override;
 
   template <typename TPixel, unsigned int VImageDimension>
-  void ItkImageProcessRunDeepgrow(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry);
+  void ItkImageProcessRunDeepgrow(itk::Image<TPixel, VImageDimension> *itkImage, std::string imageNodeId);
 
   template <typename TPixel, unsigned int VImageDimension>
   void DisplayResult(const std::string &tmpResultFileName, const int sliceIndex);
@@ -91,7 +91,7 @@ public:
   mitk::PointSetDataInteractor::Pointer m_pointInteractor;
   mitk::DataNode::Pointer m_PointSetNode;
 
-  std::string m_AIAASessionId;
+  std::map<std::string, std::string> m_AIAASessions;
   nvidia::aiaa::PointSet m_foregroundPoints;
   nvidia::aiaa::PointSet m_backgroundPoints;
 

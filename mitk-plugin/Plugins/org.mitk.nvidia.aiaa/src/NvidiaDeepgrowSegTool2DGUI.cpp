@@ -84,9 +84,16 @@ void NvidiaDeepgrowSegTool2DGUI::OnPointAdded() {
     return;
   }
 
-  bool background = m_Ui->backgroundBtn->isChecked();
-  m_NvidiaDeepgrowSegTool2D->PointAdded(m_InputImageNode, background);
-  m_NvidiaDeepgrowSegTool2D->RunDeepGrow(m_Ui->deepgrowCombo->currentText().toStdString(), m_InputImageNode);
+  QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+
+  try {
+    bool background = m_Ui->backgroundBtn->isChecked();
+    m_NvidiaDeepgrowSegTool2D->PointAdded(m_InputImageNode, background);
+    m_NvidiaDeepgrowSegTool2D->RunDeepGrow(m_Ui->deepgrowCombo->currentText().toStdString(), m_InputImageNode);
+  } catch (...) {
+  }
+
+  QApplication::restoreOverrideCursor();
 }
 
 void NvidiaDeepgrowSegTool2DGUI::UpdateConfigs() {

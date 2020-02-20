@@ -77,7 +77,12 @@ void NvidiaSmartPolySegTool2DGUI::OnNewToolAssociated(mitk::Tool *tool) {
     }
 
     // convert current segmentation mask to polygon
-    m_NvidiaSmartPolySegTool2D->Mask2Polygon();
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    try {
+      m_NvidiaSmartPolySegTool2D->Mask2Polygon();
+    } catch (...) {
+    }
+    QApplication::restoreOverrideCursor();
   }
 }
 

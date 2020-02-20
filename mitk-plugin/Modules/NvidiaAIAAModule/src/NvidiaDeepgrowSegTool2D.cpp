@@ -218,7 +218,10 @@ void NvidiaDeepgrowSegTool2D::RunDeepGrow(const std::string &model, mitk::DataNo
   }
 
   mitk::Image *image = dynamic_cast<mitk::Image*>(imageNode->GetData());
-  AccessByItk_1(image, ItkImageProcessRunDeepgrow, image->GetGeometry());
+  std::string imageId = image->GetUID();
+  MITK_INFO("nvidia") << "(Deepgrow) Image ID: " << imageId;
+
+  AccessByItk_1(image, ItkImageProcessRunDeepgrow, imageId);
 }
 
 int NvidiaDeepgrowSegTool2D::GetCurrentSlice(const nvidia::aiaa::PointSet &points) {
@@ -243,12 +246,8 @@ nvidia::aiaa::PointSet NvidiaDeepgrowSegTool2D::GetPointsForCurrentSlice(const n
 }
 
 template<typename TPixel, unsigned int VImageDimension>
-void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry) {
+void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VImageDimension> *itkImage, std::string imageId) {
   MITK_INFO("nvidia") << "(Deepgrow) ++++++++ Nvidia Deepgrow begins";
-
-  if (imageGeometry == nullptr) {
-    return;
-  }
 
   nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
   std::string tmpInputFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
@@ -260,8 +259,14 @@ void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VIma
 
   try {
     //m_AIAASessionId = "dce34fd8-5373-11ea-9c83-0242ac110007";
+    std::string aiaaSessionId;
+    auto it = m_AIAASessions.find(imageId);
+    if (it != m_AIAASessions.end()) {
+      aiaaSessionId = it->second;
+      MITK_INFO("nvidia") << "(Deepgrow) AIAA Session already exists: " << aiaaSessionId;
+    }
 
-    if (m_AIAASessionId.empty()) {
+    if (aiaaSessionId.empty()) {
       MITK_INFO("nvidia") << "(Deepgrow) Trying to add current image into AIAA session";
 
       typedef itk::Image<TPixel, VImageDimension> ImageType;
@@ -270,9 +275,10 @@ void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VIma
       writer->SetFileName(tmpInputFileName);
       writer->Update();
 
-      m_AIAASessionId = client.createSession(tmpInputFileName);
+      aiaaSessionId = client.createSession(tmpInputFileName);
+      m_AIAASessions[imageId] = aiaaSessionId;
     }
-    MITK_INFO("nvidia") << "(Deepgrow) AIAA session ID: " << m_AIAASessionId;
+    MITK_INFO("nvidia") << "(Deepgrow) AIAA session ID: " << aiaaSessionId;
     currentSteps++;
     mitk::ProgressBar::GetInstance()->Progress(1);
 
@@ -288,7 +294,7 @@ void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VIma
     MITK_INFO("nvidia") << "(Deepgrow) Background Points for current slice: " << background.toJson();
 
     nvidia::aiaa::Model model = client.model(m_AIAACurrentModelName);
-    client.deepgrow(model, foreground, background, tmpInputFileName, tmpResultFileName, m_AIAASessionId);
+    client.deepgrow(model, foreground, background, tmpInputFileName, tmpResultFileName, aiaaSessionId);
     currentSteps++;
     mitk::ProgressBar::GetInstance()->Progress(1);
 
@@ -297,10 +303,10 @@ void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VIma
     mitk::ProgressBar::GetInstance()->Progress(1);
   } catch (nvidia::aiaa::exception &e) {
     if (e.id == nvidia::aiaa::exception::AIAA_SESSION_TIMEOUT) {
-      m_AIAASessionId = "";
+      m_AIAASessions.erase(imageId);
     }
     std::string msg = "nvidia.aiaa.error." + std::to_string(e.id) + "\ndescription: " + e.name();
-    Tool::GeneralMessage("Failed to execute 'deepgrow' on Nvidia AIAA Server\n\n" + msg);
+    Tool::GeneralMessage("Failed to execute 'deepgrow' on Nvidia AIAA Server (Retry Again)\n\n" + msg);
   }
 
   std::remove(tmpInputFileName.c_str());

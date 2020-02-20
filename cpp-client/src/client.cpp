@@ -121,12 +121,15 @@ PointSet Client::segmentation(const Model &model, const std::string &inputImageF
 
   std::string m = CurlUtils::encode(model.name);
   std::string uri = serverUri + EP_SEGMENTATION + "?model=" + m;
+
+  std::string inputImage = inputImageFile;
   if (!sessionId.empty()) {
     uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
   }
   std::string paramStr = "{}";
 
-  std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
+  std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImage, outputImageFile, timeoutInSec);
   return PointSet::fromJson(response, "points");
 }
 
@@ -169,12 +172,15 @@ int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::str
 
   std::string m = CurlUtils::encode(model.name);
   std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + m;
+
+  std::string inputImage = croppedInputFile;
   if (!preProcess && !sessionId.empty()) {
     uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
   }
   std::string paramStr = "{\"points\":\"" + pointSetROI.toJson() + "\"}";
 
-  CurlUtils::doMethod("POST", uri, paramStr, croppedInputFile, croppedOutputFile, timeoutInSec);
+  CurlUtils::doMethod("POST", uri, paramStr, inputImage, croppedOutputFile, timeoutInSec);
   if (preProcess) {
     autoRemoveFiles.add(croppedOutputFile);
     AiaaUtils::imagePostProcess(croppedInputFile, croppedOutputFile, imageInfo);
@@ -205,12 +211,15 @@ int Client::deepgrow(const Model &model, const PointSet &foregroundPointSet, con
 
   std::string m = CurlUtils::encode(model.name);
   std::string uri = serverUri + EP_DEEPGROW + "?model=" + m;
+
+  std::string inputImage = inputImageFile;
   if (!sessionId.empty()) {
     uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
   }
   std::string paramStr = "{\"foreground\":\"" + foregroundPointSet.toJson() + "\", \"background\":\"" + backgroundPointSet.toJson() + "\"}";
 
-  CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
+  CurlUtils::doMethod("POST", uri, paramStr, inputImage, outputImageFile, timeoutInSec);
   return 0;
 }
 

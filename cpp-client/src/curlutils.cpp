@@ -76,10 +76,16 @@ std::string CurlUtils::doMethod(const std::string &method, const std::string &ur
     // receive response
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
-
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
-    Poco::StreamCopier::copyStream(is, response);
 
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
+    }
+    if (res.getStatus() != 200) {
+      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
+    }
+
+    Poco::StreamCopier::copyStream(is, response);
     AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
   } catch (Poco::Exception &e) {
     AIAA_LOG_ERROR(e.displayText());
@@ -124,10 +130,16 @@ std::string CurlUtils::doMethod(const std::string &method, const std::string &ur
     // receive response
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
-
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
-    Poco::StreamCopier::copyStream(is, response);
 
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
+    }
+    if (res.getStatus() != 200) {
+      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
+    }
+
+    Poco::StreamCopier::copyStream(is, response);
     AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
   } catch (Poco::Exception &e) {
     AIAA_LOG_ERROR(e.displayText());
@@ -173,8 +185,15 @@ std::string CurlUtils::doMethod(const std::string &method, const std::string &ur
     // receive response
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
-
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
+
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
+    }
+    if (res.getStatus() != 200) {
+      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
+    }
+
     std::stringstream response;
     Poco::StreamCopier::copyStream(is, response);
 

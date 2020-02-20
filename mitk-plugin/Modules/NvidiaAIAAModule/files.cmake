@@ -27,6 +27,7 @@
 set(CPP_FILES
   NvidiaDextrSegTool3D.cpp
   NvidiaSmartPolySegTool2D.cpp
+  NvidiaDeepgrowSegTool2D.cpp
   NvidiaPointSetDataInteractor.cpp
 )
 

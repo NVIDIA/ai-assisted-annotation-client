@@ -25,13 +25,13 @@ const QString QmitkNvidiaAIAAPreferencePage::SERVER_URI = "server uri";
 const QString QmitkNvidiaAIAAPreferencePage::SERVER_TIMEOUT = "server timeout";
 const QString QmitkNvidiaAIAAPreferencePage::FILTER_BY_LABEL = "filter models by label";
 const QString QmitkNvidiaAIAAPreferencePage::NEIGHBORHOOD_SIZE = "neighborhood size";
-const QString QmitkNvidiaAIAAPreferencePage::FLIP_POLY = "flip poly";
+const QString QmitkNvidiaAIAAPreferencePage::FLIP_POLY = "flip polygon";
 
-const QString QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI = "http://0.0.0.0:5000/v1";
+const QString QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI = "http://0.0.0.0:5000";
 const int QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT = 60;
 const bool QmitkNvidiaAIAAPreferencePage::DEFAULT_FILTER_BY_LABEL = true;
 const int QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE = 1;
-const bool QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY = true;
+const bool QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY = false;
 
 QmitkNvidiaAIAAPreferencePage::QmitkNvidiaAIAAPreferencePage()
     : m_Widget(nullptr),

@@ -102,6 +102,7 @@ if(DOXYGEN_FOUND)
     doxygen_add_docs(
         doxygen
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/client.h
+        ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/aiaautils.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/common.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/model.h
         ${PROJECT_SOURCE_DIR}/cpp-client/include/nvidia/aiaa/pointset.h

@@ -87,7 +87,7 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
     m_Ui->confirmPointsBtn->setEnabled(m_Ui->annotationCombo->count() > 0);
 
     m_Ui->modelsLabel->setText("<p>Change server URI in Nvidia AIAA preferences (Ctrl+P).</p>"
-        "<p><a href='" + serverURI + "/models'>Click here</a> to see Details of available Models</p>");
+        "<p><a href='" + serverURI + "/v1/models'>Click here</a> to see Details of available Models</p>");
   }
 }
 

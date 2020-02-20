@@ -755,7 +755,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             currentSegment.GetTag(param, model)
 
         modelIndex = selector.findText(model)
-        modelIndex = 0 if modelIndex < 0 and selector.count > 0 else 0
+        modelIndex = 0 if modelIndex < 0 < selector.count else modelIndex
         selector.setCurrentIndex(modelIndex)
 
         try:

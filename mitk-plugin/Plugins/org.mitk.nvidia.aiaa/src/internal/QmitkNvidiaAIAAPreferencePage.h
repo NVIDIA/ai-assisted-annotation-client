@@ -32,13 +32,11 @@ class QmitkNvidiaAIAAPreferencePage : public QObject, public berry::IQtPreferenc
   static const QString SERVER_TIMEOUT;
   static const QString FILTER_BY_LABEL;
   static const QString NEIGHBORHOOD_SIZE;
-  static const QString FLIP_POLY;
 
   static const QString DEFAULT_SERVER_URI;
   static const int DEFAULT_SERVER_TIMEOUT;
   static const bool DEFAULT_FILTER_BY_LABEL;
   static const int DEFAULT_NEIGHBORHOOD_SIZE;
-  static const bool DEFAULT_FLIP_POLY;
 
   QmitkNvidiaAIAAPreferencePage();
   ~QmitkNvidiaAIAAPreferencePage();

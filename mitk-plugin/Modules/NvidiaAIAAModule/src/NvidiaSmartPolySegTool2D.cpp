@@ -152,10 +152,6 @@ void NvidiaSmartPolySegTool2D::SetNeighborhoodSize(int neighborhoodSize) {
   m_NeighborhoodSize = neighborhoodSize;
 }
 
-void NvidiaSmartPolySegTool2D::SetFlipPoly(bool flipPoly) {
-  m_FlipPoly = flipPoly;
-}
-
 std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
   unsigned int curSliceNum = m_imageSize[2] - 1 - m_currentSlice;
 
@@ -279,8 +275,8 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
       m_imageGeometry->WorldToIndex(vertexIt.Value(), index);
 
       nvidia::aiaa::Polygons::Point pointNew;
-      pointNew.push_back(int(index[0]));  // X
-      pointNew.push_back(int(index[1]));  // Y
+      pointNew.push_back(int(index[1]));  // X
+      pointNew.push_back(int(index[0]));  // Y
 
       polygonNew.push_back(pointNew);
     }
@@ -290,11 +286,6 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
 
   MITK_INFO("nvidia") << "PolygonsNew: " << polygonsNew.toJson();
   MITK_INFO("nvidia") << "PolygonsOld: " << polygonsOld.toJson();
-
-  if (m_FlipPoly) {
-    polygonsNew.flipXY();
-    polygonsOld.flipXY();
-  }
 
   int polyIndex = -1;
   int vertexIndex = -1;
@@ -315,10 +306,18 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
   nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
   std::string outputImageFile = nvidia::aiaa::Utils::tempfilename() + ".png";  // updated_image_2D.png
 
+  // Flix X,Y (for PNG)
+  polygonsOld.flipXY();
+  int t = offset[0];
+  offset[0] = offset[1];
+  offset[1] = t;
+
   try {
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Polygons polygonsUpdated = client.fixPolygon(polygonsOld, m_NeighborhoodSize, polyIndex, vertexIndex, offset, tmpImage2DFileName,
                                                                outputImageFile);
+    // Flix X,Y
+    polygonsUpdated.flipXY();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -327,9 +326,6 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
     MITK_INFO("nvidia") << "aiaa::fixPolygon (Updated Polygons): " << polygonsUpdated.toJson();
 
     if (!polygonsUpdated.empty()) {
-      if (m_FlipPoly) {
-        polygonsUpdated.flipXY();
-      }
       m_polygonsList.list[curSliceNum].polys = polygonsUpdated.polys;
       displayResult(outputImageFile);
     } else {
@@ -371,9 +367,6 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
   try {
     int pointRatio = 10;
     m_polygonsList = client.maskToPolygon(pointRatio, tmpImageFileName);
-    if (m_FlipPoly) {
-      m_polygonsList.flipXY();
-    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -387,22 +380,24 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
   // Remove TempFile
   std::remove(tmpImageFileName.c_str());
-  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
+  MITK_INFO("nvidia") << "+++++ Set current slice: " << slice;
+  m_currentSlice = slice;
+
   if (m_polygonsList.empty()) {
     return;
   }
-  if (!m_imageSize) {
-    MITK_INFO("nvidia") << "ImageSize is NULL; Something is wrong; Current Slice = " << slice;
-    return;
-  }
 
-  m_currentSlice = slice;
-  unsigned int sliceNum = m_imageSize[2] - m_currentSlice - 1;
+  auto imageNode = m_ToolManager->GetReferenceData(0);
+  auto imageMitk = dynamic_cast<mitk::Image*>(imageNode->GetData());
+  auto imageSize = imageMitk->GetDimensions();
+  auto imageGeometry = imageMitk->GetGeometry();
+
+  unsigned int sliceNum = imageSize[2] - m_currentSlice - 1;
   if (sliceNum >= m_polygonsList.size()) {
-    // something wrong here
+    MITK_INFO("nvidia") << "Something wrong here... sliceNum: " << sliceNum;
     return;
   }
 
@@ -435,11 +430,12 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     mitk::PointSet::PointType point;
 
     for (auto &pt : polygon) {
-      index[0] = pt[0];
-      index[1] = pt[1];
+      // Flip X, Y
+      index[0] = pt[1];
+      index[1] = pt[0];
       index[2] = sliceNum;
 
-      m_imageGeometry->IndexToWorld(index, point);
+      imageGeometry->IndexToWorld(index, point);
       newPointSet->InsertPoint(point);
     }
 
@@ -469,6 +465,7 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     m_ToolManager->GetDataStorage()->Add(newPointSetNode, m_PointSetPolygonNode);
     polygonNum++;
   }
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileName) {
@@ -563,4 +560,5 @@ void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileNam
       m_ToolManager->GetDataStorage()->Add(nodeToUpdate, m_WorkingData);
     }
   }
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }

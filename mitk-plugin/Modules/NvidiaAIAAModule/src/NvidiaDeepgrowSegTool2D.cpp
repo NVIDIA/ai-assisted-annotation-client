@@ -258,7 +258,6 @@ void NvidiaDeepgrowSegTool2D::ItkImageProcessRunDeepgrow(itk::Image<TPixel, VIma
   mitk::ProgressBar::GetInstance()->AddStepsToDo(totalSteps);
 
   try {
-    //m_AIAASessionId = "dce34fd8-5373-11ea-9c83-0242ac110007";
     std::string aiaaSessionId;
     auto it = m_AIAASessions.find(imageId);
     if (it != m_AIAASessions.end()) {

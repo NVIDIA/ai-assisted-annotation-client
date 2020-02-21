@@ -87,19 +87,29 @@ void NvidiaDextrSegTool3DGUI::updateConfigs() {
     m_Ui->confirmPointsBtn->setEnabled(m_Ui->annotationCombo->count() > 0);
 
     m_Ui->modelsLabel->setText("<p>Change server URI in Nvidia AIAA preferences (Ctrl+P).</p>"
-        "<p><a href='" + serverURI + "/models'>Click here</a> to see Details of available Models</p>");
+        "<p><a href='" + serverURI + "/v1/models'>Click here</a> to see Details of available Models</p>");
   }
 }
 
 void NvidiaDextrSegTool3DGUI::OnAutoSegmentation() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    m_NvidiaDextrSegTool3D->RunAutoSegmentation(m_Ui->segmentationCombo->currentText().toStdString());
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    try {
+      m_NvidiaDextrSegTool3D->RunAutoSegmentation(m_Ui->segmentationCombo->currentText().toStdString());
+    } catch(...) {
+    }
+    QApplication::restoreOverrideCursor();
   }
 }
 
 void NvidiaDextrSegTool3DGUI::OnConfirmPoints() {
   if (m_NvidiaDextrSegTool3D.IsNotNull()) {
-    m_NvidiaDextrSegTool3D->ConfirmPoints(m_Ui->annotationCombo->currentText().toStdString());
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    try {
+      m_NvidiaDextrSegTool3D->ConfirmPoints(m_Ui->annotationCombo->currentText().toStdString());
+    } catch(...) {
+    }
+    QApplication::restoreOverrideCursor();
   }
 }
 

@@ -54,13 +54,10 @@ void NvidiaSmartPolySegTool2DGUI::updateConfigs() {
     auto preferences = systemPreferences->Node("/org.mitk.preferences.nvidia.aiaa");
     auto serverURI = preferences->Get(QmitkNvidiaAIAAPreferencePage::SERVER_URI, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_URI);
     auto serverTimeout = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::SERVER_TIMEOUT, QmitkNvidiaAIAAPreferencePage::DEFAULT_SERVER_TIMEOUT);
-    auto neighborhoodSize = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::NEIGHBORHOOD_SIZE,
-                                                QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE);
-    auto flipPoly = preferences->GetBool(QmitkNvidiaAIAAPreferencePage::FLIP_POLY, QmitkNvidiaAIAAPreferencePage::DEFAULT_FLIP_POLY);
+    auto neighborhoodSize = preferences->GetInt(QmitkNvidiaAIAAPreferencePage::NEIGHBORHOOD_SIZE, QmitkNvidiaAIAAPreferencePage::DEFAULT_NEIGHBORHOOD_SIZE);
 
     m_NvidiaSmartPolySegTool2D->SetServerURI(serverURI.toStdString(), serverTimeout);
     m_NvidiaSmartPolySegTool2D->SetNeighborhoodSize(neighborhoodSize);
-    m_NvidiaSmartPolySegTool2D->SetFlipPoly(flipPoly);
   }
 }
 
@@ -77,17 +74,24 @@ void NvidiaSmartPolySegTool2DGUI::OnNewToolAssociated(mitk::Tool *tool) {
     }
 
     // convert current segmentation mask to polygon
-    m_NvidiaSmartPolySegTool2D->Mask2Polygon();
+    QApplication::setOverrideCursor(QCursor(Qt::WaitCursor));
+    try {
+      m_NvidiaSmartPolySegTool2D->Mask2Polygon();
+      Refetch();
+    } catch (...) {
+    }
+    QApplication::restoreOverrideCursor();
   }
 }
 
 void NvidiaSmartPolySegTool2DGUI::SetStepper(mitk::Stepper *stepper) {
-  updateConfigs();
   this->m_SliceStepper = stepper;
 }
 
 void NvidiaSmartPolySegTool2DGUI::Refetch() {
   // event from image navigator received - time step has changed
   updateConfigs();
-  m_NvidiaSmartPolySegTool2D->SetCurrentSlice(m_SliceStepper->GetPos());
+  if (m_NvidiaSmartPolySegTool2D.IsNotNull()) {
+    m_NvidiaSmartPolySegTool2D->SetCurrentSlice(m_SliceStepper->GetPos());
+  }
 }

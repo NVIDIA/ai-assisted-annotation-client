@@ -50,7 +50,8 @@
 MITK_TOOL_MACRO(MITKNVIDIAAIAAMODULE_EXPORT, NvidiaSmartPolySegTool2D, "NVIDIA SmartPoly Tool");
 
 NvidiaSmartPolySegTool2D::NvidiaSmartPolySegTool2D()
-    : m_NeighborhoodSize(1) {
+    :
+    m_NeighborhoodSize(1) {
   m_PointSetPolygon = mitk::PointSet::New();
 
   m_PointSetPolygonNode = mitk::DataNode::New();
@@ -77,11 +78,11 @@ us::ModuleResource NvidiaSmartPolySegTool2D::GetIconResource() const {
   return resource;
 }
 
-const char *NvidiaSmartPolySegTool2D::GetName() const {
-  return "Nvidia SmartPoly";
+const char* NvidiaSmartPolySegTool2D::GetName() const {
+  return "SmartPolygon";
 }
 
-const char **NvidiaSmartPolySegTool2D::GetXPM() const {
+const char** NvidiaSmartPolySegTool2D::GetXPM() const {
   return nullptr;
 }
 
@@ -98,8 +99,8 @@ void NvidiaSmartPolySegTool2D::Activated() {
       dataStorage->Add(m_PointSetPolygonNode, m_WorkingData);
     }
 
-    m_imageGeometry = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData())->GetGeometry();
-    m_imageSize = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData())->GetDimensions();
+    m_imageGeometry = dynamic_cast<mitk::Image*>(m_OriginalImageNode->GetData())->GetGeometry();
+    m_imageSize = dynamic_cast<mitk::Image*>(m_OriginalImageNode->GetData())->GetDimensions();
 
     // Toggle boundingbox and surface rendering off
     std::string targetNodeName1 = "Surface3D";
@@ -151,10 +152,6 @@ void NvidiaSmartPolySegTool2D::SetNeighborhoodSize(int neighborhoodSize) {
   m_NeighborhoodSize = neighborhoodSize;
 }
 
-void NvidiaSmartPolySegTool2D::SetFlipPoly(bool flipPoly) {
-  m_FlipPoly = flipPoly;
-}
-
 std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
   unsigned int curSliceNum = m_imageSize[2] - 1 - m_currentSlice;
 
@@ -168,7 +165,7 @@ std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
   double curLevel = 0;
   double curWindow = 0;
   if (lw->LoadPreset()) {
-    mitk::LabelSetImage::Pointer labelSetImageTemp = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+    mitk::LabelSetImage::Pointer labelSetImageTemp = dynamic_cast<mitk::LabelSetImage*>(m_ToolManager->GetWorkingData(0)->GetData());
     std::string organName = labelSetImageTemp->GetActiveLabel(labelSetImageTemp->GetActiveLayer())->GetName();
     curLevel = lw->getLevel(organName);
     curWindow = lw->getWindow(organName);
@@ -191,7 +188,7 @@ std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
   // Window the image
   std::string tmpImage2DFileName = nvidia::aiaa::Utils::tempfilename() + ".png";  // image_slice_2D.png
   InputImageType::Pointer itkImage = InputImageType::New();
-  mitk::CastToItkImage(dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData()), itkImage);
+  mitk::CastToItkImage(dynamic_cast<mitk::Image*>(m_OriginalImageNode->GetData()), itkImage);
 
   typedef itk::IntensityWindowingImageFilter<InputImageType, WindowImageType> WindowFilterType;
   auto window = WindowFilterType::New();
@@ -268,7 +265,7 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
 
     for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
       if (itNodes.Value()->GetName() == targetNodeName) {
-        polyVertices = dynamic_cast<mitk::PointSet *>(itNodes.Value()->GetData())->GetPointSet()->GetPoints();
+        polyVertices = dynamic_cast<mitk::PointSet*>(itNodes.Value()->GetData())->GetPointSet()->GetPoints();
       }
     }
 
@@ -278,8 +275,8 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
       m_imageGeometry->WorldToIndex(vertexIt.Value(), index);
 
       nvidia::aiaa::Polygons::Point pointNew;
-      pointNew.push_back(int(index[0]));  // X
-      pointNew.push_back(int(index[1]));  // Y
+      pointNew.push_back(int(index[1]));  // X
+      pointNew.push_back(int(index[0]));  // Y
 
       polygonNew.push_back(pointNew);
     }
@@ -290,11 +287,6 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
   MITK_INFO("nvidia") << "PolygonsNew: " << polygonsNew.toJson();
   MITK_INFO("nvidia") << "PolygonsOld: " << polygonsOld.toJson();
 
-  if (m_FlipPoly) {
-    polygonsNew.flipXY();
-    polygonsOld.flipXY();
-  }
-
   int polyIndex = -1;
   int vertexIndex = -1;
   if (!polygonsNew.findFirstNonMatching(polygonsOld, polyIndex, vertexIndex)) {
@@ -304,14 +296,28 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
 
   MITK_INFO("nvidia") << "FirstNonMatching Polygon (polyIndex" << polyIndex << "; vertexIndex: " << vertexIndex << ")";
 
+  int offset[2] = { 0, 0 };
+  offset[0] = polygonsNew.polys[polyIndex][vertexIndex][0] - polygonsOld.polys[polyIndex][vertexIndex][0];
+  offset[1] = polygonsNew.polys[polyIndex][vertexIndex][1] - polygonsOld.polys[polyIndex][vertexIndex][1];
+
+  MITK_INFO("nvidia") << "vertext Offset (" << offset[0] << ", " << offset[1] << ")";
+
   // Call AIAA maskToPolygonConversion
   nvidia::aiaa::Client client(m_AIAAServerUri, m_AIAAServerTimeout);
   std::string outputImageFile = nvidia::aiaa::Utils::tempfilename() + ".png";  // updated_image_2D.png
 
+  // Flix X,Y (for PNG)
+  polygonsOld.flipXY();
+  int t = offset[0];
+  offset[0] = offset[1];
+  offset[1] = t;
+
   try {
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::Polygons polygonsUpdated = client.fixPolygon(polygonsNew, polygonsOld, m_NeighborhoodSize, polyIndex, vertexIndex,
-                                                               tmpImage2DFileName, outputImageFile);
+    nvidia::aiaa::Polygons polygonsUpdated = client.fixPolygon(polygonsOld, m_NeighborhoodSize, polyIndex, vertexIndex, offset, tmpImage2DFileName,
+                                                               outputImageFile);
+    // Flix X,Y
+    polygonsUpdated.flipXY();
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -320,9 +326,6 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
     MITK_INFO("nvidia") << "aiaa::fixPolygon (Updated Polygons): " << polygonsUpdated.toJson();
 
     if (!polygonsUpdated.empty()) {
-      if (m_FlipPoly) {
-        polygonsUpdated.flipXY();
-      }
       m_polygonsList.list[curSliceNum].polys = polygonsUpdated.polys;
       displayResult(outputImageFile);
     } else {
@@ -351,7 +354,7 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
   // Save Label Image to TempFile
   std::string tmpImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
   mitk::DataNode::Pointer workingNode = m_ToolManager->GetWorkingData(0);
-  mitk::LabelSetImage::Pointer labelSetImage = dynamic_cast<mitk::LabelSetImage *>(workingNode->GetData());
+  mitk::LabelSetImage::Pointer labelSetImage = dynamic_cast<mitk::LabelSetImage*>(workingNode->GetData());
 
   mitk::Image::Pointer labelMask = mitk::Image::New();
   labelMask = labelSetImage->CreateLabelMask(1);
@@ -364,9 +367,6 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
   try {
     int pointRatio = 10;
     m_polygonsList = client.maskToPolygon(pointRatio, tmpImageFileName);
-    if (m_FlipPoly) {
-      m_polygonsList.flipXY();
-    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -380,22 +380,24 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
   // Remove TempFile
   std::remove(tmpImageFileName.c_str());
-  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
+  MITK_INFO("nvidia") << "+++++ Set current slice: " << slice;
+  m_currentSlice = slice;
+
   if (m_polygonsList.empty()) {
     return;
   }
-  if (!m_imageSize) {
-    MITK_INFO("nvidia") << "ImageSize is NULL; Something is wrong; Current Slice = " << slice;
-    return;
-  }
 
-  m_currentSlice = slice;
-  unsigned int sliceNum = m_imageSize[2] - m_currentSlice - 1;
+  auto imageNode = m_ToolManager->GetReferenceData(0);
+  auto imageMitk = dynamic_cast<mitk::Image*>(imageNode->GetData());
+  auto imageSize = imageMitk->GetDimensions();
+  auto imageGeometry = imageMitk->GetGeometry();
+
+  unsigned int sliceNum = imageSize[2] - m_currentSlice - 1;
   if (sliceNum >= m_polygonsList.size()) {
-    // something wrong here
+    MITK_INFO("nvidia") << "Something wrong here... sliceNum: " << sliceNum;
     return;
   }
 
@@ -428,11 +430,12 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     mitk::PointSet::PointType point;
 
     for (auto &pt : polygon) {
-      index[0] = pt[0];
-      index[1] = pt[1];
+      // Flip X, Y
+      index[0] = pt[1];
+      index[1] = pt[0];
       index[2] = sliceNum;
 
-      m_imageGeometry->IndexToWorld(index, point);
+      imageGeometry->IndexToWorld(index, point);
       newPointSet->InsertPoint(point);
     }
 
@@ -462,6 +465,7 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     m_ToolManager->GetDataStorage()->Add(newPointSetNode, m_PointSetPolygonNode);
     polygonNum++;
   }
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }
 
 void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileName) {
@@ -472,7 +476,7 @@ void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileNam
     return;
   }
 
-  mitk::LabelSetImage::Pointer labelSetImage = dynamic_cast<mitk::LabelSetImage *>(workingNode->GetData());
+  mitk::LabelSetImage::Pointer labelSetImage = dynamic_cast<mitk::LabelSetImage*>(workingNode->GetData());
   if (labelSetImage.IsNull()) {
     MITK_INFO("nvidia") << "Error in label set image" << std::endl;
     return;
@@ -508,7 +512,7 @@ void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileNam
   pasteFilter->Update();
 
   mitk::Image::Pointer updatedMask = mitk::Image::New();
-  mitk::CastToMitkImage < LabelImageType > (pasteFilter->GetOutput(), updatedMask);
+  mitk::CastToMitkImage<LabelImageType>(pasteFilter->GetOutput(), updatedMask);
 
   // Record the just-created layer ID
   unsigned int layerTotal = labelSetImage->GetNumberOfLayers();
@@ -556,4 +560,5 @@ void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileNam
       m_ToolManager->GetDataStorage()->Add(nodeToUpdate, m_WorkingData);
     }
   }
+  mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }

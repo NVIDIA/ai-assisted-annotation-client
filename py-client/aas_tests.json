@@ -13,6 +13,22 @@
       "model": "segmentation_ct_spleen"
     },
     {
+      "name": "test_create_session",
+      "disabled": false,
+      "api": "create_session",
+      "image_in": "test-data/image.nii.gz"
+    },
+    {
+      "name": "test_get_session",
+      "disabled": false,
+      "api": "get_session"
+    },
+    {
+      "name": "test_close_session",
+      "disabled": false,
+      "api": "close_session"
+    },
+    {
       "name": "test_segmentation_spleen",
       "disabled": false,
       "api": "segmentation",
@@ -30,6 +46,16 @@
       "image_out": "test-data/output/annotation_spleen.nii.gz",
       "pad": 20,
       "roi_size": "128x128x128"
+    },
+    {
+      "name": "test_deepgrow_spleen",
+      "disabled": false,
+      "api": "deepgrow",
+      "model": "clara_deepgrow",
+      "foreground": [[285,207,105]],
+      "background": [],
+      "image_in": "test-data/image.nii.gz",
+      "image_out": "test-data/output/deepgrow_spleen.nii.gz"
     },
     {
       "name": "test_mask2polygon_spleen",

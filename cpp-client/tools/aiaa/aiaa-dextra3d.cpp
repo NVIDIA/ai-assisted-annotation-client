@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
-              "  |-server   Server URI {default: http://10.110.45.66:5000}                               |\n"
+              "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
               " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
               " *|-model    Model Name        [either -label or -model is required]                      |\n"
               " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"

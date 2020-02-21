@@ -49,8 +49,8 @@ void Polygons::push_back(Polygon poly) {
 }
 
 void Polygons::flipXY() {
-  for (auto& poly : polys) {
-    for (auto& point : poly) {
+  for (auto &poly : polys) {
+    for (auto &point : poly) {
       if (!point.empty()) {
         int t = point[0];
         point[0] = point[1];
@@ -62,12 +62,12 @@ void Polygons::flipXY() {
 
 bool Polygons::findFirstNonMatching(const Polygons &polygons, int &polyIndex, int &vertexIndex) const {
   for (size_t i = 0; i < polys.size() && i < polygons.polys.size(); i++) {
-    const Polygon& p1 = polys[i];
-    const Polygon& p2 = polygons.polys[i];
+    const Polygon &p1 = polys[i];
+    const Polygon &p2 = polygons.polys[i];
 
     for (size_t j = 0; j < p1.size() && p2.size(); j++) {
-      const Point& pt1 = p1[j];
-      const Point& pt2 = p2[j];
+      const Point &pt1 = p1[j];
+      const Point &pt2 = p2[j];
 
       for (size_t k = 0; k < pt1.size() && k < pt2.size(); k++) {
         if (pt1[k] != pt2[k]) {
@@ -82,28 +82,35 @@ bool Polygons::findFirstNonMatching(const Polygons &polygons, int &polyIndex, in
   return false;
 }
 
-Polygons Polygons::fromJson(const std::string &json) {
+Polygons Polygons::fromJson(const std::string &json, const std::string &key) {
   try {
     nlohmann::json j = nlohmann::json::parse(json);
+    if (!key.empty() && j.find(key) != j.end()) {
+      j = j[key];
+    }
 
     Polygons polygons;
     for (auto poly : j) {
       Polygons::Polygon polygon;
-      for (auto pt : poly) {
-        Polygons::Point point;
-        for (auto n : pt) {
-          point.push_back(n);
+      if (!poly.empty()) {
+        for (auto pt : poly) {
+          Polygons::Point point;
+          if (!pt.empty()) {
+            for (auto n : pt) {
+              point.push_back(n);
+            }
+          }
+          polygon.push_back(point);
         }
-        polygon.push_back(point);
       }
       polygons.push_back(polygon);
     }
-
     return polygons;
-  } catch (nlohmann::json::parse_error& e) {
+
+  } catch (nlohmann::json::parse_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-  } catch (nlohmann::json::type_error& e) {
+  } catch (nlohmann::json::type_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
   }
@@ -127,27 +134,34 @@ void PolygonsList::push_back(Polygons polygons) {
 }
 
 void PolygonsList::flipXY() {
-  for (auto& polys : list) {
+  for (auto &polys : list) {
     polys.flipXY();
   }
 }
 
-// [[], [ [[170, 66],[162, 73],[169, 77],[180, 76],[185, 68],[175, 66]], [[1,2]], [] ]]
-PolygonsList PolygonsList::fromJson(const std::string &json) {
+// [[ [[170, 66],[162, 73],[169, 77],[180, 76],[185, 68],[175, 66]], [[1,2]], [] ]]
+PolygonsList PolygonsList::fromJson(const std::string &json, const std::string &key) {
   try {
     nlohmann::json j = nlohmann::json::parse(json);
+    if (!key.empty() && j.find(key) != j.end()) {
+      j = j[key];
+    }
 
     PolygonsList polygonsList;
     for (auto p : j) {
-      Polygons polygons = Polygons::fromJson(p.dump());
-      polygonsList.push_back(polygons);
+      if (!p.empty()) {
+        Polygons polygons = Polygons::fromJson(p.dump());
+        polygonsList.push_back(polygons);
+      } else {
+        polygonsList.push_back(Polygons());
+      }
     }
 
     return polygonsList;
-  } catch (nlohmann::json::parse_error& e) {
+  } catch (nlohmann::json::parse_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-  } catch (nlohmann::json::type_error& e) {
+  } catch (nlohmann::json::type_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
   }

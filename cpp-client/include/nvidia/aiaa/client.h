@@ -55,14 +55,23 @@ class AIAA_CLIENT_API Client {
 
   /*!
    @brief create AIAA Client object
-   @param[in] serverUri  AIAA Server end-point. For example: "http://10.110.45.66:5000/v1"
+   @param[in] serverUri  AIAA Server end-point. For example: "http://10.110.45.66:5000/"
    @param[in] timeoutInSec  AIAA Server operation timeout. Default is 60 seconds
    @return Client object
    */
-  Client(const std::string& serverUri, const int timeoutInSec = 60);
+  Client(const std::string &serverUri, const int timeoutInSec = 60);
 
   /*!
-   @brief This API is used to fetch all the possible Models support by AIAA Server
+   @brief This API is used to fetch a specific Model supported by AIAA Server
+   @return ModelList object representing a list of Models
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   */
+  Model model(const std::string &name) const;
+
+  /*!
+   @brief This API is used to fetch all the possible Models supported by AIAA Server
    @return ModelList object representing a list of Models
 
    @throw nvidia.aiaa.error.101 in case of connect error
@@ -71,7 +80,7 @@ class AIAA_CLIENT_API Client {
   ModelList models() const;
 
   /*!
-   @brief This API is used to fetch all the possible Models support by AIAA Server for matching label and model type
+   @brief This API is used to fetch all the possible Models supported by AIAA Server for matching label and model type
    @param[in] label  Filter models by matching label
    @param[in] type  Filter models by matching model type (segmentation/annotation)
    @return ModelList object representing a list of Models
@@ -82,80 +91,92 @@ class AIAA_CLIENT_API Client {
   ModelList models(const std::string &label, const Model::ModelType type) const;
 
   /*!
-   @brief This API is used to sample the input image
-   @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 2D/3D/4D for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
-   @param[in] inputImageFile  Input image filename where image is stored in 2D/3D/4D format
-   @param[in] pixelType  Pixel::Type for Input Image
-   @param[in] dimension  Dimension for Input Image
-   @param[in] outputImageFile  Sampled Output Imaged stored in itk::Image<unsigned short, *> format
-   @param[out] imageInfo  ImageInfo for sampled image
-   @return PointSet object representing new PointSet for sampled image
-
-   @throw nvidia.aiaa.error.101 in case of connect error
-   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
-   */
-  PointSet sampling(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType, int dimension,
-                    const std::string &outputImageFile, ImageInfo &imageInfo) const;
-
-  /*!
-   @brief This API is used to sample the input image
-   @param[in] model  Model to be used
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
-   @param[in] inputImage  Input image pointer 2D/3D/4D format which is itk::Image<?, *> to avoid extra copy at client side
-   @param[in] pixelType  Pixel::Type for Input Image
-   @param[in] dimension  Dimension for Input Image
-   @param[in] outputImageFile  Sampled Output Imaged stored in itk::Image<unsigned short, *> format
-   @param[out] imageInfo  ImageInfo for sampled image
-   @return PointSet object representing new PointSet for sampled image
-
-   @throw nvidia.aiaa.error.101 in case of connect error
-   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
-   */
-  PointSet sampling(const Model &model, const PointSet &pointSet, void *inputImage, Pixel::Type pixelType, int dimension,
-                    const std::string &outputImageFile, ImageInfo &imageInfo) const;
-
-  /*!
-   @brief 3D image segmentation/annotation over sampled input image and PointSet depending on input Model
-   @param[in] model  Model to be used (it can be for segmentation or annotation)
-   @param[in] pointSet  PointSet object which represents a set of points in 3-Dimensional for the organ.
-   @param[in] dimension  Dimension for Input Image
-   @param[in] inputImageFile  Sampled Input image filename where image is stored in itk::Image<unsigned short, *> format
-   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, *> format
-   @param[in] imageInfo  Optional Original ImageInfo to recover in case of annotation models after inference
-
-   @retval New/Updated Pointset in case of segmentation which represents a set of extreme points in 3-Dimensional for the organ.
+   @brief This API is used to Create New Session.  Input image will be saved as part of the created session.
+   @param[in] inputImageFile  Filter models by matching label
+   @param[in] expiry  Expiry in seconds.  min(AIAASessionExpiry, expiry) will be selected by AIAA
+   @return String representing a valid session id for future use
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
-   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  PointSet segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
-                const ImageInfo &imageInfo = ImageInfo()) const;
+  std::string createSession(const std::string &inputImageFile, const int expiry = 0) const;
 
   /*!
-   @brief 3D image annotation using DEXTR3D method  (this combines sampling + segmentation into single operation for 3D images)
+   @brief This API is used to get an existing Session Info
+   @param[in] sessionId  A valid session id of an existing AIAA session
+   @return String representing session info (JSON format)
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   */
+  std::string getSession(const std::string &sessionId) const;
+
+  /*!
+   @brief This API is used to close an existing Session
+   @param[in] sessionId  A valid session id of an existing AIAA session
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   */
+  void closeSession(const std::string &sessionId) const;
+
+  /*!
+   @brief This API is used to run segmentation on input image
+   @param[in] model  Model to be used
+   @param[in] inputImageFile  Input image filename which will be sent to AIAA for segmentation action
+   @param[in] outputImageFile  Output image file where Result mask is stored
+   @param[in] sessionId  If *session_id* is not empty then *inputImageFile* will be ignored
+   @return PointSet object representing extreme points on label image
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
+   */
+  PointSet segmentation(const Model &model, const std::string &inputImageFile, const std::string &outputImageFile,
+                        const std::string &sessionId = "") const;
+
+  /*!
+   @brief 3D image annotation using DEXTR3D method
    @param[in] model  Model to be used
    @param[in] pointSet  PointSet object which represents a set of extreme points in 3-Dimensional for the organ. Minimum Client::MIN_POINTS_FOR_SEGMENTATION are expected
-   @param[in] inputImageFile  Input image filename where image is stored in itk::Image<?, 3> format
-   @param[in] pixelType  PixelType for Input Image
-   @param[in] outputImageFile  File name to store 3D binary mask image result from AIAA server in itk::Image<unsigned char, 3> format
+   @param[in] inputImageFile  Input image filename which will be sent to AIAA for dextr3d action
+   @param[in] outputImageFile  Output image file where Result mask is stored
+   @param[in] preProcess  Pre-process input image (crop) for dextr3d before sending it to AIAA
+   @param[in] sessionId  If *session_id* is not empty and preProcess is false then *inputImageFile* will be ignored
 
    @retval 0 Success
-   @retval -1 Insufficient Points in the input
-   @retval -2 Input Model name is empty
+   @retval -1 Input Model name is empty
+   @retval -2 Insufficient Points in the input
 
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
    @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
    */
-  int dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType,
-              const std::string &outputImageFile) const;
+  int dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile, bool preProcess,
+              const std::string &sessionId = "") const;
+
+  /*!
+   @brief This API is used to run deepgrow on input image
+   @param[in] model  Model to be used
+   @param[in] foregroundPointSet  PointSet object which represents a set of foreground points (+ve clicks)
+   @param[in] backgroundPointSet  PointSet object which represents a set of background points (-ve clicks)
+   @param[in] inputImageFile  Input image filename which will be sent to AIAA for deepgrow action
+   @param[in] outputImageFile  Output image file where Result mask is stored
+   @param[in] sessionId  If *session_id* is not empty then *inputImageFile* will be ignored
+
+   @retval 0 Success
+   @retval -1 Input Model name is empty
+   @retval -2 Insufficient Points in the input
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
+   */
+  int deepgrow(const Model &model, const PointSet &foregroundPointSet, const PointSet &backgroundPointSet, const std::string &inputImageFile,
+               const std::string &outputImageFile, const std::string &sessionId = "") const;
 
   /*!
    @brief 3D binary mask to polygon representation conversion
    @param[in] pointRatio  Point Ratio
-   @param[in] inputImageFile  Input image filename where image is stored in itk::Image<unsigned char, *> format
+   @param[in] inputImageFile  Input image filename which will be sent to AIAA
 
    @return PolygonsList object representing a list of Polygons across each image slice
 
@@ -166,11 +187,11 @@ class AIAA_CLIENT_API Client {
 
   /*!
    @brief 2D polygon update with single point edit
-   @param[in] newPoly  Set of new Polygons which needs update
-   @param[in] oldPrev  Set of current or old Polygons
-   @param[in] neighborhoodSize  NeighborHood Size for propagation
-   @param[in] polyIndex  Polygon index among new Poly which needs an update
+   @param[in] poly  Set of current or old Polygons
+   @param[in] neighborhoodSize  NeighborHood Size for propagation (across polygons)
+   @param[in] polyIndex  Polygon index which needs an update
    @param[in] vertexIndex  Vertex among the polygon which needs an update
+   @param[in] vertexOffset  [x,y] offset which will be added to corresponding poly[polyIndex][vertexIndex][x,y] to the new polygon
    @param[in] inputImageFile  Input 2D Slice Image File in PNG format
    @param[in] outputImageFile  Output Image File in PNG format
 
@@ -179,8 +200,28 @@ class AIAA_CLIENT_API Client {
    @throw nvidia.aiaa.error.101 in case of connect error
    @throw nvidia.aiaa.error.102 if case of response parsing
    */
-  Polygons fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex,
+  Polygons fixPolygon(const Polygons &poly, int neighborhoodSize, int polyIndex, int vertexIndex, const int vertexOffset[2],
                       const std::string &inputImageFile, const std::string &outputImageFile) const;
+
+  /*!
+   @brief 3D polygon update with single point edit
+   @param[in] poly  Set of current or old Polygons
+   @param[in] neighborhoodSize  NeighborHood Size for propagation (across polygons)
+   @param[in] neighborhoodSize3D  3D NeighborHood Size for propagation (across slices)
+   @param[in] sliceIndex  Slice Index to get the corresponding polygons for editing
+   @param[in] polyIndex  Polygon index among which needs an update
+   @param[in] vertexIndex  Vertex among the polygon which needs an update
+   @param[in] vertexOffset  [x,y] offset which will be added to corresponding poly[polyIndex][vertexIndex][x,y] to the new polygon
+   @param[in] inputImageFile  Input 3D Slice Image File in NIFTI format
+   @param[in] outputImageFile  Output Image File in NIFTI format
+
+   @return Polygons object representing set of updated polygons
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.102 if case of response parsing
+   */
+  PolygonsList fixPolygon(const PolygonsList &poly, int neighborhoodSize, int neighborhoodSize3D, int sliceIndex, int polyIndex, int vertexIndex,
+                          const int vertexOffset[2], const std::string &inputImageFile, const std::string &outputImageFile) const;
 
   /// Minimum Number of Points required for segmentation/sampling
   static const int MIN_POINTS_FOR_SEGMENTATION;

@@ -72,7 +72,7 @@ struct AIAA_CLIENT_API PointSet {
 
    @return PointSet object
    */
-  static PointSet fromJson(const std::string &json);
+  static PointSet fromJson(const std::string &json, const std::string &key = "");
 
   /*!
    @brief convert PointSet to JSON String

@@ -27,223 +27,199 @@
  */
 
 #include "../include/nvidia/aiaa/client.h"
+
+#include "../include/nvidia/aiaa/aiaautils.h"
 #include "../include/nvidia/aiaa/log.h"
 #include "../include/nvidia/aiaa/utils.h"
 #include "../include/nvidia/aiaa/curlutils.h"
-#include "../include/nvidia/aiaa/itkutils.h"
+
+#include <nlohmann/json.hpp>
+#include <set>
 
 namespace nvidia {
 namespace aiaa {
 
-const std::string EP_MODELS = "/models";
-const std::string EP_DEXTRA_3D = "/dextr3d";
-const std::string EP_SEGMENTATION = "/segmentation";
-const std::string EP_MASK_TO_POLYGON = "/mask2polygon";
-const std::string EP_FIX_POLYGON = "/fixpolygon";
+const std::string EP_MODELS = "/v1/models";
+const std::string EP_DEXTRA_3D = "/v1/dextr3d";
+const std::string EP_DEEPGROW = "/v1/deepgrow";
+const std::string EP_SEGMENTATION = "/v1/segmentation";
+const std::string EP_MASK_TO_POLYGON = "/v1/mask2polygon";
+const std::string EP_FIX_POLYGON = "/v1/fixpolygon";
+const std::string EP_SESSION = "/session/";
+
 const std::string IMAGE_FILE_EXTENSION = ".nii.gz";
 
 const int Client::MIN_POINTS_FOR_SEGMENTATION = 6;
 
-Client::Client(const std::string& uri, int timeout)
-    : serverUri(uri),
-      timeoutInSec(timeout) {
-  if (serverUri.back() == '/') {
+class AutoRemoveFiles {
+  std::set<std::string> files;
+
+ public:
+  void add(const std::string &f) {
+    files.insert(f);
+  }
+
+  ~AutoRemoveFiles() {
+    for (auto it = files.begin(); it != files.end(); it++) {
+      std::remove((*it).c_str());
+    }
+  }
+};
+
+Client::Client(const std::string &uri, int timeout)
+    :
+    serverUri(uri),
+    timeoutInSec(timeout) {
+  while (serverUri.back() == '/') {
     serverUri.pop_back();
   }
 }
 
+Model Client::model(const std::string &name) const {
+  if (name.empty()) {
+    AIAA_LOG_ERROR("Model Name is empty");
+    throw exception(exception::INVALID_ARGS_ERROR, "Model is EMPTY");
+  }
+
+  std::string uri = serverUri + EP_MODELS;
+  uri += "?model=" + CurlUtils::encode(name);
+  return Model::fromJson(CurlUtils::doMethod("GET", uri, timeoutInSec));
+}
+
 ModelList Client::models() const {
   std::string uri = serverUri + EP_MODELS;
-  AIAA_LOG_DEBUG("URI: " << uri);
-
-  return ModelList::fromJson(CurlUtils::doGet(uri, timeoutInSec));
+  return ModelList::fromJson(CurlUtils::doMethod("GET", uri, timeoutInSec));
 }
 
 ModelList Client::models(const std::string &label, const Model::ModelType type) const {
-  std::string l = label;
-  std::replace(l.begin(), l.end(), ' ', '+');
+  std::string uri = serverUri + EP_MODELS;
+  bool first = true;
+  if (!label.empty()) {
+    uri += "?label=" + CurlUtils::encode(label);
+    first = false;
+  }
 
-  std::string uri = serverUri + EP_MODELS + "?label=" + l;
   if (type != Model::unknown) {
-    uri += std::string("&type=") + (type == Model::segmentation ? "segmentation" : "annotation");
+    uri += (first ? "?" : "&");
+    uri += std::string("type=") + Model::toString(type);
   }
-  AIAA_LOG_DEBUG("URI: " << uri);
 
-  return ModelList::fromJson(CurlUtils::doGet(uri, timeoutInSec));
+  return ModelList::fromJson(CurlUtils::doMethod("GET", uri, timeoutInSec));
 }
 
-template<typename TPixel>
-PointSet samplingT(const Model &model, const PointSet &pointSet, void *inputImage, int dimension, const std::string &outputImageFile,
-                   ImageInfo &imageInfo) {
-  switch (dimension) {
-    case 2: {
-      typedef itk::Image<TPixel, 2> ImageType;
-      ImageType *itkImage = static_cast<ImageType*>(inputImage);
-      return ITKUtils<TPixel, 2>::imagePreProcess(pointSet, itkImage, outputImageFile, imageInfo, model.padding, model.roi);
-    }
-    case 3: {
-      typedef itk::Image<TPixel, 3> ImageType;
-      ImageType *itkImage = static_cast<ImageType*>(inputImage);
-      return ITKUtils<TPixel, 3>::imagePreProcess(pointSet, itkImage, outputImageFile, imageInfo, model.padding, model.roi);
-    }
-    case 4: {
-      typedef itk::Image<TPixel, 4> ImageType;
-      ImageType *itkImage = static_cast<ImageType*>(inputImage);
-      return ITKUtils<TPixel, 4>::imagePreProcess(pointSet, itkImage, outputImageFile, imageInfo, model.padding, model.roi);
-    }
-  }
-  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 2D/3D/4D are supported)");
-}
-
-template<typename TPixel>
-PointSet samplingT(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension, const std::string &outputImageFile,
-                   ImageInfo &imageInfo) {
-  switch (dimension) {
-    case 2: {
-      return ITKUtils<TPixel, 2>::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
-    }
-    case 3: {
-      return ITKUtils<TPixel, 3>::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
-    }
-    case 4: {
-      return ITKUtils<TPixel, 4>::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, model.padding, model.roi);
-    }
-  }
-  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 2D/3D/4D are supported)");
-}
-
-PointSet Client::sampling(const Model &model, const PointSet &pointSet, void *inputImage, Pixel::Type pixelType, int dimension,
-                          const std::string &outputImageFile, ImageInfo &imageInfo) const {
-  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
-        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
-    AIAA_LOG_WARN(msg);
-    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
-  }
-
-  switch (pixelType) {
-    case Pixel::CHAR:
-      return samplingT<char>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::UCHAR:
-      return samplingT<unsigned char>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::SHORT:
-      return samplingT<short>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::USHORT:
-      return samplingT<unsigned short>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::INT:
-      return samplingT<int>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::UINT:
-      return samplingT<unsigned int>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::LONG:
-      return samplingT<long>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::ULONG:
-      return samplingT<unsigned long>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::FLOAT:
-      return samplingT<float>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::DOUBLE:
-      return samplingT<double>(model, pointSet, inputImage, dimension, outputImageFile, imageInfo);
-    case Pixel::UNKNOWN:
-      throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
-  }
-  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
-}
-
-PointSet Client::sampling(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType, int dimension,
-                          const std::string &outputImageFile, ImageInfo &imageInfo) const {
-
-  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
-        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
-    AIAA_LOG_WARN(msg);
-    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
-  }
-
-  switch (pixelType) {
-    case Pixel::CHAR:
-      return samplingT<char>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::UCHAR:
-      return samplingT<unsigned char>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::SHORT:
-      return samplingT<short>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::USHORT:
-      return samplingT<unsigned short>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::INT:
-      return samplingT<int>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::UINT:
-      return samplingT<unsigned int>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::LONG:
-      return samplingT<long>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::ULONG:
-      return samplingT<unsigned long>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::FLOAT:
-      return samplingT<float>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::DOUBLE:
-      return samplingT<double>(model, pointSet, inputImageFile, dimension, outputImageFile, imageInfo);
-    case Pixel::UNKNOWN:
-      throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
-  }
-  throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Pixel Type (only basic types are supported)");
-}
-
-PointSet Client::segmentation(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, int dimension,
-                         const std::string &outputImageFile, const ImageInfo &imageInfo /*= ImageInfo()*/) const {
-  if (dimension != 3) {
-    throw exception(exception::INVALID_ARGS_ERROR, "UnSupported Dimension (only 3D is supported)");
-  }
+PointSet Client::segmentation(const Model &model, const std::string &inputImageFile, const std::string &outputImageFile,
+                              const std::string &sessionId) const {
   if (model.name.empty()) {
     AIAA_LOG_WARN("Selected model is EMPTY");
     throw exception(exception::INVALID_ARGS_ERROR, "Model is EMPTY");
   }
 
-  bool postProcess = imageInfo.empty() ? false : true;
-  std::string tmpResultFile = postProcess ? (Utils::tempfilename() + IMAGE_FILE_EXTENSION) : outputImageFile;
-  AIAA_LOG_DEBUG("TmpResultFile: " << tmpResultFile << "; PostProcess: " << postProcess);
+  AIAA_LOG_DEBUG("Model: " << model.toJson());
+  AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
+  AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
+  AIAA_LOG_DEBUG("SessionId: " << sessionId);
 
-  std::string m = model.name;
-  std::replace(m.begin(), m.end(), ' ', '+');
-  std::string uri = serverUri + (model.type == Model::segmentation ? EP_SEGMENTATION : EP_DEXTRA_3D) + "?model=" + m;
+  std::string m = CurlUtils::encode(model.name);
+  std::string uri = serverUri + EP_SEGMENTATION + "?model=" + m;
 
-  std::string paramStr = "{\"sigma\":" + Utils::lexical_cast<std::string>(model.sigma) + ",\"points\":\"" + pointSet.toJson() + "\"}";
-  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, tmpResultFile, timeoutInSec);
-
-  // Perform post-processing to recover crop and re-sample and save to user-specified location
-  if (postProcess) {
-    ITKUtils3DUChar::imagePostProcess(tmpResultFile, outputImageFile, imageInfo);
-    std::remove(tmpResultFile.c_str());
+  std::string inputImage = inputImageFile;
+  if (!sessionId.empty()) {
+    uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
   }
-  return PointSet::fromJson(response);
+  std::string paramStr = "{}";
+
+  std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImage, outputImageFile, timeoutInSec);
+  return PointSet::fromJson(response, "points");
 }
 
-int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, Pixel::Type pixelType,
-                    const std::string &outputImageFile) const {
+int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::string &inputImageFile, const std::string &outputImageFile,
+                    bool preProcess, const std::string &sessionId) const {
   if (model.name.empty()) {
     AIAA_LOG_WARN("Selected model is EMPTY");
-    return -2;
-  }
-  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
-    std::string msg = "Insufficient Points; Minimum Points required for input PointSet: "
-        + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
-    AIAA_LOG_WARN(msg);
-    throw exception(exception::INVALID_ARGS_ERROR, msg.c_str());
+    return -1;
   }
 
-  std::string tmpSampleFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
+  if (pointSet.points.size() < MIN_POINTS_FOR_SEGMENTATION) {
+    std::string msg = "Minimum Points required for input PointSet: " + Utils::lexical_cast<std::string>(MIN_POINTS_FOR_SEGMENTATION);
+    AIAA_LOG_WARN(msg);
+    return -2;
+  }
 
   AIAA_LOG_DEBUG("PointSet: " << pointSet.toJson());
   AIAA_LOG_DEBUG("Model: " << model.toJson());
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
-  AIAA_LOG_DEBUG("PixelType: " << pixelType);
-  AIAA_LOG_DEBUG("SampleImageFile: " << tmpSampleFile);
   AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
+  AIAA_LOG_DEBUG("PreProcess: " << preProcess);
+  AIAA_LOG_DEBUG("SessionId: " << sessionId);
 
-  // Perform pre-processing of crop/re-sample and re-compute point index
-  const int dimension = 3;
+  // Pre process
   ImageInfo imageInfo;
-  PointSet pointSetROI = sampling(model, pointSet, inputImageFile, pixelType, dimension, tmpSampleFile, imageInfo);
-  segmentation(model, pointSetROI, tmpSampleFile, dimension, outputImageFile, imageInfo);
+  std::string croppedInputFile = inputImageFile;
+  std::string croppedOutputFile = outputImageFile;
+  PointSet pointSetROI = pointSet;
+  AutoRemoveFiles autoRemoveFiles;
 
-  // Cleanup temporary files
-  std::remove(tmpSampleFile.c_str());
+  if (preProcess) {
+    croppedInputFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
+    croppedOutputFile = Utils::tempfilename() + IMAGE_FILE_EXTENSION;
+    AIAA_LOG_DEBUG("Cropped Input File: " << croppedInputFile);
+    AIAA_LOG_DEBUG("Cropped Output File: " << croppedOutputFile);
+
+    pointSetROI = AiaaUtils::imagePreProcess(pointSet, inputImageFile, croppedInputFile, imageInfo, model.padding, model.roi);
+    autoRemoveFiles.add(croppedInputFile);
+  }
+
+  std::string m = CurlUtils::encode(model.name);
+  std::string uri = serverUri + EP_DEXTRA_3D + "?model=" + m;
+
+  std::string inputImage = croppedInputFile;
+  if (!preProcess && !sessionId.empty()) {
+    uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
+  }
+  std::string paramStr = "{\"points\":\"" + pointSetROI.toJson() + "\"}";
+
+  CurlUtils::doMethod("POST", uri, paramStr, inputImage, croppedOutputFile, timeoutInSec);
+  if (preProcess) {
+    autoRemoveFiles.add(croppedOutputFile);
+    AiaaUtils::imagePostProcess(croppedInputFile, croppedOutputFile, imageInfo);
+  }
+
+  return 0;
+}
+
+int Client::deepgrow(const Model &model, const PointSet &foregroundPointSet, const PointSet &backgroundPointSet, const std::string &inputImageFile,
+                     const std::string &outputImageFile, const std::string &sessionId) const {
+  if (model.name.empty()) {
+    AIAA_LOG_WARN("Selected model is EMPTY");
+    return -1;
+  }
+
+  if (foregroundPointSet.points.empty() && backgroundPointSet.points.empty()) {
+    std::string msg = "Neither foreground nor background points are provided";
+    AIAA_LOG_WARN(msg);
+    return -2;
+  }
+
+  AIAA_LOG_DEBUG("Model: " << model.toJson());
+  AIAA_LOG_DEBUG("Foreground: " << foregroundPointSet.toJson());
+  AIAA_LOG_DEBUG("Background: " << backgroundPointSet.toJson());
+  AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
+  AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
+  AIAA_LOG_DEBUG("SessionId: " << sessionId);
+
+  std::string m = CurlUtils::encode(model.name);
+  std::string uri = serverUri + EP_DEEPGROW + "?model=" + m;
+
+  std::string inputImage = inputImageFile;
+  if (!sessionId.empty()) {
+    uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
+  }
+  std::string paramStr = "{\"foreground\":\"" + foregroundPointSet.toJson() + "\", \"background\":\"" + backgroundPointSet.toJson() + "\"}";
+
+  CurlUtils::doMethod("POST", uri, paramStr, inputImage, outputImageFile, timeoutInSec);
   return 0;
 }
 
@@ -251,44 +227,120 @@ PolygonsList Client::maskToPolygon(int pointRatio, const std::string &inputImage
   std::string uri = serverUri + EP_MASK_TO_POLYGON;
   std::string paramStr = "{\"more_points\":" + Utils::lexical_cast<std::string>(pointRatio) + "}";
 
-  AIAA_LOG_DEBUG("URI: " << uri);
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
 
-  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, timeoutInSec);
+  std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, timeoutInSec);
   AIAA_LOG_DEBUG("Response: \n" << response);
 
   PolygonsList polygonsList = PolygonsList::fromJson(response);
   return polygonsList;
 }
 
-Polygons Client::fixPolygon(const Polygons &newPoly, const Polygons &oldPrev, int neighborhoodSize, int polyIndex, int vertexIndex,
+Polygons Client::fixPolygon(const Polygons &poly, int neighborhoodSize, int polyIndex, int vertexIndex, const int vertexOffset[2],
                             const std::string &inputImageFile, const std::string &outputImageFile) const {
-  // NOTE:: Flip Input/Output Polygons to support AIAA server as it currently expects input in (y,x) format
-  Polygons p1 = newPoly;
-  p1.flipXY();
-
-  Polygons p2 = oldPrev;
-  p2.flipXY();
-
   std::string uri = serverUri + EP_FIX_POLYGON;
-  std::string paramStr = "{\"propagate_neighbor\":" + Utils::lexical_cast<std::string>(neighborhoodSize) + ",";
-  paramStr = paramStr + "\"polygonIndex\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
-  paramStr = paramStr + "\"vertexIndex\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
-  paramStr = paramStr + "\"poly\":" + p1.toJson() + ",\"prev_poly\":" + p2.toJson() + "}";
 
-  AIAA_LOG_DEBUG("URI: " << uri);
+  std::string paramStr = "{\"propagate_neighbor\":" + Utils::lexical_cast<std::string>(neighborhoodSize) + ",";
+  paramStr = paramStr + "\"dimension\":2,";
+  paramStr = paramStr + "\"polygon_index\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
+  paramStr = paramStr + "\"vertex_index\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
+  paramStr = paramStr + "\"vertex_offset\":[" + Utils::lexical_cast<std::string>(vertexOffset[0]) + ","
+      + Utils::lexical_cast<std::string>(vertexOffset[1]) + "],";
+  paramStr = paramStr + "\"poly\":" + poly.toJson() + "}";
+
   AIAA_LOG_DEBUG("Parameters: " << paramStr);
   AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
   AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
 
-  std::string response = CurlUtils::doPost(uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
+  std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
   AIAA_LOG_DEBUG("Response: \n" << response);
 
-  // TODO:: Ask AIAA Server to remove redundant [] to return the updated Polygons (same as input)
-  Polygons result = PolygonsList::fromJson(response).list[0];
-  result.flipXY();
-  return result;
+  return Polygons::fromJson(response, "poly");
 }
+
+PolygonsList Client::fixPolygon(const PolygonsList &poly, int neighborhoodSize, int neighborhoodSize3D, int sliceIndex, int polyIndex,
+                                int vertexIndex, const int vertexOffset[2], const std::string &inputImageFile,
+                                const std::string &outputImageFile) const {
+  std::string uri = serverUri + EP_FIX_POLYGON;
+
+  std::string paramStr = "{\"propagate_neighbor\":" + Utils::lexical_cast<std::string>(neighborhoodSize) + ",";
+  paramStr = paramStr + "\"propagate_neighbor_3d\":" + Utils::lexical_cast<std::string>(neighborhoodSize3D) + ",";
+  paramStr = paramStr + "\"dimension\":3,";
+  paramStr = paramStr + "\"slice_index\":" + Utils::lexical_cast<std::string>(sliceIndex) + ",";
+  paramStr = paramStr + "\"polygon_index\":" + Utils::lexical_cast<std::string>(polyIndex) + ",";
+  paramStr = paramStr + "\"vertex_index\":" + Utils::lexical_cast<std::string>(vertexIndex) + ",";
+  paramStr = paramStr + "\"vertex_offset\":[" + Utils::lexical_cast<std::string>(vertexOffset[0]) + ","
+      + Utils::lexical_cast<std::string>(vertexOffset[1]) + "],";
+  paramStr = paramStr + "\"poly\":" + poly.toJson() + "}";
+
+  AIAA_LOG_DEBUG("Parameters: " << paramStr);
+  AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
+  AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
+
+  std::string response = CurlUtils::doMethod("POST", uri, paramStr, inputImageFile, outputImageFile, timeoutInSec);
+  AIAA_LOG_DEBUG("Response: \n" << response);
+
+  return PolygonsList::fromJson(response, "poly");
+}
+
+std::string Client::createSession(const std::string &inputImageFile, const int expiry) const {
+  AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
+  AIAA_LOG_DEBUG("Expiry: " << expiry);
+
+  std::string uri = serverUri + EP_SESSION;
+  std::string paramStr = "{}";
+
+  std::string response = CurlUtils::doMethod("PUT", uri, paramStr, inputImageFile, timeoutInSec);
+  AIAA_LOG_DEBUG("Response: \n" << response);
+
+  std::string sessionID;
+
+  try {
+    nlohmann::json j = nlohmann::json::parse(response);
+    sessionID = j.find("session_id") != j.end() ? j["session_id"].get<std::string>() : std::string();
+  } catch (nlohmann::json::parse_error &e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  } catch (nlohmann::json::type_error &e) {
+    AIAA_LOG_ERROR(e.what());
+    throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
+  }
+
+  AIAA_LOG_DEBUG("New Session ID: " << sessionID);
+  return sessionID;
+}
+
+std::string Client::getSession(const std::string &sessionId) const {
+  if (sessionId.empty()) {
+    AIAA_LOG_ERROR("Invalid Session ID");
+    return std::string();
+  }
+
+  std::string uri = serverUri + EP_SESSION;
+  uri += CurlUtils::encode(sessionId);
+
+  AIAA_LOG_DEBUG("URI: " << uri);
+
+  std::string response = CurlUtils::doMethod("GET", uri, timeoutInSec);
+  AIAA_LOG_DEBUG("Response: \n" << response);
+  return response;
+}
+
+void Client::closeSession(const std::string &sessionId) const {
+  if (sessionId.empty()) {
+    AIAA_LOG_ERROR("Invalid Session ID");
+    return;
+  }
+
+  std::string uri = serverUri + EP_SESSION;
+  uri += CurlUtils::encode(sessionId);
+
+  AIAA_LOG_DEBUG("URI: " << uri);
+
+  std::string response = CurlUtils::doMethod("DELETE", uri, timeoutInSec);
+  AIAA_LOG_DEBUG("Response: \n" << response);
+}
+
 }
 }

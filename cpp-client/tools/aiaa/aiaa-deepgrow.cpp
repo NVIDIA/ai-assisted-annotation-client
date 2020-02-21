@@ -37,8 +37,9 @@ int main(int argc, char **argv) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
               "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
-              " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
               " *|-model    Model Name        [either -label or -model is required]                      |\n"
+              " *|-fpoints  Foreground Clicks [[x,y,z]+]     Example: [[70,172,86],...,[105,161,86]]     |\n"
+              " *|-bpoints  Background Clicks [[x,y,z]+]     Example: [[80,172,86],...,[102,161,86]]     |\n"
               " *|-image    Input Image File                                                             |\n"
               " *|-session  Session ID                                                                   |\n"
               " *|-output   Output Image File                                                            |\n"
@@ -49,8 +50,9 @@ int main(int argc, char **argv) {
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
 
-  std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string model = getCmdOption(argv, argv + argc, "-model");
+  std::string fpoints = getCmdOption(argv, argv + argc, "-fpoints", "[]");
+  std::string bpoints = getCmdOption(argv, argv + argc, "-bpoints", "[]");
 
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string sessionId = getCmdOption(argv, argv + argc, "-session");
@@ -59,8 +61,8 @@ int main(int argc, char **argv) {
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
-  if (label.empty() && model.empty()) {
-    std::cerr << "Either Label or Model is required\n";
+  if (model.empty()) {
+    std::cerr << "Model is required\n";
     return -1;
   }
   if (inputImageFile.empty() && sessionId.empty()) {
@@ -73,28 +75,23 @@ int main(int argc, char **argv) {
   }
 
   try {
+    nvidia::aiaa::PointSet foreground = nvidia::aiaa::PointSet::fromJson(fpoints);
+    nvidia::aiaa::PointSet background = nvidia::aiaa::PointSet::fromJson(bpoints);
     nvidia::aiaa::Client client(serverUri, timeout);
 
-    nvidia::aiaa::Model m;
-    if (model.empty()) {
-      nvidia::aiaa::ModelList models = client.models();
-      m = models.getMatchingModel(label, nvidia::aiaa::Model::segmentation);
-    } else {
-      m = client.model(model);
-    }
-
+    nvidia::aiaa::Model m = client.model(model);
     if (m.name.empty()) {
-      std::cerr << "Couldn't find a model for name: " << model << "; label: " << label << "\n";
+      std::cerr << "Couldn't find a model for name: " << model << "\n";
       return -1;
     }
 
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::PointSet extremePoints = client.segmentation(m, inputImageFile, outputImageFile, sessionId);
-    std::cout << "Extreme Points: " << extremePoints.toJson() << std::endl;
+    int ret = client.deepgrow(m, foreground, background, inputImageFile, outputImageFile, sessionId);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
+    std::cout << "Return Code: " << ret << (ret ? " (FAILED) " : " (SUCCESS) ") << std::endl;
     if (printTs) {
       std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }

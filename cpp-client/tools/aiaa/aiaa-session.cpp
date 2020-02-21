@@ -37,11 +37,10 @@ int main(int argc, char **argv) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
               "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
-              " *|-label    Input Label Name  [either -label or -model is required]                      |\n"
-              " *|-model    Model Name        [either -label or -model is required]                      |\n"
-              " *|-image    Input Image File                                                             |\n"
-              " *|-session  Session ID                                                                   |\n"
-              " *|-output   Output Image File                                                            |\n"
+              " *|-op       Operation (create|get|delete)                                                |\n"
+              "  |-image    Input Image File in case of (create) operation                               |\n"
+              "  |-expiry   Session expiry time in minutes (default: 0)                                  |\n"
+              "  |-session  Session ID in case of (get|delete) operation                                 |\n"
               "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";
     return 0;
@@ -49,48 +48,45 @@ int main(int argc, char **argv) {
 
   std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
 
-  std::string label = getCmdOption(argv, argv + argc, "-label");
-  std::string model = getCmdOption(argv, argv + argc, "-model");
-
+  std::string operation = getCmdOption(argv, argv + argc, "-op");
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
+  int expiry = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-expiry", "0"));
   std::string sessionId = getCmdOption(argv, argv + argc, "-session");
-  std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
 
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
-  if (label.empty() && model.empty()) {
-    std::cerr << "Either Label or Model is required\n";
+  if (operation.empty()) {
+    std::cerr << "Operation is Missing\n";
     return -1;
   }
-  if (inputImageFile.empty() && sessionId.empty()) {
+  if (!(operation == "create" || operation == "get" || operation == "delete")) {
+    std::cerr << "Operation is Invalid\n";
+    return -1;
+  }
+  if (operation == "create" && inputImageFile.empty()) {
     std::cerr << "Input Image file is missing (Either session-id or input image should be provided)\n";
     return -1;
   }
-  if (outputImageFile.empty()) {
-    std::cerr << "Output Image file is missing\n";
+  if ((operation == "get" || operation == "delete") && sessionId.empty()) {
+    std::cerr << "Session ID is missing\n";
     return -1;
   }
 
   try {
     nvidia::aiaa::Client client(serverUri, timeout);
 
-    nvidia::aiaa::Model m;
-    if (model.empty()) {
-      nvidia::aiaa::ModelList models = client.models();
-      m = models.getMatchingModel(label, nvidia::aiaa::Model::segmentation);
-    } else {
-      m = client.model(model);
-    }
-
-    if (m.name.empty()) {
-      std::cerr << "Couldn't find a model for name: " << model << "; label: " << label << "\n";
-      return -1;
-    }
-
     auto begin = std::chrono::high_resolution_clock::now();
-    nvidia::aiaa::PointSet extremePoints = client.segmentation(m, inputImageFile, outputImageFile, sessionId);
-    std::cout << "Extreme Points: " << extremePoints.toJson() << std::endl;
+    if (operation == "create") {
+      std::string result = client.createSession(inputImageFile, expiry);
+      std::cout << "New Session ID: " << result << std::endl;
+    } else if (operation == "get") {
+      std::string result = client.getSession(sessionId);
+      std::cout << "Session Info: " << result << std::endl;
+    } else if (operation == "delete") {
+      client.closeSession(sessionId);
+      std::cout << "Session Closed: " << sessionId << std::endl;
+    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();

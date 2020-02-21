@@ -27,6 +27,7 @@
  */
 
 #include <nvidia/aiaa/client.h>
+#include <nvidia/aiaa/aiaautils.h>
 #include <nvidia/aiaa/utils.h>
 
 #include "../commonutils.h"
@@ -36,14 +37,13 @@ int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
-              "  |-server   Server URI {default: http://10.110.45.66:5000/v1}                            |\n"
+              "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
               "  |-label    Input Label Name (Use fetch roi, padding from Model)                         |\n"
               " *|-points   3D Points [[x,y,z]+]     Example: [[70,172,86],...,[105,161,180]]            |\n"
               "  |-pad      Padding Size to be used {default: 20.0}                                      |\n"
               "  |-roi      ROI Image Size to be used for inference {default: 128x128x128}               |\n"
               "  |-format   Format Output Json                                                           |\n"
               " *|-image    Input Image File                                                             |\n"
-              "  |-pixel    Input Image Pixel Type {default: short}                                      |\n"
               "  |-dim      Input Image Dimension {default: 3}                                           |\n"
               " *|-output   Output Image File                                                            |\n"
               "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
@@ -51,15 +51,16 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
+
   std::string label = getCmdOption(argv, argv + argc, "-label");
   std::string points = getCmdOption(argv, argv + argc, "-points");
   double pad = nvidia::aiaa::Utils::lexical_cast<double>(getCmdOption(argv, argv + argc, "-pad", "20.0"));
   std::string roi = getCmdOption(argv, argv + argc, "-roi", "128x128x128");
+
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
-  int dim = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-dim", "3"));
-  nvidia::aiaa::Pixel::Type pixelType = nvidia::aiaa::getPixelType(getCmdOption(argv, argv + argc, "-pixel", "unsigned short"));
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
+
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
@@ -95,7 +96,8 @@ int main(int argc, char **argv) {
 
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::ImageInfo imageInfo;
-    nvidia::aiaa::PointSet resultPointSet = client.sampling(m, pointSet, inputImageFile, pixelType, dim, outputImageFile, imageInfo);
+    nvidia::aiaa::PointSet resultPointSet = nvidia::aiaa::AiaaUtils::imagePreProcess(pointSet, inputImageFile, outputImageFile, imageInfo, m.padding,
+                                                                                     m.roi);
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -107,7 +109,7 @@ int main(int argc, char **argv) {
       std::cout << "API Latency (in milli sec): " << ms << std::endl;
     }
     return 0;
-  } catch (nvidia::aiaa::exception& e) {
+  } catch (nvidia::aiaa::exception &e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
   }
   return -1;

@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h        (Help) Print this information                                                |\n"
-              "  |-server   Server URI  {default: http://10.110.45.66:5000/v1}                           |\n"
+              "  |-server   Server URI  {default: http://0.0.0.0:5000}                                   |\n"
               "  |-ratio    Point Ratio {default: 10}                                                    |\n"
               " *|-image    Input Image File                                                             |\n"
               "  |-output   Output File Name to store result                                             |\n"
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
   int ratio = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-ratio", "10"));
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputJsonFile = getCmdOption(argv, argv + argc, "-output");

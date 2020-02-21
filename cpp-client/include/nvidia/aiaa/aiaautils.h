@@ -26,28 +26,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "../include/nvidia/aiaa/imageinfo.h"
+#pragma once
 
-#include <sstream>
-#include <map>
+#include "common.h"
+#include "pointset.h"
+#include "imageinfo.h"
+
+#include <string>
 
 namespace nvidia {
 namespace aiaa {
 
-bool ImageInfo::empty() const {
-  return imageSize[0] == 0 && imageSize[1] == 0 && imageSize[2] == 0 && imageSize[3] == 0;
-}
+class AIAA_CLIENT_API AiaaUtils {
+ public:
+  // Pre Process
+  static PointSet imagePreProcess(const PointSet &pointSet, const std::string &inputImage, const std::string &outputImage, ImageInfo &imageInfo,
+                                  double PAD, const Point& ROI);
 
-std::string ImageInfo::dump() {
-  std::stringstream ss;
-  ss << "{";
-  ss << "\"imageSize\": [" << imageSize[0] << "," << imageSize[1] << "," << imageSize[2] << "," << imageSize[3] << "], ";
-  ss << "\"cropSize\": [" << cropSize[0] << "," << cropSize[1] << "," << cropSize[2] << "," << cropSize[3] << "], ";
-  ss << "\"cropIndex\": [" << cropIndex[0] << "," << cropIndex[1] << "," << cropIndex[2] << "," << cropIndex[3] << "]";
-  ss << "}";
-
-  return ss.str();
-}
+  /// Post Process
+  static void imagePostProcess(const std::string &inputImage, const std::string &outputImage, const ImageInfo &imageInfo);
+};
 
 }
 }

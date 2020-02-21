@@ -57,18 +57,18 @@ struct AIAA_CLIENT_API Model {
   /// Official Name for the AIAA Model.  For example, this name shall be used for inference/dextr3d API
   std::string name;
 
-  /// Sigma value used while training;  This shall be used for dextr3d API
-  double sigma;
-
-  /// Padding used while training images;  This shall be used for dextr3d API
+  /// Padding used while training images;  This shall be used for Annotation Models
   double padding;
 
-  /// Image ROI size used while training [x,y,z,w] Format;  This shall be used for dextr3D API
+  /// Image ROI size used while training [x,y,z,w] Format;  This shall be used for Annotation Models
   std::vector<int> roi;
 
   enum ModelType {
-    annotation,
     segmentation,
+    annotation,
+    classification,
+    deepgrow,
+    others,
     unknown
   };
 
@@ -90,6 +90,20 @@ struct AIAA_CLIENT_API Model {
    @return Model object
    */
   static Model fromJson(const std::string &json);
+
+  /*!
+   @brief convert string to ModelType
+   @param[in] type  String representing a valid model type
+   @return ModelType
+   */
+  static ModelType toModelType(const std::string &type);
+
+  /*!
+   @brief convert ModelType to string
+   @param[in] type  A valid model type
+   @return string
+   */
+  static std::string toString(ModelType type);
 
   /*!
    @brief convert Model to JSON String

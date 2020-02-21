@@ -64,14 +64,93 @@ class AIAAClient:
     The AIAAClient object is constructed with the server information
 
     :param server_url: AIAA Server URL (example: 'http://0.0.0.0:5000')
-    :param api_version: AIAA Server API version
     """
 
-    def __init__(self, server_url='http://0.0.0.0:5000', api_version='v1'):
-        self.server_url = server_url
-        self.api_version = api_version
+    def __init__(self, server_url='http://0.0.0.0:5000'):
+        self._server_url = server_url
 
-        self.doc_id = None
+    def get_server_url(self):
+        """
+        Get AIAA Server URL
+
+        :return: returns AIAA Server URL
+        """
+        return self._server_url
+
+    def set_server_url(self, server_url):
+        """
+        Update AIAA Server URL
+
+        :param: server_url: valid url for AIAA server (example: 'http://0.0.0.0:5000')
+        """
+        self._server_url = server_url
+
+    def create_session(self, image_in, expiry=0):
+        """
+        Create New Session
+
+        :param image_in: valid image which will be stored as part of the new session
+        :param expiry: expiry in seconds.  min(AIAASessionExpiry, expiry) will be selected by AIAA
+        :return: returns json containing **session_id** and any other details from server
+
+        valid *session_id* from result can be used for future reference
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for Create Session Action')
+
+        selector = '/session/?expiry=' + str(expiry)
+        fields = {}
+        files = {'image': image_in}
+
+        status, response = AIAAUtils.http_multipart('PUT', self._server_url, selector, fields, files,
+                                                    multipart_response=False)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        logger.debug('Response: {}'.format(response))
+        return json.loads(response)
+
+    def get_session(self, session_id):
+        """
+        Get Session Info
+
+        :param session_id: valid session id
+        :return: returns json containing session details if session is valid; otherwise None
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug('Fetching Session Details')
+
+        if session_id is None:
+            return None
+
+        selector = '/session/' + AIAAUtils.urllib_quote_plus(session_id)
+        status, response = AIAAUtils.http_method('GET', self._server_url, selector)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
+        response = response.decode('utf-8') if isinstance(response, bytes) else response
+        logger.debug('Response: {}'.format(response))
+        return json.loads(response)
+
+    def close_session(self, session_id):
+        """
+        Close an existing session
+
+        :param session_id: valid session id
+        :return: returns True if a session is closed, else False
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug('Fetching Session Details')
+
+        if session_id is None:
+            return False
+
+        selector = '/session/' + AIAAUtils.urllib_quote_plus(session_id)
+
+        status, response = AIAAUtils.http_method('DELETE', self._server_url, selector)
+        logger.debug('Response: {}'.format(response))
+        return status is 200
 
     def model(self, model):
         """
@@ -83,11 +162,16 @@ class AIAAClient:
         logger = logging.getLogger(__name__)
         logger.debug('Fetching Model Details')
 
-        selector = '/' + self.api_version + '/models'
-        selector += '?model=' + AIAAUtils.urllib_quote_plus(model)
+        selector = '/v1/models'
+        if model:
+            selector += '?model=' + AIAAUtils.urllib_quote_plus(model)
 
-        response = AIAAUtils.http_get_method(self.server_url, selector)
+        status, response = AIAAUtils.http_method('GET', self._server_url, selector)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
         response = response.decode('utf-8') if isinstance(response, bytes) else response
+        logger.debug('Response: {}'.format(response))
         return json.loads(response)
 
     def model_list(self, label=None):
@@ -100,105 +184,161 @@ class AIAAClient:
         logger = logging.getLogger(__name__)
         logger.debug('Fetching Model Details')
 
-        selector = '/' + self.api_version + '/models'
+        selector = '/v1/models'
         if label is not None and len(label) > 0:
             selector += '?label=' + AIAAUtils.urllib_quote_plus(label)
 
-        response = AIAAUtils.http_get_method(self.server_url, selector)
+        status, response = AIAAUtils.http_method('GET', self._server_url, selector)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
         response = response.decode('utf-8') if isinstance(response, bytes) else response
+
+        logger.debug('Response: {}'.format(response))
         return json.loads(response)
 
-    def segmentation(self, model, image_in, image_out, save_doc=False):
+    def segmentation(self, model, image_in, image_out, session_id=None):
         """
         2D/3D image segmentation using segmentation method
 
         :param model: model name according to the output of model_list()
         :param image_in: input 2D/3D image file name
         :param image_out: output mask will be stored
-        :param save_doc: save input image in server for future reference; server will return doc id in result json
+        :param session_id: if session id is provided (not None) then *image_in* will be ignored
         :return: returns json containing extreme points for the segmentation mask and other info
 
-        Output 2D/3D binary mask will be saved to the specified file
+        Output 2D/3D binary mask will be saved to the specified file;  Throws AIAAException in case of Error
         """
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for Segmentation Action')
 
-        selector = '/' + self.api_version + '/segmentation?model=' + AIAAUtils.urllib_quote_plus(model)
-        selector += '&save_doc=' + ('true' if save_doc else 'false')
-        if self.doc_id:
-            selector += '&doc=' + AIAAUtils.urllib_quote_plus(self.doc_id)
+        selector = '/v1/segmentation?model=' + AIAAUtils.urllib_quote_plus(model)
+        if session_id:
+            selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
-        fields = {'params': '{}'}
-        files = {'datapoint': image_in} if self.doc_id is None else {}
+        in_fields = {'params': '{}'}
+        in_files = {'image': image_in} if not session_id else {}
 
         logger.debug('Using Selector: {}'.format(selector))
-        logger.debug('Using Fields: {}'.format(fields))
-        logger.debug('Using Files: {}'.format(files))
+        logger.debug('Using Fields: {}'.format(in_fields))
+        logger.debug('Using Files: {}'.format(in_files))
 
-        self.doc_id = None
-        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
+        if status == 440:
+            raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
+
         form = json.loads(form) if isinstance(form, str) else form
-
         params = form.get('params')
-        if params is None:
-            points = json.loads(form.get('points', '[]'))
-            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
-        else:
-            params = json.loads(params) if isinstance(params, str) else params
-
-        self.doc_id = params.get('doc')
-        logger.info('Saving Doc-ID: {}'.format(self.doc_id))
+        params = json.loads(params) if isinstance(params, str) else params
 
         AIAAUtils.save_result(files, image_out)
         return params
 
-    def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128'):
+    def dextr3d(self, model, point_set, image_in, image_out, pad=20, roi_size='128x128x128',
+                pre_process=True,
+                session_id=None):
         """
-        3D image segmentation using DEXTR3D method
+        3D image annotation using DEXTR3D method
 
         :param model: model name according to the output of model_list()
         :param point_set: point set json containing the extreme points' indices
         :param image_in: input 3D image file name
-        :param image_out: output files will be stored
+        :param image_out: output mask will be stored
         :param pad: padding size (default is 20)
         :param roi_size:  image resize value (default is 128x128x128)
+        :param pre_process: pre-process (crop) input volume at client side for DEXTR3D action
+        :param session_id: if *session_id* is not None and *pre_process* is False then *image_in* will be ignored
 
-        Output 3D binary mask will be saved to the specified file
+
+        Output 3D binary mask will be saved to the specified file;  Throws AIAAException in case of Error
         """
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for Annotation/Dextr3D Action')
 
         # Pre Process
-        cropped_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
-        points, crop = AIAAUtils.image_pre_process(image_in, cropped_file, point_set, pad, roi_size)
+        if pre_process:
+            cropped_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
+            points, crop = AIAAUtils.image_pre_process(image_in, cropped_file, point_set, pad, roi_size)
+        else:
+            cropped_file = image_in
+            points = point_set
+            crop = None
 
-        # Dextr3D
-        selector = '/' + self.api_version + '/dextr3d?model=' + AIAAUtils.urllib_quote_plus(model)
+        selector = '/v1/dextr3d?model=' + AIAAUtils.urllib_quote_plus(model)
+        use_session_input = session_id and pre_process is False
+        if use_session_input:
+            selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
-        fields = {'params': json.dumps({'points': json.dumps(points)})}
-        files = {'datapoint': cropped_file}
+        in_fields = {'params': json.dumps({'points': json.dumps(points)})}
+        in_files = {'image': cropped_file} if not use_session_input else {}
 
         logger.debug('Using Selector: {}'.format(selector))
-        logger.debug('Using Fields: {}'.format(fields))
-        logger.debug('Using Files: {}'.format(files))
+        logger.debug('Using Fields: {}'.format(in_fields))
+        logger.debug('Using Files: {}'.format(in_files))
 
-        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
+        if status == 440:
+            raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
+
+        form = json.loads(form) if isinstance(form, str) else form
         params = form.get('params')
-        if params is None:
-            points = json.loads(form.get('points'))
-            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
-        else:
-            params = json.loads(params) if isinstance(params, str) else params
+        params = json.loads(params) if isinstance(params, str) else params
 
         # Post Process
-        if len(files) > 0:
+        if pre_process:
+            os.unlink(cropped_file)
+
             cropped_out_file = tempfile.NamedTemporaryFile(suffix='.nii.gz').name
             AIAAUtils.save_result(files, cropped_out_file)
-
             AIAAUtils.image_post_processing(cropped_out_file, image_out, crop, image_in)
-            os.unlink(cropped_out_file)
 
-        os.unlink(cropped_file)
+            os.unlink(cropped_out_file)
+        else:
+            AIAAUtils.save_result(files, image_out)
+        return params
+
+    def deepgrow(self, model, foreground, background, image_in, image_out, session_id=None):
+        """
+        2D/3D image annotation using DeepGrow method
+
+        :param model: model name according to the output of model_list()
+        :param foreground: foreground (+ve) clicks/points
+        :param background: background (-ve) clicks/points
+        :param image_in: input 2D/3D image file name
+        :param image_out: output mask will be stored
+        :param session_id: if session id is provided (not None) then *image_in* will be ignored
+
+        Output 2D/3D binary mask will be saved to the specified file;  Throws AIAAException in case of Error
+        """
+        logger = logging.getLogger(__name__)
+        logger.debug('Preparing for DeepGrow Action')
+
+        selector = '/v1/deepgrow?model=' + AIAAUtils.urllib_quote_plus(model)
+        if session_id:
+            selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
+
+        in_fields = {'params': json.dumps({'foreground': foreground, 'background': background})}
+        in_files = {'image': image_in} if not session_id else {}
+
+        logger.debug('Using Selector: {}'.format(selector))
+        logger.debug('Using Fields: {}'.format(in_fields))
+        logger.debug('Using Files: {}'.format(in_files))
+
+        status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, in_fields, in_files)
+        if status == 440:
+            raise AIAAException(AIAAError.SESSION_EXPIRED, 'Session Expired')
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
+
+        form = json.loads(form) if isinstance(form, str) else form
+        params = form.get('params')
+        params = json.loads(params) if isinstance(params, str) else params
+
+        AIAAUtils.save_result(files, image_out)
         return params
 
     def mask2polygon(self, image_in, point_ratio):
@@ -213,14 +353,18 @@ class AIAAClient:
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for Mask2Polygon Action')
 
-        selector = '/' + self.api_version + '/mask2polygon'
+        selector = '/v1/mask2polygon'
         params = dict()
         params['more_points'] = point_ratio
 
         fields = {'params': json.dumps(params)}
-        files = {'datapoint': image_in}
+        files = {'image': image_in}
 
-        response = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files, False)
+        status, response = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files,
+                                                    multipart_response=False)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
+
         response = response.decode('utf-8') if isinstance(response, bytes) else response
         return json.loads(response)
 
@@ -246,32 +390,52 @@ class AIAAClient:
         logger = logging.getLogger(__name__)
         logger.debug('Preparing for FixPolygon Action')
 
-        selector = '/' + self.api_version + '/fixpolygon'
+        selector = '/v1/fixpolygon'
 
         dimension = len(index)
 
         params = dict()
-        params['prev_poly'] = polygons
+        params['poly'] = polygons
         params['vertex_offset'] = vertex_offset
         params['dimension'] = dimension
 
         if dimension == 3:
-            params['sliceIndex'] = index[0]
-            params['polygonIndex'] = index[1]
-            params['vertexIndex'] = index[2]
+            params['slice_index'] = index[0]
+            params['polygon_index'] = index[1]
+            params['vertex_index'] = index[2]
             params['propagate_neighbor_3d'] = propagate_neighbor[0]
             params['propagate_neighbor'] = propagate_neighbor[1]
         else:
-            params['polygonIndex'] = index[0]
-            params['vertexIndex'] = index[1]
+            params['polygon_index'] = index[0]
+            params['vertex_index'] = index[1]
             params['propagate_neighbor'] = propagate_neighbor
 
         fields = {'params': json.dumps(params)}
-        files = {'datapoint': image_in}
+        files = {'image': image_in}
 
-        form, files = AIAAUtils.http_post_multipart(self.server_url, selector, fields, files)
+        status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files)
+        if status != 200:
+            raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, form))
+
+        form = json.loads(form) if isinstance(form, str) else form
+        params = form.get('params')
+        params = json.loads(params) if isinstance(params, str) else params
+
         AIAAUtils.save_result(files, image_out)
-        return form
+        return params
+
+
+class AIAAError:
+    SESSION_EXPIRED = 1
+    RESULT_NOT_FOUND = 2
+    SERVER_ERROR = 3
+    UNKNOWN = 4
+
+
+class AIAAException(Exception):
+    def __init__(self, error, msg):
+        self.error = error
+        self.msg = msg
 
 
 class AIAAUtils:
@@ -390,9 +554,9 @@ class AIAAUtils:
         SimpleITK.WriteImage(itk_result, output_file, True)
 
     @staticmethod
-    def http_get_method(server_url, selector):
+    def http_method(method, server_url, selector):
         logger = logging.getLogger(__name__)
-        logger.debug('Using Selector: {}{}'.format(server_url, selector))
+        logger.debug('{} {}{}'.format(method, server_url, selector))
 
         parsed = urlparse(server_url)
         if parsed.scheme == 'https':
@@ -401,14 +565,19 @@ class AIAAUtils:
             conn = httplib.HTTPSConnection(parsed.hostname, parsed.port, context=ssl._create_unverified_context())
         else:
             conn = httplib.HTTPConnection(parsed.hostname, parsed.port)
-        conn.request('GET', selector)
+
+        conn.request(method, selector)
         response = conn.getresponse()
-        return response.read()
+
+        logger.debug('HTTP Response Code: {}'.format(response.status))
+        logger.debug('HTTP Response Message: {}'.format(response.reason))
+        logger.debug('HTTP Response Headers: {}'.format(response.getheaders()))
+        return response.status, response.read()
 
     @staticmethod
-    def http_post_multipart(server_url, selector, fields, files, multipart_response=True):
+    def http_multipart(method, server_url, selector, fields, files, multipart_response=True):
         logger = logging.getLogger(__name__)
-        logger.debug('Using Selector: {}{}'.format(server_url, selector))
+        logger.debug('{} {}{}'.format(method, server_url, selector))
 
         parsed = urlparse(server_url)
         if parsed.scheme == 'https':
@@ -420,38 +589,45 @@ class AIAAUtils:
 
         content_type, body = AIAAUtils.encode_multipart_formdata(fields, files)
         headers = {'content-type': content_type, 'content-length': str(len(body))}
-        conn.request('POST', selector, body, headers)
+        conn.request(method, selector, body, headers)
 
         response = conn.getresponse()
-        logger.debug('Error Code: {}'.format(response.status))
-        logger.debug('Error Message: {}'.format(response.reason))
-        logger.debug('Headers: {}'.format(response.getheaders()))
+        logger.debug('HTTP Response Code: {}'.format(response.status))
+        logger.debug('HTTP Response Message: {}'.format(response.reason))
+        logger.debug('HTTP Response Headers: {}'.format(response.getheaders()))
 
         if multipart_response:
-            form, files = AIAAUtils.parse_multipart(response.fp if response.fp else response, response.msg)
-            logger.debug('Response FORM: {}'.format(form))
-            logger.debug('Response FILES: {}'.format(files.keys()))
-            return form, files
-        return response.read()
+            if response.status == 200:
+                form, files = AIAAUtils.parse_multipart(response.fp if response.fp else response, response.msg)
+                logger.debug('Response FORM: {}'.format(form))
+                logger.debug('Response FILES: {}'.format(files.keys()))
+                return response.status, form, files
+            else:
+                return response.status, response.read(), None
+
+        return response.status, response.read()
 
     @staticmethod
     def save_result(files, result_file):
         logger = logging.getLogger(__name__)
-        if len(files) > 0:
-            for name in files:
-                data = files[name]
-                logger.debug('Saving {} to {}; Size: {}'.format(name, result_file, len(data)))
 
-                dir_path = os.path.dirname(os.path.realpath(result_file))
-                if not os.path.exists(dir_path):
-                    os.makedirs(dir_path)
+        if len(files) == 0:
+            raise AIAAException(AIAAError.RESULT_NOT_FOUND, "No result files found in server response!")
 
-                with open(result_file, "wb") as f:
-                    if isinstance(data, bytes):
-                        f.write(data)
-                    else:
-                        f.write(data.encode('utf-8'))
-                break
+        for name in files:
+            data = files[name]
+            logger.debug('Saving {} to {}; Size: {}'.format(name, result_file, len(data)))
+
+            dir_path = os.path.dirname(os.path.realpath(result_file))
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path)
+
+            with open(result_file, "wb") as f:
+                if isinstance(data, bytes):
+                    f.write(data)
+                else:
+                    f.write(data.encode('utf-8'))
+            break
 
     @staticmethod
     def encode_multipart_formdata(fields, files):
@@ -474,8 +650,8 @@ class AIAAUtils:
         lines.append('')
 
         body = bytearray()
-        for l in lines:
-            body.extend(l if isinstance(l, bytes) else l.encode('utf-8'))
+        for line in lines:
+            body.extend(line if isinstance(line, bytes) else line.encode('utf-8'))
             body.extend(b'\r\n')
 
         content_type = 'multipart/form-data; boundary=%s' % limit

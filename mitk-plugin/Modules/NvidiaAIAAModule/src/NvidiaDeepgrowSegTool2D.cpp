@@ -180,32 +180,31 @@ void NvidiaDeepgrowSegTool2D::PointAdded(mitk::DataNode::Pointer imageNode, bool
   mitk::Image *image = dynamic_cast<mitk::Image*>(imageNode->GetData());
   auto points = pointSet->GetPointSet()->GetPoints();
 
-  for (auto pointsIterator = points->Begin(); pointsIterator != points->End(); ++pointsIterator) {
-    auto pt = pointsIterator.Value();
-    //MITK_DEBUG("nvidia") << "(Deepgrow) Added Point: " << pt;
+  nvidia::aiaa::Point point;
+  if (points->Size()) {
+    auto pt = (--points->End())->Value();
+    MITK_DEBUG("nvidia") << "(Deepgrow) Added Point: " << pt;
 
     if (!image->GetGeometry()->IsInside(pt)) {
       MITK_INFO("nvidia") << "(Deepgrow) Point Not in Geometry (IGNORED)";
-      continue;
+      return;
     }
 
     itk::Index<3> index;
     image->GetGeometry(0)->WorldToIndex(pt, index);
 
-    nvidia::aiaa::Point point;
     point.push_back(index[0]);
     point.push_back(index[1]);
     point.push_back(index[2]);
 
     MITK_DEBUG("nvidia") << "(Deepgrow) " << pt << " => [" << index[0] << "," << index[1] << "," << index[2] << "]";
-    finalPointSet.points.push_back(point);
   }
 
   if (background) {
-    m_backgroundPoints = finalPointSet;
+    m_backgroundPoints.push_back(point);
     MITK_INFO("nvidia") << "(Deepgrow) All Background Points: " << finalPointSet.toJson();
   } else {
-    m_foregroundPoints = finalPointSet;
+    m_foregroundPoints.push_back(point);
     MITK_INFO("nvidia") << "(Deepgrow) All Foreground Points: " << finalPointSet.toJson();
   }
 }

@@ -79,7 +79,7 @@ us::ModuleResource NvidiaSmartPolySegTool2D::GetIconResource() const {
 }
 
 const char* NvidiaSmartPolySegTool2D::GetName() const {
-  return "SmartPolygon";
+  return "Smart Polygon";
 }
 
 const char** NvidiaSmartPolySegTool2D::GetXPM() const {

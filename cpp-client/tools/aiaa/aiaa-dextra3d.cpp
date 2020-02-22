@@ -76,8 +76,12 @@ int main(int argc, char **argv) {
     std::cerr << "Pointset is empty\n";
     return -1;
   }
-  if (inputImageFile.empty() && (!preProcess && sessionId.empty())) {
+  if (inputImageFile.empty() && sessionId.empty()) {
     std::cerr << "Input Image file is missing (Either session-id or input image should be provided)\n";
+    return -1;
+  }
+  if (preProcess && inputImageFile.empty()) {
+    std::cerr << "Input Image file is missing when (preProcess = True)\n";
     return -1;
   }
   if (outputImageFile.empty()) {

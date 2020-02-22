@@ -26,79 +26,79 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NvidiaDextrSegTool3D_h
-#define NvidiaDextrSegTool3D_h
-
-#include <mitkAutoSegmentationTool.h>
-#include <mitkDataNode.h>
-#include <mitkPointSet.h>
-#include <mitkSinglePointDataInteractor.h>
-
-#include <itkImage.h>
-#include <nvidia/aiaa/client.h>
+#ifndef NvidiaDeepgrowSegTool2D_h
+#define NvidiaDeepgrowSegTool2D_h
 
 #include <MitkNvidiaAIAAModuleExports.h>
-#include <map>
+
+#include <mitkAutoSegmentationTool.h>
+#include <mitkCommon.h>
+#include <mitkDataStorage.h>
+#include <mitkPointSet.h>
+#include <mitkPointSetDataInteractor.h>
+
+#include <itkImage.h>
+#include <nvidia/aiaa/model.h>
+#include <nvidia/aiaa/pointset.h>
 
 namespace us {
 class ModuleResource;
 }
 
-class MITKNVIDIAAIAAMODULE_EXPORT NvidiaDextrSegTool3D : public mitk::AutoSegmentationTool
+class MITKNVIDIAAIAAMODULE_EXPORT NvidiaDeepgrowSegTool2D : public mitk::AutoSegmentationTool
 {
 public:
-  mitkClassMacro(NvidiaDextrSegTool3D, AutoSegmentationTool);
+  mitkClassMacro(NvidiaDeepgrowSegTool2D, AutoSegmentationTool);
   itkFactorylessNewMacro(Self);
 
   us::ModuleResource GetIconResource() const override;
 
   bool CanHandle(mitk::BaseData *referenceData) const override;
-  const char *GetName() const override;
-  const char **GetXPM() const override;
-
-  void SetServerURI(const std::string &serverURI, const int serverTimeout, bool filterByLabel);
-  void GetModelInfo(std::map<std::string, std::string>& seg, std::map<std::string, std::string>& ann);
-  void ClearPoints();
-  void ConfirmPoints(const std::string &modelName);
-  void RunAutoSegmentation(const std::string &modelName);
-
-protected:
-  NvidiaDextrSegTool3D();
-  ~NvidiaDextrSegTool3D() override;
+  const char* GetName() const override;
+  const char** GetXPM() const override;
 
   void Activated() override;
   void Deactivated() override;
 
-private:
+  virtual mitk::DataNode::Pointer GetPointSetNode();
+  mitk::DataNode* GetReferenceData();
+  mitk::DataNode* GetWorkingData();
+  mitk::DataStorage* GetDataStorage();
+
+  void SetServerURI(const std::string &serverURI, const int serverTimeout);
+  void GetModelInfo(std::map<std::string, std::string>& deepgrow);
+  void PointAdded(mitk::DataNode::Pointer imageNode, bool background);
+  void ClearPoints();
+
+  void RunDeepGrow(const std::string &model, mitk::DataNode::Pointer imageNode);
+
+
+ protected:
+  NvidiaDeepgrowSegTool2D();
+  ~NvidiaDeepgrowSegTool2D() override;
+
+  template <typename TPixel, unsigned int VImageDimension>
+  void ItkImageProcessRunDeepgrow(itk::Image<TPixel, VImageDimension> *itkImage, std::string imageNodeId);
+
+  template <typename TPixel, unsigned int VImageDimension>
+  void DisplayResult(const std::string &tmpResultFileName, const int sliceIndex);
+
+  int GetCurrentSlice(const nvidia::aiaa::PointSet &points);
+  nvidia::aiaa::PointSet GetPointsForCurrentSlice(const nvidia::aiaa::PointSet &points, int sliceIndex);
+
+ private:
+  mitk::PointSet::Pointer m_PointSet;
+  mitk::PointSetDataInteractor::Pointer m_pointInteractor;
+  mitk::DataNode::Pointer m_PointSetNode;
+
+  std::map<std::string, std::string> m_AIAASessions;
+  nvidia::aiaa::PointSet m_foregroundPoints;
+  nvidia::aiaa::PointSet m_backgroundPoints;
+
   std::string m_AIAAServerUri;
   int m_AIAAServerTimeout;
   nvidia::aiaa::ModelList m_AIAAModelList;
   std::string m_AIAACurrentModelName;
-
-  mitk::PointSet::Pointer m_PointSet;
-  mitk::DataNode::Pointer m_PointSetNode;
-  mitk::PointSetDataInteractor::Pointer m_SeedPointInteractor;
-
-  mitk::DataNode::Pointer m_WorkingData;
-  mitk::DataNode::Pointer m_OriginalImageNode;
-
-  template <typename TPixel, unsigned int VImageDimension>
-  void ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry);
-
-  template <typename TPixel, unsigned int VImageDimension>
-  void ItkImageProcessAutoSegmentation(itk::Image<TPixel, VImageDimension> *itkImage, mitk::BaseGeometry *imageGeometry);
-
-  template <typename TPixel, unsigned int VImageDimension>
-  void addToPointSet(const nvidia::aiaa::PointSet& pointSet, mitk::BaseGeometry *imageGeometry);
-
-  template <typename TPixel, unsigned int VImageDimension>
-  nvidia::aiaa::PointSet getPointSet(mitk::BaseGeometry *imageGeometry);
-
-  template <typename TPixel, unsigned int VImageDimension>
-  void boundingBoxRender(const std::string &tmpResultFileName, const std::string &organName);
-
-  template <typename TPixel, unsigned int VImageDimension>
-  void displayResult(const std::string &tmpResultFileName);
 };
 
 #endif

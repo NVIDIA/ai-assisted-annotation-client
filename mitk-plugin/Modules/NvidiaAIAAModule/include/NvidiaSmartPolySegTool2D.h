@@ -61,7 +61,6 @@ public:
   void SetCurrentSlice(unsigned int slice);
   void SetServerURI(const std::string &serverURI, const int serverTimeout);
   void SetNeighborhoodSize(int neighborhoodSize);
-  void SetFlipPoly(bool flipPoly);
 
 protected:
   NvidiaSmartPolySegTool2D();

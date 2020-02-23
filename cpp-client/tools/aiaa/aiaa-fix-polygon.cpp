@@ -35,12 +35,16 @@ int main(int argc, char **argv) {
   if (argc < 2 || cmdOptionExists(argv, argv + argc, "-h")) {
     std::cout << "Usage:: <COMMAND> <OPTIONS>\n"
               "  |-h            (Help) Print this information                                            |\n"
-              "  |-server       Server URI  {default: http://10.110.45.66:5000/v1}                       |\n"
+              "  |-server       Server URI  {default: http://0.0.0.0:5000}                               |\n"
               "  |-neighbor     NeighborHood Size for propagation {default: 1}                           |\n"
-              " *|-poly         New Polygons Array [[[x,y]+]] Example: [[[70,172,86],...,[125,147,164]]] |\n"
-              " *|-ppoly        Old Polygons Array [[[x,y]+]]                                            |\n"
+              "  |-neighbor3d   3D NeighborHood Size for propagation {default: 1}                        |\n"
+              "  |-dim          Dimension (2|3) {default: 2}                                             |\n"
+              " *|-poly         Current 2D/3D Polygons Array 2D: [[[x,y]+]] 3D: [[[[x,y]+]],]            |\n"
+              "  |-sindex       Slice Index (in case of 3D) which needs to be updated                    |\n"
               " *|-pindex       Polygon Index which needs to be updated                                  |\n"
-              " *|-vindex       Vertext Index which needs to be updated                                  |\n"
+              " *|-vindex       Vertex Index which needs to be updated                                   |\n"
+              " *|-xoffset      X offset which needs to be added to vertex                               |\n"
+              " *|-yoffset      Y offset which needs to be added to vertex                               |\n"
               " *|-image        Input 2D Slice Image File                                                |\n"
               " *|-output       Output Image File                                                        |\n"
               "  |-format       Format Output Json                                                       |\n"
@@ -49,24 +53,28 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://10.110.45.66:5000/v1");
+  std::string serverUri = getCmdOption(argv, argv + argc, "-server", "http://0.0.0.0:5000");
+
   int neighborhoodSize = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-neighbor", "1"));
+  int neighborhoodSize3D = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-neighbor3d", "1"));
+  int dim = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-dim", "2"));
+
   std::string polygon = getCmdOption(argv, argv + argc, "-poly");
-  std::string prevPoly = getCmdOption(argv, argv + argc, "-ppoly");
+  int sliceIndex = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-sindex", "0"));
   int polygonIndex = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-pindex", "0"));
   int vertexIndex = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-vindex", "0"));
+  int xOffset = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-xoffset", "0"));
+  int yOffset = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-yoffset", "0"));
+
   std::string inputImageFile = getCmdOption(argv, argv + argc, "-image");
   std::string outputImageFile = getCmdOption(argv, argv + argc, "-output");
+
   int jsonSpace = cmdOptionExists(argv, argv + argc, "-format") ? 2 : 0;
   int timeout = nvidia::aiaa::Utils::lexical_cast<int>(getCmdOption(argv, argv + argc, "-timeout", "60"));
   bool printTs = cmdOptionExists(argv, argv + argc, "-ts") ? true : false;
 
   if (polygon.empty()) {
     std::cerr << "Input Polygon List missing\n";
-    return -1;
-  }
-  if (prevPoly.empty()) {
-    std::cerr << "Input Previous Polygon List is missing\n";
     return -1;
   }
   if (inputImageFile.empty()) {
@@ -79,22 +87,37 @@ int main(int argc, char **argv) {
   }
 
   try {
-    nvidia::aiaa::Polygons p1 = nvidia::aiaa::Polygons::fromJson(polygon);
-    nvidia::aiaa::Polygons p2 = nvidia::aiaa::Polygons::fromJson(prevPoly);
+    int vertexOffset[2] = { xOffset, yOffset };
+    nvidia::aiaa::Polygons poly2D, result2D;
+    nvidia::aiaa::PolygonsList poly3D, result3D;
+    if (dim == 2) {
+      poly2D = nvidia::aiaa::Polygons::fromJson(polygon);
+    } else {
+      poly3D = nvidia::aiaa::PolygonsList::fromJson(polygon);
+    }
 
     auto begin = std::chrono::high_resolution_clock::now();
     nvidia::aiaa::Client client(serverUri, timeout);
-    nvidia::aiaa::Polygons result = client.fixPolygon(p1, p2, neighborhoodSize, polygonIndex, vertexIndex, inputImageFile, outputImageFile);
+    if (dim == 2) {
+      result2D = client.fixPolygon(poly2D, neighborhoodSize, polygonIndex, vertexIndex, vertexOffset, inputImageFile, outputImageFile);
+    } else {
+      result3D = client.fixPolygon(poly3D, neighborhoodSize, neighborhoodSize3D, sliceIndex, polygonIndex, vertexIndex, vertexOffset, inputImageFile,
+                                   outputImageFile);
+    }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
 
-    std::cout << result.toJson(jsonSpace) << std::endl;
+    if (dim == 2) {
+      std::cout << result2D.toJson(jsonSpace) << std::endl;
+    } else {
+      std::cout << result3D.toJson(jsonSpace) << std::endl;
+    }
     if (printTs) {
       std::cout << "Time taken (in milli sec): " << ms << std::endl;
     }
     return 0;
-  } catch (nvidia::aiaa::exception& e) {
+  } catch (nvidia::aiaa::exception &e) {
     std::cerr << "nvidia::aiaa::exception => nvidia.aiaa.error." << e.id << "; description: " << e.name() << std::endl;
   }
 

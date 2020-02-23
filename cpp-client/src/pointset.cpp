@@ -49,11 +49,19 @@ void PointSet::push_back(Point point) {
   points.push_back(point);
 }
 
-PointSet PointSet::fromJson(const std::string &json) {
+PointSet PointSet::fromJson(const std::string &json, const std::string &key) {
   try {
     nlohmann::json j = nlohmann::json::parse(json);
+    if (!key.empty() && j.find(key) != j.end()) {
+      j = j[key];
+    }
+
     PointSet pointSet;
     for (auto e : j) {
+      if (e.empty()) {
+        continue;
+      }
+
       Point point;
       for (auto n : e) {
         point.push_back(n);
@@ -61,10 +69,10 @@ PointSet PointSet::fromJson(const std::string &json) {
       pointSet.push_back(point);
     }
     return pointSet;
-  } catch (nlohmann::json::parse_error& e) {
-    AIAA_LOG_ERROR(e.what());
+  } catch (nlohmann::json::parse_error &e) {
+    AIAA_LOG_ERROR(e.what() << "; JSON: " << json);
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-  } catch (nlohmann::json::type_error& e) {
+  } catch (nlohmann::json::type_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
   }

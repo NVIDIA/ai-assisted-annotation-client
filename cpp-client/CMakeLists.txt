@@ -78,6 +78,7 @@ install(TARGETS NvidiaAIAAClient EXPORT NvidiaAIAAClientTargets
 
 install(FILES 
          include/nvidia/aiaa/client.h
+         include/nvidia/aiaa/aiaautils.h
          include/nvidia/aiaa/common.h
          include/nvidia/aiaa/model.h
          include/nvidia/aiaa/pointset.h

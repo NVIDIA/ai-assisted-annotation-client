@@ -41,10 +41,9 @@ const double DEFAULT_PADDING = 20.0;
 const int DEFAULT_ROI = 128;
 
 Model::Model() {
-  sigma = DEFAULT_SIGMA;
   padding = DEFAULT_PADDING;
-  roi = {DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI};  // support up-to 4-Dimension
-  type = ModelType::annotation;
+  roi = { DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI, DEFAULT_ROI };  // support up-to 4-Dimension
+  type = ModelType::unknown;
 }
 
 // {"labels": ["brain_tumor_core"], "internal name": "Dextr3dCroppedEngine", "description": "", "name": "Dextr3DBrainTC", "padding": 20.0 "roi": [128,128,128], "sigma": 3.0}
@@ -62,9 +61,7 @@ Model Model::fromJson(const std::string &json) {
       model.labels.insert(e.get<std::string>());
     }
 
-    model.sigma = j.find("sigma") != j.end() ? j["sigma"].get<double>() : DEFAULT_SIGMA;
     model.padding = j.find("padding") != j.end() ? j["padding"].get<double>() : DEFAULT_PADDING;
-
     model.roi.clear();
     if (j.find("roi") != j.end()) {
       for (auto n : j["roi"]) {
@@ -80,14 +77,14 @@ Model Model::fromJson(const std::string &json) {
     }
 
     std::string type = j.find("type") != j.end() ? j["type"].get<std::string>() : std::string();
-    model.type = type == "segmentation" ? ModelType::segmentation : ModelType::annotation;
+    model.type = Model::toModelType(type);
     model.version = j.find("version") != j.end() ? j["version"].get<std::string>() : std::string();
 
     return model;
-  } catch (nlohmann::json::parse_error& e) {
+  } catch (nlohmann::json::parse_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-  } catch (nlohmann::json::type_error& e) {
+  } catch (nlohmann::json::type_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
   }
@@ -95,21 +92,58 @@ Model Model::fromJson(const std::string &json) {
 
 std::string Model::toJson(int space) const {
   nlohmann::json j;
-  j["labels"] = labels;
-  j["internal name"] = internal_name;
-  j["description"] = description;
   j["name"] = name;
-  j["sigma"] = sigma;
-  j["padding"] = padding;
-  j["roi"] = roi;
-  j["type"] = (type == Model::segmentation ? "segmentation" : "annotation");
+  j["type"] = Model::toString(type);
   j["version"] = version;
+  j["internal name"] = internal_name;
+  j["labels"] = labels;
+  j["description"] = description;
+  if (type == Model::annotation) {
+    j["padding"] = padding;
+    j["roi"] = roi;
+  }
 
   std::string str = j.dump(space);
   if (!space) {
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
   }
   return str;
+}
+
+Model::ModelType Model::toModelType(const std::string &type) {
+  std::string modelType = Utils::to_lower(type);
+  if (modelType == "segmentation") {
+    return Model::segmentation;
+  }
+  if (modelType == "annotation") {
+    return Model::annotation;
+  }
+  if (modelType == "classification") {
+    return Model::classification;
+  }
+  if (modelType == "deepgrow") {
+    return Model::deepgrow;
+  }
+  if (modelType == "others") {
+    return Model::others;
+  }
+  return Model::unknown;
+}
+
+std::string Model::toString(Model::ModelType type) {
+  switch (type) {
+    case Model::segmentation:
+      return "segmentation";
+    case Model::annotation:
+      return "annotation";
+    case Model::classification:
+      return "classification";
+    case Model::deepgrow:
+      return "deepgrow";
+    case Model::others:
+      return "others";
+  }
+  return "unknown";
 }
 
 // [
@@ -126,10 +160,10 @@ ModelList ModelList::fromJson(const std::string &json) {
       modelList.models.push_back(Model::fromJson(e.dump()));
     }
     return modelList;
-  } catch (nlohmann::json::parse_error& e) {
+  } catch (nlohmann::json::parse_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
-  } catch (nlohmann::json::type_error& e) {
+  } catch (nlohmann::json::type_error &e) {
     AIAA_LOG_ERROR(e.what());
     throw exception(exception::RESPONSE_PARSE_ERROR, e.what());
   }
@@ -144,10 +178,10 @@ std::string ModelList::toJson(int space) const {
   return space ? j.dump(space) : j.dump();
 }
 
-Model ModelList::getMatchingModel(const std::string &labelName, Model::ModelType type/* = Model::annotation*/) {
+Model ModelList::getMatchingModel(const std::string &labelName, Model::ModelType type/* = Model::unknown*/) {
   // Exact Match (first preference)
   for (auto model : models) {
-    if (model.type != type) {
+    if (type != Model::unknown && model.type != type) {
       continue;
     }
 
@@ -185,7 +219,6 @@ bool ModelList::empty() const {
 size_t ModelList::size() const {
   return models.size();
 }
-
 
 }
 }

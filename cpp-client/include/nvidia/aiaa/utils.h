@@ -53,7 +53,7 @@ class AIAA_CLIENT_API Utils {
    @retval true if a == b
    @retval false if a != b
    */
-  static bool iequals(const std::string &a, const std::string& b);
+  static bool iequals(const std::string &a, const std::string &b);
 
   /*!
    @brief convert string to lower case
@@ -91,7 +91,7 @@ class AIAA_CLIENT_API Utils {
    @return numberic/string based for the given locale
    */
   template<typename T, typename U>
-  static auto lexical_cast(U const& in, const std::locale& loc = std::locale::classic()) {
+  static auto lexical_cast(U const &in, const std::locale &loc = std::locale::classic()) {
     std::stringstream istr;
     istr.imbue(loc);
     istr << in;

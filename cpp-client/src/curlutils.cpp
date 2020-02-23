@@ -50,9 +50,11 @@ namespace nvidia {
 namespace aiaa {
 
 const int CURL_CONNECT_TIMEOUT_IN_SEC = 5;
+const std::string MULTI_PART_FIELD_PARAMS = "params";
+const std::string MULTI_PART_FIELD_IMAGE = "image";
 
-std::string CurlUtils::doGet(const std::string &uri, int timeoutInSec) {
-  AIAA_LOG_DEBUG("GET: " << uri << "; Timeout: " << timeoutInSec);
+std::string CurlUtils::doMethod(const std::string &method, const std::string &uri, int timeoutInSec) {
+  AIAA_LOG_DEBUG(method << ": " << uri << "; Timeout: " << timeoutInSec);
   std::stringstream response;
 
   try {
@@ -68,16 +70,22 @@ std::string CurlUtils::doGet(const std::string &uri, int timeoutInSec) {
 
     // send request
     AIAA_LOG_DEBUG("Request Path: " << path);
-    Poco::Net::HTTPRequest req(Poco::Net::HTTPRequest::HTTP_GET, path, Poco::Net::HTTPMessage::HTTP_1_1);
+    Poco::Net::HTTPRequest req(method, path, Poco::Net::HTTPMessage::HTTP_1_1);
     session.sendRequest(req);
 
     // receive response
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
-
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
-    Poco::StreamCopier::copyStream(is, response);
 
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
+    }
+    if (res.getStatus() != 200) {
+      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
+    }
+
+    Poco::StreamCopier::copyStream(is, response);
     AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
   } catch (Poco::Exception &e) {
     AIAA_LOG_ERROR(e.displayText());
@@ -87,8 +95,9 @@ std::string CurlUtils::doGet(const std::string &uri, int timeoutInSec) {
   return response.str();
 }
 
-std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath, int timeoutInSec) {
-  AIAA_LOG_DEBUG("POST: " << uri << "; Timeout: " << timeoutInSec);
+std::string CurlUtils::doMethod(const std::string &method, const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath,
+                                int timeoutInSec) {
+  AIAA_LOG_DEBUG(method << ": " << uri << "; Timeout: " << timeoutInSec);
   AIAA_LOG_DEBUG("ParamStr: " << paramStr);
   AIAA_LOG_DEBUG("UploadFilePath: " << uploadFilePath);
   std::stringstream response;
@@ -106,12 +115,14 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
 
     // send request
     AIAA_LOG_DEBUG("Request Path: " << path);
-    Poco::Net::HTTPRequest req(Poco::Net::HTTPRequest::HTTP_POST, path, Poco::Net::HTTPMessage::HTTP_1_0);
+    Poco::Net::HTTPRequest req(method, path, Poco::Net::HTTPMessage::HTTP_1_0);
 
     Poco::Net::HTMLForm form;
     form.setEncoding(Poco::Net::HTMLForm::ENCODING_MULTIPART);
-    form.set("params", paramStr);
-    form.addPart("datapoint", new Poco::Net::FilePartSource(uploadFilePath));
+    form.set(MULTI_PART_FIELD_PARAMS, paramStr);
+    if (!uploadFilePath.empty()) {
+      form.addPart(MULTI_PART_FIELD_IMAGE, new Poco::Net::FilePartSource(uploadFilePath));
+    }
     form.prepareSubmit(req);
 
     form.write(session.sendRequest(req));
@@ -119,10 +130,16 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
     // receive response
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
-
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
-    Poco::StreamCopier::copyStream(is, response);
 
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
+    }
+    if (res.getStatus() != 200) {
+      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
+    }
+
+    Poco::StreamCopier::copyStream(is, response);
     AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
   } catch (Poco::Exception &e) {
     AIAA_LOG_ERROR(e.displayText());
@@ -132,9 +149,9 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
   return response.str();
 }
 
-std::string CurlUtils::doPost(const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath,
-                              const std::string &resultFileName, int timeoutInSec) {
-  AIAA_LOG_DEBUG("POST: " << uri << "; Timeout: " << timeoutInSec);
+std::string CurlUtils::doMethod(const std::string &method, const std::string &uri, const std::string &paramStr, const std::string &uploadFilePath,
+                                const std::string &resultFileName, int timeoutInSec) {
+  AIAA_LOG_DEBUG(method << ": " << uri << "; Timeout: " << timeoutInSec);
   AIAA_LOG_DEBUG("ParamStr: " << paramStr);
   AIAA_LOG_DEBUG("UploadFilePath: " << uploadFilePath);
   AIAA_LOG_DEBUG("ResultFileName: " << resultFileName);
@@ -153,12 +170,14 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
 
     // send request
     AIAA_LOG_DEBUG("Request Path: " << path);
-    Poco::Net::HTTPRequest req(Poco::Net::HTTPRequest::HTTP_POST, path, Poco::Net::HTTPMessage::HTTP_1_0);
+    Poco::Net::HTTPRequest req(method, path, Poco::Net::HTTPMessage::HTTP_1_0);
 
     Poco::Net::HTMLForm form;
     form.setEncoding(Poco::Net::HTMLForm::ENCODING_MULTIPART);
-    form.set("params", paramStr);
-    form.addPart("datapoint", new Poco::Net::FilePartSource(uploadFilePath));
+    form.set(MULTI_PART_FIELD_PARAMS, paramStr);
+    if (!uploadFilePath.empty()) {
+      form.addPart(MULTI_PART_FIELD_IMAGE, new Poco::Net::FilePartSource(uploadFilePath));
+    }
     form.prepareSubmit(req);
 
     form.write(session.sendRequest(req));
@@ -166,8 +185,15 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
     // receive response
     Poco::Net::HTTPResponse res;
     std::istream &is = session.receiveResponse(res);
-
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
+
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
+    }
+    if (res.getStatus() != 200) {
+      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
+    }
+
     std::stringstream response;
     Poco::StreamCopier::copyStream(is, response);
 
@@ -195,7 +221,7 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
 
       AIAA_LOG_DEBUG("PART-" << i << ":: Is Type Text: " << (isText ? "TRUE" : "FALSE"));
 
-      std::istream & ii = r.stream();
+      std::istream &ii = r.stream();
       std::stringstream part;
       Poco::StreamCopier::copyStream(ii, part);
 
@@ -220,6 +246,12 @@ std::string CurlUtils::doPost(const std::string &uri, const std::string &paramSt
   }
 
   return textReponse;
+}
+
+std::string CurlUtils::encode(const std::string &param) {
+  std::string encoded;
+  Poco::URI::encode(param, "", encoded);
+  return encoded;
 }
 
 }

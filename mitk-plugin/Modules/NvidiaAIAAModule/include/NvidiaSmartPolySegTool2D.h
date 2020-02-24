@@ -73,7 +73,6 @@ private:
   std::string m_AIAAServerUri;
   int m_AIAAServerTimeout;
   int m_NeighborhoodSize;
-  bool m_FlipPoly;
 
   mitk::PointSet::Pointer m_PointSetPolygon;
   mitk::DataNode::Pointer m_PointSetPolygonNode;

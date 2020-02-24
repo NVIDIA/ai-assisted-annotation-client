@@ -109,15 +109,21 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.annotationFiducialEditButton.setIcon(self.icon('edit-icon.png'))
 
         self.ui.annotationFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
-        # self.ui.annotationFiducialPlacementWidget.placeButton().show()
-        # self.ui.annotationFiducialPlacementWidget.deleteButton().show()
+        self.ui.annotationFiducialPlacementWidget.buttonsVisible = False
+        self.ui.annotationFiducialPlacementWidget.placeButton().show()
+        self.ui.annotationFiducialPlacementWidget.deleteButton().show()
 
-        # TODO:: choose different color for +ve and -ve Fiducial Points
         self.ui.dgPositiveFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
         self.ui.dgPositiveFiducialPlacementWidget.placeButton().toolTip = "Select +ve points"
+        self.ui.dgPositiveFiducialPlacementWidget.buttonsVisible = False
+        self.ui.dgPositiveFiducialPlacementWidget.placeButton().show()
+        self.ui.dgPositiveFiducialPlacementWidget.deleteButton().show()
 
         self.ui.dgNegativeFiducialPlacementWidget.setMRMLScene(slicer.mrmlScene)
         self.ui.dgNegativeFiducialPlacementWidget.placeButton().toolTip = "Select -ve points"
+        self.ui.dgNegativeFiducialPlacementWidget.buttonsVisible = False
+        self.ui.dgNegativeFiducialPlacementWidget.placeButton().show()
+        self.ui.dgNegativeFiducialPlacementWidget.deleteButton().show()
 
         # Connections
         self.ui.fetchModelsButton.connect('clicked(bool)', self.onClickFetchModels)
@@ -607,7 +613,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if not self.annotationFiducialNode:
             self.annotationFiducialNode, self.annotationFiducialNodeObservers = self.createFiducialNode(
                 'A',
-                self.onAnnotationFiducialNodeModified)
+                self.onAnnotationFiducialNodeModified,
+                [1,0.5,0.5])
             self.ui.annotationFiducialPlacementWidget.setCurrentNode(self.annotationFiducialNode)
             self.ui.annotationFiducialPlacementWidget.setPlaceModeEnabled(False)
 
@@ -615,14 +622,16 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if not self.dgPositiveFiducialNode:
             self.dgPositiveFiducialNode, self.dgPositiveFiducialNodeObservers = self.createFiducialNode(
                 'P',
-                self.onDeepGrowFiducialNodeModified)
+                self.onDeepGrowFiducialNodeModified,
+                [0.5,1,0.5])
             self.ui.dgPositiveFiducialPlacementWidget.setCurrentNode(self.dgPositiveFiducialNode)
             self.ui.dgPositiveFiducialPlacementWidget.setPlaceModeEnabled(False)
 
         if not self.dgNegativeFiducialNode:
             self.dgNegativeFiducialNode, self.dgNegativeFiducialNodeObservers = self.createFiducialNode(
                 'N',
-                self.onDeepGrowFiducialNodeModified)
+                self.onDeepGrowFiducialNodeModified,
+                [0.5,0.5,1])
             self.ui.dgNegativeFiducialPlacementWidget.setCurrentNode(self.dgNegativeFiducialNode)
             self.ui.dgNegativeFiducialPlacementWidget.setPlaceModeEnabled(False)
 
@@ -740,10 +749,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         currentSegmentName = currentSegment.GetName().lower() if currentSegment else ""
 
         for model_name, model in self.models.items():
-            # TODO:: Remove deepgrow check in final release
-            if len(model["labels"]) == 0 and model_type != 'deepgrow':
-                continue
-            if model['type'] == model_type or (len(model["labels"]) == 0 and model_type == 'deepgrow'):
+            if model['type'] == model_type:
                 if filtered and not (currentSegmentName in model_name.lower()):
                     continue
                 selector.addItem(model_name)
@@ -825,9 +831,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                                          1 if self.ui.annotationModelFilterPushButton.checked else 0)
         self.scriptedEffect.parameterSetNode().EndModify(wasModified)
 
-    def createFiducialNode(self, name, onMarkupNodeModified):
+    def createFiducialNode(self, name, onMarkupNodeModified, color):
         displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
         displayNode.SetTextScale(0)
+        displayNode.SetSelectedColor(color)
+
         fiducialNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode")
         fiducialNode.SetName(name)
         fiducialNode.SetAndObserveDisplayNodeID(displayNode.GetID())

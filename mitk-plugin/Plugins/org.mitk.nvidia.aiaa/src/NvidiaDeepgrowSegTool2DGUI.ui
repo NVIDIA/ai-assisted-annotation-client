@@ -42,7 +42,7 @@
                 <string>Switch between foreground/background to add points</string>
               </property>
               <property name="text">
-                <string>Background</string>
+                <string>Background Mode</string>
               </property>
               <property name="checkable">
                 <bool>true</bool>

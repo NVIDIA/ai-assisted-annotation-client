@@ -39,7 +39,7 @@ List Models
 -----------
 
 Provides implementation for ``nvidia::aiaa::Client::model()`` API.
-For more details refer `aiaa-model.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-model.cpp>`_
+For more details refer `aiaa-model.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-model.cpp>`_
  
 Following are the options available
 
@@ -65,8 +65,8 @@ Example
 Session
 ------------
 
-Provides implementation for ``nvidia::aiaa::Client::create_session()`` API.
-For more details refer `aiaa-session.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-session.cpp>`_
+Provides implementation for ``nvidia::aiaa::Client::create_session()``, ``nvidia::aiaa::Client::get_session()`` and ``nvidia::aiaa::Client::close_session()`` APIs.
+For more details refer `aiaa-session.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-session.cpp>`_
 
 Following are the options available
 
@@ -99,7 +99,7 @@ DEXTR3D (Annotation)
 --------------------
 
 Provides implementation for ``nvidia::aiaa::Client::dextra3d()`` API.
-For more details refer `aiaa-dextra3d.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-dextra3d.cpp>`_
+For more details refer `aiaa-dextra3d.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-dextra3d.cpp>`_
  
 Following are the options available
 
@@ -151,7 +151,7 @@ Segmentation
 ------------
 
 Provides implementation for ``nvidia::aiaa::Client::segmentation()`` API.
-For more details refer `aiaa-segmentation.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-segmentation.cpp>`_
+For more details refer `aiaa-segmentation.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-segmentation.cpp>`_
  
 Following are the options available
 
@@ -190,7 +190,7 @@ Deepgrow
 ------------
 
 Provides implementation for ``nvidia::aiaa::Client::deepgrow()`` API.
-For more details refer `aiaa-deepgrow.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-deepgrow.cpp>`_
+For more details refer `aiaa-deepgrow.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-deepgrow.cpp>`_
 
 Following are the options available
 
@@ -229,7 +229,7 @@ Mask To Polygon
 ------------------
 
 Provides implementation for ``nvidia::aiaa::Client::mask2Polygon()`` API.
-For more details refer `aiaa-mask-polygon.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-mask-polygon.cpp>`_
+For more details refer `aiaa-mask-polygon.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-mask-polygon.cpp>`_
  
 Following are the options available
 
@@ -257,7 +257,7 @@ Fix Polygon
 -----------
 
 Provides implementation for ``nvidia::aiaa::Client::mask2Polygon()`` API.
-For more details refer `aiaa-fix-polygon.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/src/cpp-client/tools/aiaa/aiaa-fix-polygon.cpp>`_
+For more details refer `aiaa-fix-polygon.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-fix-polygon.cpp>`_
  
 Following are the options available
 

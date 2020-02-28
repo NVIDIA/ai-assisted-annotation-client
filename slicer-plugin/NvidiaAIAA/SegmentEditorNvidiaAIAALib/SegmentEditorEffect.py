@@ -538,7 +538,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 self.updateGUIFromMRML()
         except AIAAException as ae:
             logging.exception("AIAA Exception")
-            if ae.error == AIAAError.SERVER_ERROR:
+            if ae.error == AIAAError.SESSION_EXPIRED:
                 self.closeAiaaSession()
                 slicer.util.warningDisplay(operationDescription + " - session expired.  Retry Again!")
             else:

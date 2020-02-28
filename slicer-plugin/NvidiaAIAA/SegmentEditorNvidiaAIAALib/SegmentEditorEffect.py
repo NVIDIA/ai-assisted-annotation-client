@@ -99,6 +99,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         # Set icons and tune widget properties
 
+        self.ui.serverComboBox.lineEdit().setPlaceholderText("enter server address or leave empty to use default")
+
         self.ui.fetchModelsButton.setIcon(self.icon('refresh-icon.png'))
         self.ui.segmentationButton.setIcon(self.icon('nvidia-icon.png'))
         self.ui.annotationModelFilterPushButton.setIcon(self.icon('filter-icon.png'))
@@ -152,7 +154,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             True, converter=slicer.util.toBool))
         self.logic.setUseSession(slicer.util.settingsValue(
             "NVIDIA-AIAA/aiaaSession",
-            True, converter=slicer.util.toBool))
+            False, converter=slicer.util.toBool))
 
         self.saveServerUrl()
 
@@ -161,7 +163,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         # Save selected server URL
         settings = qt.QSettings()
-        serverUrl = self.serverUrl()
+        serverUrl = self.ui.serverComboBox.currentText
         settings.setValue("NVIDIA-AIAA/serverUrl", serverUrl)
 
         # Save current server URL to the top of history
@@ -194,8 +196,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             models = self.logic.list_models()
         except:
             slicer.util.errorDisplay("Failed to fetch models from remote server. "
-                                     "Make sure server address is correct and {}/v1/models "
-                                     "is accessible in browser".format(self.serverUrl()),
+                                     "Make sure server address is correct and <server_uri>/v1/models "
+                                     "is accessible in browser",
                                      detailedText=traceback.format_exc())
             return
 

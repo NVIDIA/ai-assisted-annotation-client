@@ -217,7 +217,7 @@ class AIAAClient:
             selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
         in_fields = {'params': '{}'}
-        in_files = {'image': image_in} if not session_id else {}
+        in_files = {'datapoint': image_in} if not session_id else {}
 
         logger.debug('Using Selector: {}'.format(selector))
         logger.debug('Using Fields: {}'.format(in_fields))
@@ -231,6 +231,9 @@ class AIAAClient:
 
         form = json.loads(form) if isinstance(form, str) else form
         params = form.get('params')
+        if params is None: # v1 backward compatibility
+            points = json.loads(form.get('points'))
+            params = {'points': (json.loads(points) if isinstance(points, str) else points)}
         params = json.loads(params) if isinstance(params, str) else params
 
         AIAAUtils.save_result(files, image_out)
@@ -272,7 +275,7 @@ class AIAAClient:
             selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
         in_fields = {'params': json.dumps({'points': json.dumps(points)})}
-        in_files = {'image': cropped_file} if not use_session_input else {}
+        in_files = {'datapoint': cropped_file} if not use_session_input else {}
 
         logger.debug('Using Selector: {}'.format(selector))
         logger.debug('Using Fields: {}'.format(in_fields))
@@ -322,7 +325,7 @@ class AIAAClient:
             selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
         in_fields = {'params': json.dumps({'foreground': foreground, 'background': background})}
-        in_files = {'image': image_in} if not session_id else {}
+        in_files = {'datapoint': image_in} if not session_id else {}
 
         logger.debug('Using Selector: {}'.format(selector))
         logger.debug('Using Fields: {}'.format(in_fields))
@@ -358,7 +361,7 @@ class AIAAClient:
         params['more_points'] = point_ratio
 
         fields = {'params': json.dumps(params)}
-        files = {'image': image_in}
+        files = {'datapoint': image_in}
 
         status, response = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files,
                                                     multipart_response=False)
@@ -411,7 +414,7 @@ class AIAAClient:
             params['propagate_neighbor'] = propagate_neighbor
 
         fields = {'params': json.dumps(params)}
-        files = {'image': image_in}
+        files = {'datapoint': image_in}
 
         status, form, files = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files)
         if status != 200:

@@ -121,7 +121,7 @@
                         <string>Segment from boundary points (DExtr3D)</string>
                     </property>
                     <property name="collapsed">
-                        <bool>true</bool>
+                        <bool>false</bool>
                     </property>
                     <property name="collapsedHeight">
                         <number>9</number>
@@ -139,6 +139,9 @@
                                     <iconset>
                                         <normaloff>filter-icon.png</normaloff>filter-icon.png
                                     </iconset>
+                                </property>
+                                <property name="checked">
+                                    <bool>false</bool>
                                 </property>
                                 <property name="checkable">
                                     <bool>true</bool>
@@ -227,7 +230,10 @@
                     <property name="text">
                         <string>DeepGrow</string>
                     </property>
-                    <property name="collapsedHeight">
+                     <property name="collapsed">
+                        <bool>true</bool>
+                    </property>
+                   <property name="collapsedHeight">
                         <number>9</number>
                     </property>
 

@@ -2,9 +2,10 @@
 
 Nvidia AI-assisted segmentation is available in [3D Slicer](https://www.slicer.org), a popular free, open-source medical image visualization and analysis application. The tool is available in Segment Editor module of the application.
 
-The tool has two modes:
-- Fully automatic segmentation: no user inputs required. In "Auto-segmentation" section, choose model, and click Start. Segmentation process may take several minutes (up to about 5-10 minutes for large data sets on computers with slow network upload speed).
-- Boundary-points based segmentation: requires user to specify input points near the edge of the structure of interest, one on each side. Segmentation typcally takes less than a minute.
+The tool has three modes:
+- **Fully automatic segmentation:** no user inputs required. In "Auto-segmentation" section, choose model, and click Start. Segmentation process may take several minutes (up to about 5-10 minutes for large data sets on computers with slow network upload speed).
+- **Boundary-points based segmentation:** requires user to specify input points near the edge of the structure of interest, one on each side. Segmentation typcally takes less than a minute.
+- **DeepGrow segmentation:** requires user to specify few input points (foreground/background) on the structure of interest. This is a 2D operation and Segmentation happens slice by slicer over every point added.  Each click operation typically takes about 1-2 seconds.
 
 Example result of automatic segmentation:
 ![](snapshot.jpg?raw=true "Example segmentation result")
@@ -67,10 +68,31 @@ The computer running 3D Slicer does not have any special requirements to run AI-
 
 ![](snapshot-segmentation-result-liver.jpg?raw=true "Automatic liver and tumor segmentation results")
 
+### DeepGrow based segmentation of liver on CT:
+
+- Download Task03_Liver\imagesTr\liver_102.nii.gz data set from http://medicaldecathlon.com/ and load it into 3D Slicer
+- Go to **Segment Editor**
+- Create a new segment
+- Click "Nvidia AIAA" effect
+- Expand "Deepgrow" section and possibly select a deepgrow model provided by NVIDIA AIAA
+- Click "Foreground mark point" button to add foreground points anywhere on liver (Left+Top window only)
+- If the image is already saved in session, the segmentation of Liver for the current slice appears in a second
+- Add more points if required for the liver section which are not part of segmentation mask
+- If there is any overlap of mask to other regions (background) and needs to be corrected (removed), click "Background mark point" to add background points
+- Go to next slice and repeat the process to annotate Liver section (slice-by-slice)
+
+
+> Enable *AIAA session* in **Edit** -> **Application Settings** -> **Nvidia** to save the current volume as part of AIAA session.
+> This will help to run DeepGrow actions faster and more interactive over every click points.
+
+![](snapshot-deepgrow-result-liver.jpg?raw=true "DeepGrow liver results")
+
+
 ## Advanced
 
 - For locally set up servers or computers with fast upload speed, disable compression in Application Settings / NVidia (since compression may take more time than the time saved by transferring less data)
 - To filter models based on labels attached to them, set label text in "Models" section of Nvidia AIAA effect user interface.
+- Enable AIAA Session to reduce network data transfer between Slicer and AIAA Server in **Edit** -> **Application Settings** -> **Nvidia** (NOTE:: This Option is available only if you are using NVIDIA Clara AIAA Server version 3.0 and above)
 
 ## For developers
 The plugin can be downloaded and installed directly from GitHub:

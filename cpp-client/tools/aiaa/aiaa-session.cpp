@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
               "  |-server   Server URI {default: http://0.0.0.0:5000}                                    |\n"
               " *|-op       Operation (create|get|delete)                                                |\n"
               "  |-image    Input Image File in case of (create) operation                               |\n"
-              "  |-expiry   Session expiry time in minutes (default: 0)                                  |\n"
+              "  |-expiry   Session expiry time in seconds (default: 0)                                  |\n"
               "  |-session  Session ID in case of (get|delete) operation                                 |\n"
               "  |-timeout  Timeout In Seconds {default: 60}                                             |\n"
               "  |-ts       Print API Latency                                                            |\n";

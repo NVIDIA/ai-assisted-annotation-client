@@ -80,7 +80,7 @@ class AIAA_CLIENT_API Utils {
    @brief 3D point
    @param[in] str input string
    @param[in] delim delimiter character
-   @param[in,out] point size which represents x,y,z
+   @return Point which represents x,y,z
    */
   static Point stringToPoint(const std::string &str, char delim);
 

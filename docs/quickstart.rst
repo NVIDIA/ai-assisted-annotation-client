@@ -46,7 +46,7 @@ Linux
 
 .. code-block:: bash
 
-   export version=1.0.1
+   export version=1.0.2
    wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Linux.sh
    sudo sh NvidiaAIAAClient-${version}-Linux.sh --prefix=/usr/local --exclude_sub_dir --skip-license
 
@@ -60,7 +60,7 @@ MacOS
 
 .. code-block:: bash
 
-   export version=1.0.1
+   export version=1.0.2
    wget https://github.com/NVIDIA/ai-assisted-annotation-client/releases/download/v${version}/NvidiaAIAAClient-${version}-Darwin.sh
    sh NvidiaAIAAClient-${version}-Darwin.sh --prefix=/usr/local --exclude_sub_dir --skip-license
    
@@ -148,7 +148,7 @@ You can achieve this by adding External Project in CMake.
    ...
    ExternalProject_Add(NvidiaAIAAClient
       GIT_REPOSITORY https://github.com/NVIDIA/ai-assisted-annotation-client.git
-      GIT_TAG v1.0.1
+      GIT_TAG v1.0.2
    )
    ...
    target_link_libraries(foo ${NvidiaAIAAClient_LIBRARY})

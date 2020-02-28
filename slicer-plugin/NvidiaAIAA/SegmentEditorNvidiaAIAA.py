@@ -83,6 +83,16 @@ class _ui_SegmentEditorNvidiaAIAASettingsPanel(object):
       "NVIDIA-AIAA/compressData", compressDataMapper,
       "valueAsInt", str(qt.SIGNAL("valueAsIntChanged(int)")))
 
+    useSessionCheckBox = qt.QCheckBox()
+    useSessionCheckBox.checked = False
+    useSessionCheckBox.toolTip = ("Enable this option to make use of AIAA sessions."
+      " Volume is uploaded to AIAA as part of session once and it makes segmentation/dextr3d/deepgrow operations faster.")
+    aiaaGroupLayout.addRow("AIAA Session:", useSessionCheckBox)
+    useSessionMapper = ctk.ctkBooleanMapper(useSessionCheckBox, "checked", str(qt.SIGNAL("toggled(bool)")))
+    parent.registerProperty(
+      "NVIDIA-AIAA/aiaaSession", useSessionMapper,
+      "valueAsInt", str(qt.SIGNAL("valueAsIntChanged(int)")))
+
     vBoxLayout.addWidget(aiaaGroupBox)
     vBoxLayout.addStretch(1)
 

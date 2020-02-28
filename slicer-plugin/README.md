@@ -2,9 +2,10 @@
 
 Nvidia AI-assisted segmentation is available in [3D Slicer](https://www.slicer.org), a popular free, open-source medical image visualization and analysis application. The tool is available in Segment Editor module of the application.
 
-The tool has two modes:
-- Fully automatic segmentation: no user inputs required. In "Auto-segmentation" section, choose model, and click Start. Segmentation process may take several minutes (up to about 5-10 minutes for large data sets on computers with slow network upload speed).
-- Boundary-points based segmentation: requires user to specify input points near the edge of the structure of interest, one on each side. Segmentation typcally takes less than a minute.
+The tool has three modes:
+- **Fully automatic segmentation:** no user inputs required. In "Auto-segmentation" section, choose model, and click Start. Segmentation process may take several minutes (up to about 5-10 minutes for large data sets on computers with slow network upload speed).
+- **Boundary-points based segmentation:** requires user to specify input points near the edge of the structure of interest, one on each side. Segmentation typcally takes less than a minute.
+- **DeepGrow segmentation:** requires user to specify few input points (foreground/background) on the structure of interest. This is a 2D operation and Segmentation happens slice by slicer over every point added.  Each click operation typically takes about 1-2 seconds.
 
 Example result of automatic segmentation:
 ![](snapshot.jpg?raw=true "Example segmentation result")
@@ -91,7 +92,7 @@ The computer running 3D Slicer does not have any special requirements to run AI-
 
 - For locally set up servers or computers with fast upload speed, disable compression in Application Settings / NVidia (since compression may take more time than the time saved by transferring less data)
 - To filter models based on labels attached to them, set label text in "Models" section of Nvidia AIAA effect user interface.
-- Enable AIAA Session to reduce network data transfer between Slicer and AIAA Server in **Edit** -> **Application Settings** -> **Nvidia** (NOTE:: This Option available only if you are using Clara v3.0+)
+- Enable AIAA Session to reduce network data transfer between Slicer and AIAA Server in **Edit** -> **Application Settings** -> **Nvidia** (NOTE:: This Option is available only if you are using NVIDIA Clara AIAA Server version 3.0 and above)
 
 ## For developers
 The plugin can be downloaded and installed directly from GitHub:

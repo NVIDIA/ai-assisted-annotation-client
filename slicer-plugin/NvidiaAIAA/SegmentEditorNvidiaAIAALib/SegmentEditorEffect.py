@@ -490,10 +490,21 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         logging.info(msg)
 
     def onClickDeepgrow(self, current_point):
+        model = self.ui.deepgrowModelSelector.currentText
+        if not model:
+            slicer.util.warningDisplay("Please select a deepgrow model")
+            return
+
         segment = self.currentSegment()
         if not segment:
             slicer.util.warningDisplay("Please add/select a segment to run deepgrow")
             return
+
+        foreground_all = self.getFiducialPointsXYZ(self.dgPositiveFiducialNode)
+        background_all = self.getFiducialPointsXYZ(self.dgNegativeFiducialNode)
+
+        segment.SetTag("AIAA.ForegroundPoints", json.dumps(foreground_all))
+        segment.SetTag("AIAA.BackgroundPoints", json.dumps(background_all))
 
         in_file, session_id = self.createAiaaSessionIfNotExists()
         if in_file is None and session_id is None:
@@ -501,23 +512,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         start = time.time()
 
-        model = self.ui.deepgrowModelSelector.currentText
-        if not model:
-            slicer.util.warningDisplay("Please select a deepgrow model")
-            return
-
         label = self.currentSegment().GetName()
         operationDescription = 'Run Deepgrow for segment: {}; model: {}'.format(label, model)
         logging.debug(operationDescription)
 
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
-
-            foreground_all = self.getFiducialPointsXYZ(self.dgPositiveFiducialNode)
-            background_all = self.getFiducialPointsXYZ(self.dgNegativeFiducialNode)
-
-            segment.SetTag("AIAA.ForegroundPoints", json.dumps(foreground_all))
-            segment.SetTag("AIAA.BackgroundPoints", json.dumps(background_all))
 
             sliceIndex = current_point[2]
             logging.debug('Slice Index: {}'.format(sliceIndex))
@@ -872,6 +872,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
     def onDeepGrowFiducialNodeModified(self, observer, eventid):
         self.updateGUIFromMRML()
+        logging.debug('Deepgrow Point Event!!')
 
         if self.ignoreFiducialNodeAddEvent:
             return
@@ -884,6 +885,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         logging.debug("Current Point: {}".format(current_point))
 
         self.onClickDeepgrow(current_point)
+
+        self.ignoreFiducialNodeAddEvent = True
+        self.onEditFiducialPoints(self.dgPositiveFiducialNode, "AIAA.ForegroundPoints")
+        self.onEditFiducialPoints(self.dgNegativeFiducialNode, "AIAA.BackgroundPoints")
+        self.ignoreFiducialNodeAddEvent = False
 
     def updateModelFromSegmentMarkupNode(self):
         self.updateGUIFromMRML()

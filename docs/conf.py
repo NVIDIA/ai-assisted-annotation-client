@@ -54,8 +54,8 @@ project = u'NVIDIA AI-Assisted Annotation Client'
 copyright = u'2019, NVIDIA Corporation'
 author = u'NVIDIA Corporation'
 
-release = '1.0.1'
-version = '1.0.1'
+release = '1.0.2'
+version = '1.0.2'
 
 # -- General configuration ---------------------------------------------------
 extensions = [

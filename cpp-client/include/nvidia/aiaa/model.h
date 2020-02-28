@@ -63,6 +63,7 @@ struct AIAA_CLIENT_API Model {
   /// Image ROI size used while training [x,y,z,w] Format;  This shall be used for Annotation Models
   std::vector<int> roi;
 
+  /// Model Types support by AIAA
   enum ModelType {
     segmentation,
     annotation,
@@ -72,7 +73,7 @@ struct AIAA_CLIENT_API Model {
     unknown
   };
 
-  /// Type of Model (segmentation/annotation)
+  /// Type of Model (segmentation/annotation etc..)
   ModelType type;
 
   /// Version of Model

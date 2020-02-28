@@ -40,13 +40,12 @@ namespace aiaa {
 // PointSet //
 ////////////
 
-/*!
- @brief AIAA PointSet
- */
-
 /// Type Definition for 2D/3D/4D Point
 typedef std::vector<int> Point;
 
+/*!
+ @brief AIAA PointSet
+ */
 struct AIAA_CLIENT_API PointSet {
 
   /// Array of 2D/3D/4D Points to represent [[x,y,z,w]+]
@@ -64,6 +63,7 @@ struct AIAA_CLIENT_API PointSet {
   /*!
    @brief create Model from JSON String
    @param[in] json  JSON String
+   @param[in] key  Specific key inside JSON String that represents PointSet.
 
    3D Example:
    @code

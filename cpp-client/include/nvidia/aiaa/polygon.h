@@ -80,6 +80,7 @@ struct AIAA_CLIENT_API Polygons {
   /*!
    @brief create Model from JSON String
    @param[in] json  JSON String.
+   @param[in] key  Specific key inside JSON String that represents Polygons.
 
    Example:
    @code
@@ -122,6 +123,7 @@ struct AIAA_CLIENT_API PolygonsList {
   /*!
    @brief create PolygonsList from JSON String
    @param[in] json  JSON String.
+   @param[in] key  Specific key inside JSON String that represents PolygonList.
 
    Example:
    @code

@@ -187,18 +187,21 @@ std::string CurlUtils::doMethod(const std::string &method, const std::string &ur
     std::istream &is = session.receiveResponse(res);
     AIAA_LOG_DEBUG("Status: " << res.getStatus() << "; Reason: " << res.getReason() << "; Content-type: " << res.getContentType());
 
-    if (res.getStatus() == 440) {
-      throw exception(exception::AIAA_SESSION_TIMEOUT, res.getReason().c_str());
-    }
-    if (res.getStatus() != 200) {
-      throw exception(exception::AIAA_SERVER_ERROR, res.getReason().c_str());
-    }
-
     std::stringstream response;
     Poco::StreamCopier::copyStream(is, response);
 
-    if (res.getContentType().find("multipart/form-data") == std::string::npos) {
-      AIAA_LOG_INFO("Expected Multipart Response but received: " << res.getContentType());
+    if (res.getStatus() == 440) {
+      throw exception(exception::AIAA_SESSION_TIMEOUT, response.str().c_str());
+    }
+    if (res.getStatus() != 200) {
+      AIAA_LOG_INFO("Response: " << response.str());
+      throw exception(exception::AIAA_RESPONSE_ERROR, (res.getReason() + " => " + response.str()).c_str());
+    }
+
+    if (res.getContentType().find("multipart") == std::string::npos) {
+      if (!resultFileName.empty()) {
+        AIAA_LOG_INFO("Expected Multipart Response but received: " << res.getContentType());
+      }
       AIAA_LOG_DEBUG("Received response from server: \n" << response.str());
 
       textReponse = response.str();

@@ -43,6 +43,7 @@ const std::string EP_MODELS = "/v1/models";
 const std::string EP_DEXTRA_3D = "/v1/dextr3d";
 const std::string EP_DEEPGROW = "/v1/deepgrow";
 const std::string EP_SEGMENTATION = "/v1/segmentation";
+const std::string EP_INFERENCE = "/v1/inference";
 const std::string EP_MASK_TO_POLYGON = "/v1/mask2polygon";
 const std::string EP_FIX_POLYGON = "/v1/fixpolygon";
 const std::string EP_SESSION = "/session/";
@@ -221,6 +222,32 @@ int Client::deepgrow(const Model &model, const PointSet &foregroundPointSet, con
 
   CurlUtils::doMethod("POST", uri, paramStr, inputImage, outputImageFile, timeoutInSec);
   return 0;
+}
+
+std::string Client::inference(const Model &model, const std::string &params, const std::string &inputImageFile, const std::string &outputImageFile,
+                              const std::string &sessionId) const {
+  if (model.name.empty()) {
+    AIAA_LOG_WARN("Selected model is EMPTY");
+    throw exception(exception::INVALID_ARGS_ERROR, "Model is EMPTY");
+  }
+
+  AIAA_LOG_DEBUG("Model: " << model.toJson());
+  AIAA_LOG_DEBUG("Params: " << params);
+  AIAA_LOG_DEBUG("InputImageFile: " << inputImageFile);
+  AIAA_LOG_DEBUG("OutputImageFile: " << outputImageFile);
+  AIAA_LOG_DEBUG("SessionId: " << sessionId);
+
+  std::string m = CurlUtils::encode(model.name);
+  std::string uri = serverUri + EP_INFERENCE + "?model=" + m;
+
+  std::string inputImage = inputImageFile;
+  if (!sessionId.empty()) {
+    uri += "&session_id=" + CurlUtils::encode(sessionId);
+    inputImage = "";
+  }
+
+  std::string paramsStr = params.empty() ? "{}" : params;
+  return CurlUtils::doMethod("POST", uri, paramsStr, inputImage, outputImageFile, timeoutInSec);
 }
 
 PolygonsList Client::maskToPolygon(int pointRatio, const std::string &inputImageFile) const {

@@ -51,7 +51,8 @@ namespace aiaa {
  nvidia.aiaa.error.103 | Failed to process ITK Operations.
  nvidia.aiaa.error.104 | Invalid Arguments.
  nvidia.aiaa.error.105 | AIAA Session Timeout.
- nvidia.aiaa.error.106 | System/Unknown Error.
+ nvidia.aiaa.error.106 | AIAA Response Error.
+ nvidia.aiaa.error.107 | System/Unknown Error.
  */
 
 class exception : public std::exception {
@@ -62,13 +63,14 @@ class exception : public std::exception {
     RESPONSE_PARSE_ERROR = 102,  /// Failed to parse AIAA Server Response
     ITK_PROCESS_ERROR = 103,  /// Failed to process ITK Operations
     INVALID_ARGS_ERROR = 104,  /// Invalid Arguments
-    AIAA_SESSION_TIMEOUT = 105,  /// AIAA Session Timeout
-    SYSTEM_ERROR = 106,  /// System/Unknown Error
+    AIAA_SESSION_TIMEOUT = 105,  /// AIAA Session Timeout,
+    AIAA_RESPONSE_ERROR = 106,  /// AIAA Response Error
+    SYSTEM_ERROR = 107,  /// System/Unknown Error
   };
 
   /// Message String for each enum type
-  const std::string messages[6] = { "Failed to communicate to AIAA Server", "Failed to parse AIAA Server Response",
-      "Failed to process ITK Operations", "Invalid Arguments", "AIAA Session Timeout", "System/Unknown Error" };
+  const std::string messages[7] = { "Failed to communicate to AIAA Server", "Failed to parse AIAA Server Response",
+      "Failed to process ITK Operations", "Invalid Arguments", "AIAA Session Timeout", "AIAA Response Error", "System/Unknown Error" };
 
   /// returns the explanatory string
   const char* what() const noexcept override {

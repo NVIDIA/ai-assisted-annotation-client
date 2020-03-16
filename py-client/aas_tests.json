@@ -58,6 +58,14 @@
       "image_out": "test-data/output/deepgrow_spleen.nii.gz"
     },
     {
+      "name": "test_inference",
+      "disabled": false,
+      "api": "inference",
+      "model": "clara_xray_classification_chest_amp",
+      "params": {},
+      "image_in": "test-data/AC07112011207153620_v2.png"
+    },
+    {
       "name": "test_mask2polygon_spleen",
       "disabled": false,
       "api": "mask2polygon",

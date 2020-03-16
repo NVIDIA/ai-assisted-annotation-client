@@ -225,6 +225,37 @@ Example
       -fpoints [[283,204,105]] \
       -output tmp_out.nii.gz
 
+Inference
+------------
+
+Provides implementation for ``nvidia::aiaa::Client::inference()`` API.
+For more details refer `aiaa-inference.cpp <https://github.com/NVIDIA/ai-assisted-annotation-client/blob/master/cpp-client/tools/aiaa/aiaa-inference.cpp>`_
+
+Following are the options available
+
+.. csv-table::
+   :header: Option,Description,Default,Example
+   :widths: auto
+
+   -h,Prints the help information,,
+   -server,Server URI for AIAA Server,,-server http://0.0.0.0:5000
+   -model,Model Name,,-model clara_xray_classification_chest_amp
+   -params,Params JSON,,-params {}
+   -image,Input image filename where image,,-image input.png
+   -output,File name to store output image result from AIAA server,,-output output.png
+   -session,Session ID instead of -image option,,-session "9ad970be-530e-11ea-84e3-0242ac110007"
+
+Example
+
+.. code-block:: bash
+
+   nvidiaAIAAInference \
+      -server http://0.0.0.0:5000 \
+      -model clara_xray_classification_chest_amp \
+      -image AC07112011207153620_v2.png \
+      -params {}
+
+
 Mask To Polygon
 ------------------
 

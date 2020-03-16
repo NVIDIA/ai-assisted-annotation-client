@@ -174,6 +174,21 @@ class AIAA_CLIENT_API Client {
                const std::string &outputImageFile, const std::string &sessionId = "") const;
 
   /*!
+   @brief This API is used to run generic inference on input image
+   @param[in] model  Model to be used
+   @param[in] params  Json String which will be an input for AIAA to run the model inference
+   @param[in] inputImageFile  Input image filename which will be sent to AIAA for inference action
+   @param[in] outputImageFile  Output image file where Result mask is stored
+   @param[in] sessionId  If *session_id* is not empty then *inputImageFile* will be ignored
+
+   @retval JSON string representing the output response from AIAA
+
+   @throw nvidia.aiaa.error.101 in case of connect error
+   @throw nvidia.aiaa.error.103 if case of ITK error related to image processing
+   */
+  std::string inference(const Model &model, const std::string &params, const std::string &inputImageFile, const std::string &outputImageFile,
+                        const std::string &sessionId = "") const;
+  /*!
    @brief 3D binary mask to polygon representation conversion
    @param[in] pointRatio  Point Ratio
    @param[in] inputImageFile  Input image filename which will be sent to AIAA

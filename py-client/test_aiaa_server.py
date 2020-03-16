@@ -71,7 +71,7 @@ def _byteify(data, ignore_dicts=False):
 
 def call_server():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--server_url', default='http://0.0.0.0:5000')
+    parser.add_argument('--server_url', required=True)
     parser.add_argument('--test_config', required=True)
     parser.add_argument('--debug', default=False)
 
@@ -138,7 +138,8 @@ def call_server():
             image_out = test.get('image_out')
 
             result = client.segmentation(model, image_in, image_out)
-            print('++++ Segmentation Result: {}'.format(json.dumps(result)))
+            print('++++ Segmentation JSON  Result: {}'.format(json.dumps(result)))
+            print('++++ Segmentation Image result: {}'.format(image_out))
             continue
 
         if api == 'dextr3d':
@@ -150,7 +151,8 @@ def call_server():
             roi_size = test.get('roi_size', '128x128x128')
 
             result = client.dextr3d(model, point_set, image_in, image_out, pad, roi_size)
-            print('++++ dextr3d result: {}'.format(json.dumps(result)))
+            print('++++ dextr3d JSON  Result: {}'.format(json.dumps(result)))
+            print('++++ dextr3d Image Result: {}'.format(image_out))
             continue
 
         if api == 'deepgrow':
@@ -161,7 +163,19 @@ def call_server():
             image_out = test.get('image_out')
 
             result = client.deepgrow(model, foreground, background, image_in, image_out)
-            print('++++ Deepgrow Result: {}'.format(json.dumps(result)))
+            print('++++ Deepgrow JSON  Result: {}'.format(json.dumps(result)))
+            print('++++ Deepgrow Image Result: {}'.format(image_out))
+            continue
+
+        if api == 'inference':
+            model = test.get('model')
+            params = test.get('params')
+            image_in = test.get('image_in')
+            image_out = test.get('image_out')
+
+            result = client.inference(model, params, image_in, image_out)
+            print('++++ Inference JSON  Result: {}'.format(json.dumps(result)))
+            print('++++ Inference Image Result: {}'.format(image_out))
             continue
 
         if api == 'mask2polygon':

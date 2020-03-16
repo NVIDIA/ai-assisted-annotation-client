@@ -102,7 +102,7 @@ class AIAAClient:
         fields = {}
         files = {'image': image_in}
 
-        status, response, files = AIAAUtils.http_multipart('PUT', self._server_url, selector, fields, files)
+        status, response, _ = AIAAUtils.http_multipart('PUT', self._server_url, selector, fields, files)
         if status != 200:
             raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
 
@@ -403,7 +403,7 @@ class AIAAClient:
         fields = {'params': json.dumps(params)}
         files = {'datapoint': image_in}
 
-        status, response, files = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files)
+        status, response, _ = AIAAUtils.http_multipart('POST', self._server_url, selector, fields, files)
         if status != 200:
             raise AIAAException(AIAAError.SERVER_ERROR, 'Status: {}; Response: {}'.format(status, response))
 

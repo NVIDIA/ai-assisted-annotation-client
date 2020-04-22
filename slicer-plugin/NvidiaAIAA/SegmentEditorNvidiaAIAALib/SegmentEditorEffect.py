@@ -1035,7 +1035,7 @@ class AIAALogic():
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        params = aiaaClient.segmentation(model, image_in, result_file, session_id=session_id)
+        params = aiaaClient.inference(model, {}, image_in, result_file, session_id=session_id)
 
         extreme_points = params.get('points', params.get('extreme_points'))
         logging.debug('Extreme Points: {}'.format(extreme_points))

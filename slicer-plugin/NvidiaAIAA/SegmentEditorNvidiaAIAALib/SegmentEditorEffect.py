@@ -753,7 +753,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.serverComboBox.setCurrentText(settings.value("NVIDIA-AIAA/serverUrl"))
         self.ui.serverComboBox.blockSignals(wasBlocked)
 
-    def updateSelector(self, selector, model_type, param, filtered, defaultIndex=0):
+    def updateSelector(self, selector, model_types, param, filtered, defaultIndex=0):
         wasSelectorBlocked = selector.blockSignals(True)
         selector.clear()
 
@@ -761,7 +761,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         currentSegmentName = currentSegment.GetName().lower() if currentSegment else ""
 
         for model_name, model in self.models.items():
-            if model['type'] == model_type:
+            if model['type'] in model_types:
                 if filtered and not (currentSegmentName in model_name.lower()):
                     continue
                 selector.addItem(model_name)
@@ -789,10 +789,16 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.ui.annotationModelFilterPushButton.checked = annotationModelFiltered
         self.ui.annotationModelFilterPushButton.blockSignals(wasBlocked)
 
-        self.updateSelector(self.ui.segmentationModelSelector, 'segmentation', 'SegmentationModel', False, 0)
-        self.updateSelector(self.ui.annotationModelSelector, 'annotation', 'AIAA.AnnotationModel',
+        self.updateSelector(self.ui.segmentationModelSelector,
+                            {'segmentation', 'others', 'pipeline'},
+                            'SegmentationModel', False, 0)
+        self.updateSelector(self.ui.annotationModelSelector,
+                            {'annotation'},
+                            'AIAA.AnnotationModel',
                             annotationModelFiltered, -1)
-        self.updateSelector(self.ui.deepgrowModelSelector, 'deepgrow', 'DeepgrowModel', False, 0)
+        self.updateSelector(self.ui.deepgrowModelSelector,
+                            {'deepgrow'},
+                            'DeepgrowModel', False, 0)
 
         # Enable/Disable
         self.ui.segmentationButton.setEnabled(self.ui.segmentationModelSelector.currentText)

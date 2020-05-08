@@ -512,10 +512,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if in_file is None and session_id is None:
             return
 
-        # TODO:: A better way to handle this?
-        deepgrow_3d = False
-        if "3D" in model:
-            deepgrow_3d = True
+        deepgrow_3d = self.ui.deepgrow3DCheck.isChecked()
         start = time.time()
 
         label = self.currentSegment().GetName()

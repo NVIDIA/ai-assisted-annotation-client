@@ -512,10 +512,11 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if in_file is None and session_id is None:
             return
 
+        deepgrow_3d = self.ui.deepgrow3DCheck.isChecked()
         start = time.time()
 
         label = self.currentSegment().GetName()
-        operationDescription = 'Run Deepgrow for segment: {}; model: {}'.format(label, model)
+        operationDescription = 'Run Deepgrow for segment: {}; model: {}; 3d {}'.format(label, model, deepgrow_3d)
         logging.debug(operationDescription)
 
         try:
@@ -524,8 +525,12 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             sliceIndex = current_point[2]
             logging.debug('Slice Index: {}'.format(sliceIndex))
 
-            foreground = [x for x in foreground_all if x[2] == sliceIndex]
-            background = [x for x in background_all if x[2] == sliceIndex]
+            if deepgrow_3d:
+                foreground = foreground_all
+                background = background_all
+            else:
+                foreground = [x for x in foreground_all if x[2] == sliceIndex]
+                background = [x for x in background_all if x[2] == sliceIndex]
 
             logging.debug('Foreground: {}'.format(foreground))
             logging.debug('Background: {}'.format(background))
@@ -533,9 +538,13 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             result_file = self.logic.deepgrow(in_file, session_id, model, foreground, background)
             result = 'FAILED'
 
-            if self.updateSegmentationMask(None, result_file, None,
-                                           overwriteCurrentSegment=True,
-                                           sliceIndex=sliceIndex):
+            if deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
+                                                          overwriteCurrentSegment=True):
+                result = 'SUCCESS'
+                self.updateGUIFromMRML()
+            elif not deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
+                                                                overwriteCurrentSegment=True,
+                                                                sliceIndex=sliceIndex):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except AIAAException as ae:

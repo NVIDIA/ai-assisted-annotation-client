@@ -30,7 +30,7 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
         import shutil
         pluginDir = os.path.dirname(__file__)
         logging.info('This plugin dir: {}'.format(pluginDir))
-        if os.path.exists(pluginDir + '/../../py-client/client_api.py'):
+        if os.path.exists(pluginDir + '/../../py_client/client_api.py'):
             logging.info('Running from build tree - update client_api.py')
             if os.path.exists(pluginDir + '/client_api.py'):
                 os.remove(pluginDir + '/NvidiaAIAAClientAPI/client_api.py')
@@ -38,7 +38,7 @@ class SegmentEditorNvidiaAIAA(ScriptedLoadableModule):
                 os.remove(pluginDir + '/NvidiaAIAAClientAPI/client_api.pyc')
             if os.path.exists(pluginDir + '/NvidiaAIAAClientAPI/__pycache__/client_api.cpython-36.pyc'):
                 os.remove(pluginDir + '/NvidiaAIAAClientAPI/__pycache__/client_api.cpython-36.pyc')
-            shutil.copy(pluginDir + '/../../py-client/client_api.py', pluginDir + '/NvidiaAIAAClientAPI/client_api.py')
+            shutil.copy(pluginDir + '/../../py_client/client_api.py', pluginDir + '/NvidiaAIAAClientAPI/client_api.py')
 
         # Register segment editor effect
         import qSlicerSegmentationsEditorEffectsPythonQt as qSlicerSegmentationsEditorEffects

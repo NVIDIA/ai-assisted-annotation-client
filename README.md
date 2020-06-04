@@ -15,12 +15,26 @@ AI-Assisted Annotation is a cross-platform C++/Python Client API to communicate 
 ## Plugins
 Following plugins integrate with NVIDIA AI-Assisted Annotation through either C++/Python Client APIs
 - [NVIDIA MITK Plugin](/mitk-plugin) *(based on c++ client APIs)*
-- [NVIDIA 3D Slicer](/slicer-plugin) *(based on py-client APIs)*
+- [NVIDIA 3D Slicer](/slicer-plugin) *(based on py_client APIs)*
 
 ## Quick Start
-Follow the [Quick Start](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++/Python and run some basic tools to verify few important functionalities like *dextr3D*, *segmentation*, *fixPolygon* over an existing AI-Assisted Annotation Server.
+Follow the [Quick Start](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/quickstart.html) guide to build/install AI-Assisted Annotation Client Libraries for C++ and run some basic tools to verify few important functionalities like *dextr3D*, *segmentation*, *fixPolygon* over an existing AI-Assisted Annotation Server.
 
 >C++ Client Library provides support for CMake project
+
+For installing py\_client:
+
+```
+# build first
+python setup.py sdist bdist_wheel
+
+# install
+python -m pip install dist/aiaa_client-*.whl
+
+# to use in code just
+from py_client import client_api
+
+```
 
 ## Contributions
 Contributions to NVIDIA AI-Assisted Annotation Client are more than welcome. To contribute make a pull request and follow the guidelines outlined in the [CONTRIBUTING](/CONTRIBUTING.md) document.

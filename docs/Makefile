@@ -41,7 +41,7 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 clean:
-	@rm -fr $(BUILDDIR) $(EXHALEDIRS) ../py-client/__pycache__
+	@rm -fr $(BUILDDIR) $(EXHALEDIRS) ../py_client/__pycache__
 
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).

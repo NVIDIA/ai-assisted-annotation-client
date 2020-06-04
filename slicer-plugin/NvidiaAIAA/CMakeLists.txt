@@ -3,7 +3,7 @@
 set(MODULE_NAME SegmentEditorNvidiaAIAA)
 
 # We create a python module from client_api.py file
-CONFIGURE_FILE(../../py-client/client_api.py
+CONFIGURE_FILE(../../py_client/client_api.py
   ${CMAKE_CURRENT_SOURCE_DIR}/NvidiaAIAAClientAPI/client_api.py 
   COPYONLY
   )

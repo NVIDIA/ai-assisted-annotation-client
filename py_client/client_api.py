@@ -303,13 +303,14 @@ class AIAAClient:
             AIAAUtils.save_result(files, image_out)
         return params
 
-    def deepgrow(self, model, foreground, background, image_in, image_out, session_id=None):
+    def deepgrow(self, model, foreground, background, current_point, image_in, image_out, session_id=None):
         """
         2D/3D image annotation using DeepGrow method
 
         :param model: model name according to the output of model_list()
         :param foreground: foreground (+ve) clicks/points
         :param background: background (-ve) clicks/points
+        :param current_point: newest click
         :param image_in: input 2D/3D image file name
         :param image_out: output mask will be stored
         :param session_id: if session id is provided (not None) then *image_in* will be ignored
@@ -323,7 +324,9 @@ class AIAAClient:
         if session_id:
             selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
-        in_fields = {'params': json.dumps({'foreground': foreground, 'background': background})}
+        in_fields = {'params': json.dumps({'foreground': foreground,
+                                           'background': background,
+                                           'current_point': current_point})}
         in_files = {'datapoint': image_in} if not session_id else {}
 
         logger.debug('Using Selector: {}'.format(selector))

@@ -531,8 +531,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if in_file is None and session_id is None:
             return
 
-        # use model name to determine
-        deepgrow_3d = True if '3d' in model.lower() else False
+        # use model info "deepgrow" to determine
+        deepgrow_3d = True if '3d' in self.models[model]["deepgrow"].lower() else False
         start = time.time()
 
         label = self.currentSegment().GetName()

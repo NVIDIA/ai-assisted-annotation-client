@@ -562,7 +562,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
             if deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
                                                            overwriteCurrentSegment=True,
-                                                           cropBox=params['crop']):
+                                                           cropBox=params.get('crop')):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
             elif not deepgrow_3d and self.updateSegmentationMask(None, result_file, None,

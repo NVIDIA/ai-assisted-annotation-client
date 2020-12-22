@@ -29,7 +29,7 @@
                     <item row="0" column="0">
                         <widget class="QLabel" name="label">
                             <property name="text">
-                                <string>NVidia AIAA server:</string>
+                                <string>Nvidia AIAA server:</string>
                             </property>
                         </widget>
                     </item>
@@ -231,13 +231,20 @@
                         <string>DeepGrow</string>
                     </property>
                      <property name="collapsed">
-                        <bool>true</bool>
+                        <bool>false</bool>
                     </property>
                    <property name="collapsedHeight">
                         <number>9</number>
                     </property>
 
                     <layout class="QGridLayout" name="gridLayout_3">
+                        <item row="0" column="0">
+                            <widget class="QLabel" name="label_8">
+                                <property name="text">
+                                    <string>Model:</string>
+                                </property>
+                            </widget>
+                        </item>
                         <item row="0" column="1">
                             <widget class="QComboBox" name="deepgrowModelSelector">
                                 <property name="sizePolicy">
@@ -248,15 +255,8 @@
                                 </property>
                             </widget>
                         </item>
-                        <item row="0" column="0">
-                            <widget class="QLabel" name="label_7">
-                                <property name="text">
-                                    <string>Model:</string>
-                                </property>
-                            </widget>
-                        </item>
                         <item row="1" column="0">
-                            <widget class="QLabel" name="label_8">
+                            <widget class="QLabel" name="label_9">
                                 <property name="text">
                                     <string>Foreground (+ve) Points:</string>
                                 </property>
@@ -271,7 +271,7 @@
                         </item>
 
                         <item row="2" column="0">
-                            <widget class="QLabel" name="label_9">
+                            <widget class="QLabel" name="label_10">
                                 <property name="text">
                                     <string>Background (-ve) Points:</string>
                                 </property>

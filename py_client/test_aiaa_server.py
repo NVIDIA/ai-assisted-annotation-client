@@ -162,7 +162,7 @@ def call_server():
             image_in = test.get('image_in')
             image_out = test.get('image_out')
 
-            result = client.deepgrow(model, foreground, background, foreground[-1], image_in, image_out)
+            result = client.deepgrow(model, foreground, background, image_in, image_out, foreground[-1])
             print('++++ Deepgrow JSON  Result: {}'.format(json.dumps(result)))
             print('++++ Deepgrow Image Result: {}'.format(image_out))
             continue

@@ -841,7 +841,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                             'AIAA.AnnotationModel',
                             annotationModelFiltered, -1)
         self.updateSelector(self.ui.deepgrowModelSelector,
-                            {'deepgrow'},
+                            {'deepgrow', 'pipeline'},
                             'DeepgrowModel', False, 0)
 
         # Enable/Disable
@@ -1117,14 +1117,20 @@ class AIAALogic:
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        params = aiaaClient.deepgrow(
+
+        in_params = {
+             'foreground': foreground_point_set,
+             'background': background_point_set,
+             'current_point': current_point,
+         }
+        if spatial_size and len(spatial_size):
+            in_params['spatial_size'] = spatial_size
+
+        params = aiaaClient.inference(
             model=model,
-            foreground=foreground_point_set,
-            background=background_point_set,
+            params=in_params,
             image_in=image_in,
             image_out=result_file,
-            current_point=current_point,
-            spatial_size=spatial_size,
             session_id=session_id,
         )
         return result_file, params

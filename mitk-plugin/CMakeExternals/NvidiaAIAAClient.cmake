@@ -25,7 +25,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #-----------------------------------------------------------------------------
-# NvidiaAIAAClient 
+# NvidiaAIAAClient
 #-----------------------------------------------------------------------------
 
 # Sanity checks
@@ -70,7 +70,7 @@ if(NOT DEFINED NvidiaAIAAClient_DIR)
      DEPENDS ${proj_DEPENDENCIES}
     )
 
-  set(${proj}_DIR ${ep_prefix})
+  set(${proj}_DIR ${ep_prefix}/lib/cmake/${proj})
 
 else()
   mitkMacroEmptyExternalProject(${proj} "${proj_DEPENDENCIES}")

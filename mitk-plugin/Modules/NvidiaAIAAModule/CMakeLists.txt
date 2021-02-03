@@ -26,5 +26,5 @@
 
 mitk_create_module(NvidiaAIAAModule
   DEPENDS PUBLIC MitkSegmentationUI
-  ADDITIONAL_LIBS NvidiaAIAAClient
+  PACKAGE_DEPENDS NvidiaAIAAClient
 )

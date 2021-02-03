@@ -254,7 +254,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             segmentationNode.GetBinaryLabelmapRepresentation(self.currentSegmentID(), currentLabelmap)
             segImageExtent = currentLabelmap.GetExtent()
             if np.sum(currentLabelmapArray) != 0:
-                extent_slice = tuple([slice(segImageExtent[i], segImageExtent[i+1] + 1) for i in range(0, 5, 2)][::-1])
+                extent_slice = tuple(
+                    [slice(segImageExtent[i], segImageExtent[i + 1] + 1) for i in range(0, 5, 2)][::-1])
                 new_array[extent_slice] = currentLabelmapArray
             new_array[box_slice] = labelmapArray[box_slice]
             slicer.util.updateVolumeFromArray(labelmapVolumeNode, new_array)
@@ -532,7 +533,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return
 
         # use model info "deepgrow" to determine
-        deepgrow_3d = True if '3d' in self.models[model]["deepgrow"].lower() else False
+        deepgrow_type = self.models[model].get("deepgrow")
+        deepgrow_type = deepgrow_type.lower() if deepgrow_type else ""
+        deepgrow_3d = True if '3d' in deepgrow_type else False
         start = time.time()
 
         label = self.currentSegment().GetName()
@@ -546,6 +549,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             sliceIndex = current_point[2]
             logging.debug('Slice Index: {}'.format(sliceIndex))
 
+            spatial_size = self.ui.deepgrowSpatialSize.text
+            spatial_size = json.loads(spatial_size) if spatial_size else None
             if deepgrow_3d:
                 foreground = foreground_all
                 background = background_all
@@ -556,18 +561,27 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             logging.debug('Foreground: {}'.format(foreground))
             logging.debug('Background: {}'.format(background))
             logging.debug('Current point: {}'.format(current_point))
+            logging.debug('Spatial size: {}'.format(spatial_size))
 
-            result_file, params = self.logic.deepgrow(in_file, session_id, model, foreground, background, [current_point])
+            result_file, params = self.logic.deepgrow(
+                in_file, session_id, model, foreground, background, [current_point], spatial_size)
             logging.debug('Params from deepgrow is {}'.format(params))
 
-            if deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
-                                                           overwriteCurrentSegment=True,
-                                                           cropBox=params.get('crop')):
+            if deepgrow_3d and self.updateSegmentationMask(
+                    extreme_points=None,
+                    in_file=result_file,
+                    modelInfo=None,
+                    overwriteCurrentSegment=True,
+                    cropBox=params.get('crop')
+            ):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
-            elif not deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
-                                                                 overwriteCurrentSegment=True,
-                                                                 sliceIndex=sliceIndex):
+            elif not deepgrow_3d and self.updateSegmentationMask(
+                    extreme_points=None,
+                    in_file=result_file,
+                    modelInfo=None,
+                    overwriteCurrentSegment=True,
+                    sliceIndex=sliceIndex):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except AIAAException as ae:
@@ -829,7 +843,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                             'AIAA.AnnotationModel',
                             annotationModelFiltered, -1)
         self.updateSelector(self.ui.deepgrowModelSelector,
-                            {'deepgrow'},
+                            {'deepgrow', 'pipeline'},
                             'DeepgrowModel', False, 0)
 
         # Enable/Disable
@@ -1070,7 +1084,13 @@ class AIAALogic:
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        params = aiaaClient.inference(model, {}, image_in, result_file, session_id=session_id)
+        params = aiaaClient.inference(
+            model=model,
+            params={},
+            image_in=image_in,
+            image_out=result_file,
+            session_id=session_id,
+        )
 
         extreme_points = params.get('points', params.get('extreme_points'))
         logging.debug('Extreme Points: {}'.format(extreme_points))
@@ -1083,16 +1103,36 @@ class AIAALogic:
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        aiaaClient.dextr3d(model, pointset, image_in, result_file,
-                           pre_process=(not self.useSession),
-                           session_id=session_id)
+        aiaaClient.dextr3d(
+            model=model,
+            point_set=pointset,
+            image_in=image_in,
+            image_out=result_file,
+            pre_process=(not self.useSession),
+            session_id=session_id,
+        )
         return result_file
 
-    def deepgrow(self, image_in, session_id, model, foreground_point_set, background_point_set, current_point):
+    def deepgrow(self, image_in, session_id, model, foreground_point_set, background_point_set, current_point,
+                 spatial_size):
         logging.debug('Preparing for Deepgrow Action (model: {})'.format(model))
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        params = aiaaClient.deepgrow(model, foreground_point_set, background_point_set, current_point,
-                                     image_in, result_file, session_id=session_id)
+
+        in_params = {
+             'foreground': foreground_point_set,
+             'background': background_point_set,
+             'current_point': current_point,
+         }
+        if spatial_size and len(spatial_size):
+            in_params['spatial_size'] = spatial_size
+
+        params = aiaaClient.inference(
+            model=model,
+            params=in_params,
+            image_in=image_in,
+            image_out=result_file,
+            session_id=session_id,
+        )
         return result_file, params

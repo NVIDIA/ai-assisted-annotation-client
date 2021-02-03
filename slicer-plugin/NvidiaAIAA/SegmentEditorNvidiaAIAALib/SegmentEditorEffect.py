@@ -533,7 +533,9 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             return
 
         # use model info "deepgrow" to determine
-        deepgrow_3d = True if '3d' in self.models[model]["deepgrow"].lower() else False
+        deepgrow_type = self.models[model].get("deepgrow")
+        deepgrow_type = deepgrow_type.lower() if deepgrow_type else ""
+        deepgrow_3d = True if '3d' in deepgrow_type else False
         start = time.time()
 
         label = self.currentSegment().GetName()

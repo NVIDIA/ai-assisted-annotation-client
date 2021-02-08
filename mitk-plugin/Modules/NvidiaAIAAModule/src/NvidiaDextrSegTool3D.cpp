@@ -99,11 +99,14 @@ us::ModuleResource NvidiaDextrSegTool3D::GetIconResource() const {
   return resource;
 }
 
-bool NvidiaDextrSegTool3D::CanHandle(mitk::BaseData *referenceData) const {
+bool NvidiaDextrSegTool3D::CanHandle(const mitk::BaseData * referenceData, const mitk::BaseData * workingData) const {
+  if (!Superclass::CanHandle(referenceData, workingData))
+    return false;
+
   if (referenceData == nullptr)
     return false;
 
-  auto *image = dynamic_cast<mitk::Image *>(referenceData);
+  const auto* image = dynamic_cast<const mitk::Image*>(referenceData);
   if (image == nullptr)
     return false;
 

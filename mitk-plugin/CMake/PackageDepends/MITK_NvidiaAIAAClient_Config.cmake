@@ -24,7 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#[[ This file is empty as everything is already set up in
-    CMake/FindNvidiaAIAAClient.cmake. However,
-    MITK relies on the existence of this file to
-    determine if the package was found. ]]
+find_package(NvidiaAIAAClient REQUIRED)
+
+list(APPEND ALL_INCLUDE_DIRECTORIES ${NvidiaAIAAClient_INCLUDE_DIRS})
+list(APPEND ALL_LINK_DIRECTORIES "${NvidiaAIAAClient_LIBRARY_DIR}")
+list(APPEND ALL_LIBRARIES ${NvidiaAIAAClient_LIBRARIES})

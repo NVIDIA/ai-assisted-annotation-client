@@ -52,7 +52,7 @@ public:
 
   us::ModuleResource GetIconResource() const override;
 
-  bool CanHandle(mitk::BaseData *referenceData) const override;
+  bool CanHandle(const mitk::BaseData* referenceData, const mitk::BaseData* workingData) const override;
   const char *GetName() const override;
   const char **GetXPM() const override;
 

@@ -72,11 +72,14 @@ us::ModuleResource NvidiaDeepgrowSegTool2D::GetIconResource() const {
   return resource;
 }
 
-bool NvidiaDeepgrowSegTool2D::CanHandle(mitk::BaseData *referenceData) const {
+bool NvidiaDeepgrowSegTool2D::CanHandle(const mitk::BaseData * referenceData, const mitk::BaseData * workingData) const {
+  if (!Superclass::CanHandle(referenceData, workingData))
+    return false;
+
   if (referenceData == nullptr)
     return false;
 
-  auto *image = dynamic_cast<mitk::Image*>(referenceData);
+  const auto* image = dynamic_cast<const mitk::Image*>(referenceData);
   if (image == nullptr)
     return false;
 

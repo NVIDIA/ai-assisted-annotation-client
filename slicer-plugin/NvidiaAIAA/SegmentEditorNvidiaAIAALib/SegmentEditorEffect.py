@@ -6,6 +6,8 @@ import tempfile
 import time
 from collections import OrderedDict
 
+import numpy as np
+
 import SimpleITK as sitk
 import qt
 import sitkUtils
@@ -86,7 +88,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         return serverUrl
 
     def setupOptionsFrame(self):
-        if (slicer.app.majorVersion == 4 and slicer.app.minorVersion <= 10):
+        if slicer.app.majorVersion == 4 and slicer.app.minorVersion <= 10:
             self.scriptedEffect.addOptionsWidget(qt.QLabel("This effect only works in "
                                                            "recent 3D Slicer Preview Release (Slicer-4.11.x)."))
             return
@@ -227,7 +229,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         logging.info("Time consumed by fetchAIAAModels: {0:3.1f}".format(time.time() - start))
 
     def updateSegmentationMask(self, extreme_points, in_file, modelInfo, overwriteCurrentSegment=False,
-                               sliceIndex=None):
+                               sliceIndex=None, cropBox=None):
         start = time.time()
         logging.debug('Update Segmentation Mask from: {}'.format(in_file))
         if in_file is None or os.path.exists(in_file) is False:
@@ -239,6 +241,24 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
         labelImage = sitk.ReadImage(in_file)
         labelmapVolumeNode = sitkUtils.PushVolumeToSlicer(labelImage, None, className='vtkMRMLLabelMapVolumeNode')
+
+        if cropBox:
+            labelmapArray = slicer.util.arrayFromVolume(labelmapVolumeNode)
+            new_array = np.zeros_like(labelmapArray)
+            # because numpy is in KJI
+            # https://www.slicer.org/wiki/Documentation/Nightly/ScriptRepository#Get_centroid_of_a_segment_in_world_.28RAS.29_coordinates
+            box_slice = tuple([slice(x[0], x[1]) for x in cropBox][::-1])
+            currentLabelmapArray = slicer.util.arrayFromSegmentBinaryLabelmap(segmentationNode,
+                                                                              self.currentSegmentID())
+            currentLabelmap = slicer.vtkOrientedImageData()
+            segmentationNode.GetBinaryLabelmapRepresentation(self.currentSegmentID(), currentLabelmap)
+            segImageExtent = currentLabelmap.GetExtent()
+            if np.sum(currentLabelmapArray) != 0:
+                extent_slice = tuple(
+                    [slice(segImageExtent[i], segImageExtent[i + 1] + 1) for i in range(0, 5, 2)][::-1])
+                new_array[extent_slice] = currentLabelmapArray
+            new_array[box_slice] = labelmapArray[box_slice]
+            slicer.util.updateVolumeFromArray(labelmapVolumeNode, new_array)
 
         numberOfExistingSegments = segmentation.GetNumberOfSegments()
         slicer.modules.segmentations.logic().ImportLabelmapToSegmentationNode(labelmapVolumeNode, segmentationNode)
@@ -259,18 +279,18 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 labelmap = slicer.vtkOrientedImageData()
                 segmentationNode.GetBinaryLabelmapRepresentation(segmentId, labelmap)
 
-                # TODO:: May be there is a better option (faster than this)
                 if sliceIndex:
+                    # Just update segment label map on that specific slice
                     selectedSegmentLabelmap = self.scriptedEffect.selectedSegmentLabelmap()
                     dims = selectedSegmentLabelmap.GetDimensions()
                     count = 0
 
-                    for i in range(dims[0]):
-                        for j in range(dims[1]):
-                            v = selectedSegmentLabelmap.GetScalarComponentAsDouble(i, j, sliceIndex, 0)
+                    for x in range(dims[0]):
+                        for y in range(dims[1]):
+                            v = selectedSegmentLabelmap.GetScalarComponentAsDouble(x, y, sliceIndex, 0)
                             if v:
                                 count = count + 1
-                            selectedSegmentLabelmap.SetScalarComponentFromDouble(i, j, sliceIndex, 0, 0)
+                            selectedSegmentLabelmap.SetScalarComponentFromDouble(x, y, sliceIndex, 0, 0)
 
                     logging.debug('Total Non Zero: {}'.format(count))
 
@@ -280,7 +300,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                             selectedSegmentLabelmap,
                             slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeSet)
 
-                    # Union LableMap
+                    # Union label map
                     self.scriptedEffect.modifySelectedSegmentByLabelmap(
                         labelmap,
                         slicer.qSlicerSegmentEditorAbstractEffect.ModificationModeAdd)
@@ -297,7 +317,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                 else:
                     # we did not get enough labels (for example annotation_mri_prostate_cg_and_pz model
                     # returns a labelmap with
-                    # 2 labels but in the model infor only 1 label is provided)
+                    # 2 labels but in the model info only 1 label is provided)
                     segment.SetName("unknown {}".format(i))
 
         # Save extreme points into first segment
@@ -512,12 +532,16 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         if in_file is None and session_id is None:
             return
 
-        deepgrow_3d = self.ui.deepgrow3DCheck.isChecked()
+        # use model info "deepgrow" to determine
+        deepgrow_type = self.models[model].get("deepgrow")
+        deepgrow_type = deepgrow_type.lower() if deepgrow_type else ""
+        deepgrow_3d = True if '3d' in deepgrow_type else False
         start = time.time()
 
         label = self.currentSegment().GetName()
         operationDescription = 'Run Deepgrow for segment: {}; model: {}; 3d {}'.format(label, model, deepgrow_3d)
         logging.debug(operationDescription)
+        result = 'FAILED'
 
         try:
             qt.QApplication.setOverrideCursor(qt.Qt.WaitCursor)
@@ -525,6 +549,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
             sliceIndex = current_point[2]
             logging.debug('Slice Index: {}'.format(sliceIndex))
 
+            spatial_size = self.ui.deepgrowSpatialSize.text
+            spatial_size = json.loads(spatial_size) if spatial_size else None
             if deepgrow_3d:
                 foreground = foreground_all
                 background = background_all
@@ -534,17 +560,28 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
 
             logging.debug('Foreground: {}'.format(foreground))
             logging.debug('Background: {}'.format(background))
+            logging.debug('Current point: {}'.format(current_point))
+            logging.debug('Spatial size: {}'.format(spatial_size))
 
-            result_file = self.logic.deepgrow(in_file, session_id, model, foreground, background)
-            result = 'FAILED'
+            result_file, params = self.logic.deepgrow(
+                in_file, session_id, model, foreground, background, [current_point], spatial_size)
+            logging.debug('Params from deepgrow is {}'.format(params))
 
-            if deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
-                                                          overwriteCurrentSegment=True):
+            if deepgrow_3d and self.updateSegmentationMask(
+                    extreme_points=None,
+                    in_file=result_file,
+                    modelInfo=None,
+                    overwriteCurrentSegment=True,
+                    cropBox=params.get('crop')
+            ):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
-            elif not deepgrow_3d and self.updateSegmentationMask(None, result_file, None,
-                                                                overwriteCurrentSegment=True,
-                                                                sliceIndex=sliceIndex):
+            elif not deepgrow_3d and self.updateSegmentationMask(
+                    extreme_points=None,
+                    in_file=result_file,
+                    modelInfo=None,
+                    overwriteCurrentSegment=True,
+                    sliceIndex=sliceIndex):
                 result = 'SUCCESS'
                 self.updateGUIFromMRML()
         except AIAAException as ae:
@@ -806,7 +843,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                             'AIAA.AnnotationModel',
                             annotationModelFiltered, -1)
         self.updateSelector(self.ui.deepgrowModelSelector,
-                            {'deepgrow'},
+                            {'deepgrow', 'pipeline'},
                             'DeepgrowModel', False, 0)
 
         # Enable/Disable
@@ -858,7 +895,8 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
                                          1 if self.ui.annotationModelFilterPushButton.checked else 0)
         self.scriptedEffect.parameterSetNode().EndModify(wasModified)
 
-    def createFiducialNode(self, name, onMarkupNodeModified, color):
+    @staticmethod
+    def createFiducialNode(name, onMarkupNodeModified, color):
         displayNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsDisplayNode")
         displayNode.SetTextScale(0)
         displayNode.SetSelectedColor(color)
@@ -868,15 +906,17 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         fiducialNode.SetAndObserveDisplayNodeID(displayNode.GetID())
 
         fiducialNodeObservers = []
-        self.addFiducialNodeObserver(fiducialNode, onMarkupNodeModified)
+        SegmentEditorEffect.addFiducialNodeObserver(fiducialNode, onMarkupNodeModified)
         return fiducialNode, fiducialNodeObservers
 
-    def removeFiducialNodeObservers(self, fiducialNode, fiducialNodeObservers):
+    @staticmethod
+    def removeFiducialNodeObservers(fiducialNode, fiducialNodeObservers):
         if fiducialNode and fiducialNodeObservers:
             for observer in fiducialNodeObservers:
                 fiducialNode.RemoveObserver(observer)
 
-    def addFiducialNodeObserver(self, fiducialNode, onMarkupNodeModified):
+    @staticmethod
+    def addFiducialNodeObserver(fiducialNode, onMarkupNodeModified):
         fiducialNodeObservers = []
         if fiducialNode:
             eventIds = [slicer.vtkMRMLMarkupsNode.PointPositionDefinedEvent]
@@ -915,7 +955,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         self.updateGUIFromMRML()
 
 
-class AIAALogic():
+class AIAALogic:
     def __init__(self, server_url=None, progress_callback=None):
 
         self.aiaa_tmpdir = slicer.util.tempDirectory('slicer-aiaa')
@@ -1044,7 +1084,13 @@ class AIAALogic():
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        params = aiaaClient.inference(model, {}, image_in, result_file, session_id=session_id)
+        params = aiaaClient.inference(
+            model=model,
+            params={},
+            image_in=image_in,
+            image_out=result_file,
+            session_id=session_id,
+        )
 
         extreme_points = params.get('points', params.get('extreme_points'))
         logging.debug('Extreme Points: {}'.format(extreme_points))
@@ -1057,16 +1103,36 @@ class AIAALogic():
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        aiaaClient.dextr3d(model, pointset, image_in, result_file,
-                           pre_process=(not self.useSession),
-                           session_id=session_id)
+        aiaaClient.dextr3d(
+            model=model,
+            point_set=pointset,
+            image_in=image_in,
+            image_out=result_file,
+            pre_process=(not self.useSession),
+            session_id=session_id,
+        )
         return result_file
 
-    def deepgrow(self, image_in, session_id, model, foreground_point_set, background_point_set):
+    def deepgrow(self, image_in, session_id, model, foreground_point_set, background_point_set, current_point,
+                 spatial_size):
         logging.debug('Preparing for Deepgrow Action (model: {})'.format(model))
 
         result_file = tempfile.NamedTemporaryFile(suffix=self.outputFileExtension(), dir=self.aiaa_tmpdir).name
         aiaaClient = AIAAClient(self.server_url)
-        aiaaClient.deepgrow(model, foreground_point_set, background_point_set, image_in, result_file,
-                            session_id=session_id)
-        return result_file
+
+        in_params = {
+             'foreground': foreground_point_set,
+             'background': background_point_set,
+             'current_point': current_point,
+         }
+        if spatial_size and len(spatial_size):
+            in_params['spatial_size'] = spatial_size
+
+        params = aiaaClient.inference(
+            model=model,
+            params=in_params,
+            image_in=image_in,
+            image_out=result_file,
+            session_id=session_id,
+        )
+        return result_file, params

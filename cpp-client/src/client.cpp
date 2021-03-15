@@ -179,7 +179,7 @@ int Client::dextr3D(const Model &model, const PointSet &pointSet, const std::str
     uri += "&session_id=" + CurlUtils::encode(sessionId);
     inputImage = "";
   }
-  std::string paramStr = "{\"points\":\"" + pointSetROI.toJson() + "\"}";
+  std::string paramStr = "{\"points\":" + pointSetROI.toJson() + "}";
 
   CurlUtils::doMethod("POST", uri, paramStr, inputImage, croppedOutputFile, timeoutInSec);
   if (preProcess) {
@@ -218,7 +218,7 @@ int Client::deepgrow(const Model &model, const PointSet &foregroundPointSet, con
     uri += "&session_id=" + CurlUtils::encode(sessionId);
     inputImage = "";
   }
-  std::string paramStr = "{\"foreground\":\"" + foregroundPointSet.toJson() + "\", \"background\":\"" + backgroundPointSet.toJson() + "\"}";
+  std::string paramStr = "{\"foreground\":" + foregroundPointSet.toJson() + ", \"background\":" + backgroundPointSet.toJson() + "}";
 
   CurlUtils::doMethod("POST", uri, paramStr, inputImage, outputImageFile, timeoutInSec);
   return 0;

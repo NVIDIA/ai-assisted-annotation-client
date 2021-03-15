@@ -149,7 +149,7 @@ class AIAAClient:
 
         status, response = AIAAUtils.http_method('DELETE', self._server_url, selector)
         logger.debug('Response: {}'.format(response))
-        return status is 200
+        return status == 200
 
     def model(self, model):
         """
@@ -619,6 +619,10 @@ class AIAAUtils:
         else:
             conn = httplib.HTTPConnection(parsed.hostname, parsed.port)
 
+        path = parsed.path.rstrip('/')
+        selector = path + '/' + selector.lstrip('/')
+        logger.debug('URI Path: {}'.format(selector))
+
         conn.request(method, selector)
         response = conn.getresponse()
 
@@ -642,6 +646,11 @@ class AIAAUtils:
 
         content_type, body = AIAAUtils.encode_multipart_formdata(fields, files)
         headers = {'content-type': content_type, 'content-length': str(len(body))}
+
+        path = parsed.path.rstrip('/')
+        selector = path + '/' + selector.lstrip('/')
+        logger.debug('URI Path: {}'.format(selector))
+
         conn.request(method, selector, body, headers)
 
         response = conn.getresponse()

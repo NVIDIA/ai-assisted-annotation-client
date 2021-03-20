@@ -273,7 +273,7 @@ class AIAAClient:
         if use_session_input:
             selector += '&session_id=' + AIAAUtils.urllib_quote_plus(session_id)
 
-        in_fields = {'params': json.dumps({'points': json.dumps(points)})}
+        in_fields = {'params': json.dumps({'points': points})}
         in_files = {'datapoint': cropped_file} if not use_session_input else {}
 
         logger.debug('Using Selector: {}'.format(selector))

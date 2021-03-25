@@ -71,9 +71,10 @@ def _byteify(data, ignore_dicts=False):
 
 def call_server():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--server_url', required=True)
-    parser.add_argument('--test_config', required=True)
-    parser.add_argument('--debug', default=False)
+    parser.add_argument('-s', '--server_url', required=True, help='AIAA Server URI')
+    parser.add_argument('-c', '--test_config', required=True, help='Test JSON Config')
+    parser.add_argument('-n', '--name', help='Execute single test from config of this name')
+    parser.add_argument('-d', '--debug', default=False, action='store_true', help='Enable debug logs')
 
     args = parser.parse_args()
     print('Using ARGS: {}'.format(args))
@@ -90,19 +91,22 @@ def call_server():
 
     client = client_api.AIAAClient(args.server_url)
     session_id = None
+    print('Total tests available: {}'.format(len(tests)))
+    disabled_list = []
     for test in tests:
         name = test.get('name')
         disabled = test.get('disabled', False)
+        disabled = False if args.name and args.name == name else True if args.name else disabled
         api = test.get('api')
+
+        if disabled:
+            disabled_list.append(name)
+            continue
 
         print('')
         print('---------------------------------------------------------------------')
         print('Running Test: {}'.format(name))
         print('---------------------------------------------------------------------')
-
-        if disabled:
-            print('This test is skipped')
-            continue
 
         if name is None or api is None:
             raise ValueError('missing name: {} or api: {} in test'.format(name, api))
@@ -199,6 +203,11 @@ def call_server():
             continue
 
         raise ValueError("Invalid API: {}".format(args.api))
+
+    if len(disabled_list) and not args.name:
+        print('\nDisabled Tests ({}): {}'.format(len(disabled_list), ', '.join(disabled_list)))
+    if args.name and len(disabled_list) == len(tests):
+        print('"{}" Test NOT found; Available test names: {}'.format(args.name, disabled_list))
 
 
 if __name__ == '__main__':

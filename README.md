@@ -24,16 +24,19 @@ Follow the [Quick Start](https://docs.nvidia.com/clara/aiaa/sdk-api/docs/quickst
 
 For installing py\_client:
 
-```
-# build first
+```bash
+# 1. build first and install
 python setup.py sdist bdist_wheel
-
-# install
 python -m pip install dist/aiaa_client-*.whl
 
-# to use in code just
-from py_client import client_api
+# 2. Or just install
+python -m pip install -e ./
+```
 
+To use py\_client in code:
+
+```python
+from py_client import client_api
 ```
 
 ## Contributions

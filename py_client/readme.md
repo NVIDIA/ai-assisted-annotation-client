@@ -1,9 +1,4 @@
-### Requirements:
-```bash
-pip install SimpleITK numpy 
-```
-
-### Sample
+### Example
 ```python
 import client_api
 client = client_api.AIAAClient(server_url='http://0.0.0.0:5000')
@@ -31,4 +26,6 @@ python test_aiaa_server.py --test_config aas_tests.json \
        --server_url http://0.0.0.0:5000
 ```
 
-test_aiaa_server.py gives method to test all the possible APIs supported under by NVIDIA AI-Assisted Annotation and required configurations are specified by aas_tests.json:
+`test_aiaa_server.py` gives method to test all the possible APIs supported by NVIDIA AI-Assisted Annotation server.
+
+`aas_tests.json` specifies the required configurations.

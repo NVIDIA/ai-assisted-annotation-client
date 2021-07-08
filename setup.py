@@ -1,4 +1,5 @@
-# Copyright (c) 2019, NVIDIA CORPORATION. All rights reserved.
+# Copyright (c) 2019-2021, NVIDIA CORPORATION. All rights reserved.
+import os
 from setuptools import setup, find_packages
 
 with open('README.md') as f:
@@ -6,6 +7,9 @@ with open('README.md') as f:
 
 with open('LICENSE') as f:
     license = f.read()
+
+with open(os.path.join("py_client", "requirements.txt")) as f:
+    requirements = f.read().splitlines()
 
 setup(
     name='aiaa_client',
@@ -18,6 +22,5 @@ setup(
     url='https://developer.nvidia.com/clara',
     license=license,
     packages=find_packages(include=['py_client']),
-    install_requires=['SimpleITK', 'numpy']
+    install_requires=requirements
 )
-

@@ -1,0 +1,2 @@
+SimpleITK>=2.0.2
+numpy>=1.19.2

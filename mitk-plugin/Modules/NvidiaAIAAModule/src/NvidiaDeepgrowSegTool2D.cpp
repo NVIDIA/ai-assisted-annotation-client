@@ -117,15 +117,15 @@ void NvidiaDeepgrowSegTool2D::Deactivated() {
 }
 
 mitk::DataNode* NvidiaDeepgrowSegTool2D::GetReferenceData() {
-  return this->m_ToolManager->GetReferenceData(0);
+  return this->GetToolManager()->GetReferenceData(0);
 }
 
 mitk::DataStorage* NvidiaDeepgrowSegTool2D::GetDataStorage() {
-  return this->m_ToolManager->GetDataStorage();
+  return this->GetToolManager()->GetDataStorage();
 }
 
 mitk::DataNode* NvidiaDeepgrowSegTool2D::GetWorkingData() {
-  return this->m_ToolManager->GetWorkingData(0);
+  return this->GetToolManager()->GetWorkingData(0);
 }
 
 mitk::DataNode::Pointer NvidiaDeepgrowSegTool2D::GetPointSetNode() {
@@ -322,7 +322,8 @@ void NvidiaDeepgrowSegTool2D::DisplayResult(const std::string &tmpResultFileName
   using LabelImageType = itk::Image<mitk::Label::PixelType, VImageDimension> ;
   using ImageReaderType = itk::ImageFileReader<LabelImageType> ;
 
-  auto labelSetImage = dynamic_cast<mitk::LabelSetImage*>(m_ToolManager->GetWorkingData(0)->GetData());
+  auto* toolManager = this->GetToolManager();
+  auto labelSetImage = dynamic_cast<mitk::LabelSetImage*>(toolManager->GetWorkingData(0)->GetData());
   auto labelSetActive = labelSetImage->GetActiveLabelSet();
   auto labelActive = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer());
 
@@ -400,10 +401,11 @@ void NvidiaDeepgrowSegTool2D::DisplayResult(const std::string &tmpResultFileName
   newNode->SetData(resultImage);
 
   // delete the old image, if there was one:
-  mitk::DataNode::Pointer binaryNode = m_ToolManager->GetDataStorage()->GetNamedNode(labelNameDeepgrow);
-  m_ToolManager->GetDataStorage()->Remove(binaryNode);
+  auto* dataStorage = toolManager->GetDataStorage();
+  mitk::DataNode::Pointer binaryNode = dataStorage->GetNamedNode(labelNameDeepgrow);
+  dataStorage->Remove(binaryNode);
 
-  m_ToolManager->GetDataStorage()->Add(newNode, m_ToolManager->GetWorkingData(0));
+  dataStorage->Add(newNode, toolManager->GetWorkingData(0));
   mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 
 

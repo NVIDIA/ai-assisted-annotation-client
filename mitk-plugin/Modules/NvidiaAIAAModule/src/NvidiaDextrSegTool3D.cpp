@@ -128,9 +128,10 @@ const char **NvidiaDextrSegTool3D::GetXPM() const {
 void NvidiaDextrSegTool3D::Activated() {
   Superclass::Activated();
 
-  if (mitk::DataStorage *dataStorage = m_ToolManager->GetDataStorage()) {
-    m_OriginalImageNode = m_ToolManager->GetReferenceData(0);
-    m_WorkingData = m_ToolManager->GetWorkingData(0);
+  auto* toolManager = this->GetToolManager();
+  if (mitk::DataStorage *dataStorage = toolManager->GetDataStorage()) {
+    m_OriginalImageNode = toolManager->GetReferenceData(0);
+    m_WorkingData = toolManager->GetWorkingData(0);
 
     // add to data storage and enable interaction
     m_PointSet = mitk::PointSet::New();
@@ -153,7 +154,7 @@ void NvidiaDextrSegTool3D::Activated() {
 
 void NvidiaDextrSegTool3D::Deactivated() {
   m_PointSet->Clear();
-  if (mitk::DataStorage *dataStorage = m_ToolManager->GetDataStorage()) {
+  if (mitk::DataStorage *dataStorage = this->GetToolManager()->GetDataStorage()) {
     dataStorage->Remove(m_PointSetNode);
   }
 
@@ -172,7 +173,7 @@ void NvidiaDextrSegTool3D::SetServerURI(const std::string &serverURI, const int 
       m_AIAAModelList = client.models();
     } else {
       // Collect information for working segmentation label
-      auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+      auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(this->GetToolManager()->GetWorkingData(0)->GetData());
       auto labelActiveLayerId = labelSetImage->GetActiveLayer();
       auto labelActive = labelSetImage->GetActiveLabel(labelActiveLayerId);
 
@@ -222,7 +223,7 @@ void NvidiaDextrSegTool3D::ConfirmPoints(const std::string &modelName) {
   MITK_INFO("nvidia") << "+++++++++= Run Annotation using model: " << modelName;
   m_AIAACurrentModelName = modelName;
 
-  if (m_ToolManager->GetWorkingData(0)->GetData()) {
+  if (this->GetToolManager()->GetWorkingData(0)->GetData()) {
     mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData());
     if (image) {
       if (m_PointSet->GetSize() < nvidia::aiaa::Client::MIN_POINTS_FOR_SEGMENTATION) {
@@ -241,7 +242,7 @@ void NvidiaDextrSegTool3D::RunAutoSegmentation(const std::string &modelName) {
   MITK_INFO("nvidia") << "+++++++++= Run AutoSegmentation using model: " << modelName;
   m_AIAACurrentModelName = modelName;
 
-  if (m_ToolManager->GetWorkingData(0)->GetData()) {
+  if (this->GetToolManager()->GetWorkingData(0)->GetData()) {
     mitk::Image::Pointer image = dynamic_cast<mitk::Image *>(m_OriginalImageNode->GetData());
     if (image) {
       AccessByItk_1(image, ItkImageProcessAutoSegmentation, image->GetGeometry());
@@ -467,7 +468,7 @@ void NvidiaDextrSegTool3D::ItkImageProcessAutoSegmentation(itk::Image<TPixel, VI
   MITK_INFO("nvidia") << "++++++++ Nvidia AutoSegmentation begins";
 
   // Collect information for working segmentation label
-  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(this->GetToolManager()->GetWorkingData(0)->GetData());
   auto labelActiveLayerId = labelSetImage->GetActiveLayer();
   auto labelSetActive = labelSetImage->GetActiveLabelSet();
   auto labelActive = labelSetImage->GetActiveLabel(labelActiveLayerId);
@@ -559,7 +560,7 @@ void NvidiaDextrSegTool3D::ItkImageProcessDextr3D(itk::Image<TPixel, VImageDimen
   MITK_INFO("nvidia") << "PointSet: " << pointSet.toJson();
 
   // Collect information for working segmentation label
-  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(this->GetToolManager()->GetWorkingData(0)->GetData());
   auto labelActiveLayerId = labelSetImage->GetActiveLayer();
   MITK_INFO("nvidia") << "labelActiveLayerId: " << labelActiveLayerId;
 
@@ -663,7 +664,8 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   mitk::Image::Pointer resultImage;
   mitk::CastToMitkImage(itk_resultImage, resultImage);
 
-  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(m_ToolManager->GetWorkingData(0)->GetData());
+  auto* toolManager = this->GetToolManager();
+  auto labelSetImage = dynamic_cast<mitk::LabelSetImage *>(toolManager->GetWorkingData(0)->GetData());
   auto labelSetActive = labelSetImage->GetActiveLabelSet();
   auto labelActive = labelSetImage->GetActiveLabel(labelSetImage->GetActiveLayer());
   std::string labelName = labelActive->GetName();
@@ -726,17 +728,18 @@ void NvidiaDextrSegTool3D::displayResult(const std::string &tmpResultFileName) {
   newNode->SetProperty("opacity", mitk::FloatProperty::New(0));
 
   // check if node with same name exist already, if so, update instead of adding new
-  auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+  auto* dataStorage = toolManager->GetDataStorage();
+  auto allNodes = dataStorage->GetAll();
   for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
     std::string nodeNameCheck = itNodes.Value()->GetName();
     if (labelNameSurf == nodeNameCheck) {
       // if already exist, delete the current and update with the new one
       mitk::DataNode::Pointer nodeToDelete = itNodes.Value();
-      m_ToolManager->GetDataStorage()->Remove(nodeToDelete);
+      dataStorage->Remove(nodeToDelete);
       nodeToDelete->SetData(NULL);
     }
   }
-  m_ToolManager->GetDataStorage()->Add(newNode, m_WorkingData);
+  dataStorage->Add(newNode, m_WorkingData);
   mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 
   // Record the just-created layer ID
@@ -831,16 +834,17 @@ void NvidiaDextrSegTool3D::boundingBoxRender(const std::string &tmpResultFileNam
   // boundingBoxNode->SetProperty("visible", mitk::BoolProperty::New(false));
 
   // check if node with same name exist already, if so, update instead of adding new
-  auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+  auto* dataStorage = this->GetToolManager()->GetDataStorage();
+  auto allNodes = dataStorage->GetAll();
   for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
     std::string nodeNameCheck = itNodes.Value()->GetName();
     if (nodeName == nodeNameCheck) {
       // if already exist, delete the current and update with the new one
       mitk::DataNode::Pointer nodeToDelete = itNodes.Value();
-      m_ToolManager->GetDataStorage()->Remove(nodeToDelete);
+      dataStorage->Remove(nodeToDelete);
       nodeToDelete->SetData(NULL);
     }
   }
-  m_ToolManager->GetDataStorage()->Add(boundingBoxNode, m_WorkingData);
+  dataStorage->Add(boundingBoxNode, m_WorkingData);
   mitk::RenderingManager::GetInstance()->RequestUpdateAll();
 }

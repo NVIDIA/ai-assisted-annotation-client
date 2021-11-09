@@ -90,9 +90,10 @@ void NvidiaSmartPolySegTool2D::Activated() {
   Superclass::Activated();
 
   m_PointSetPolygon->Clear();
-  if (mitk::DataStorage *dataStorage = m_ToolManager->GetDataStorage()) {
-    m_OriginalImageNode = m_ToolManager->GetReferenceData(0);
-    m_WorkingData = m_ToolManager->GetWorkingData(0);
+  auto* toolManager = this->GetToolManager();
+  if (auto* dataStorage = toolManager->GetDataStorage()) {
+    m_OriginalImageNode = toolManager->GetReferenceData(0);
+    m_WorkingData = toolManager->GetWorkingData(0);
 
     // add to datastorage and enable interaction
     if (!dataStorage->Exists(m_PointSetPolygonNode)) {
@@ -105,7 +106,7 @@ void NvidiaSmartPolySegTool2D::Activated() {
     // Toggle boundingbox and surface rendering off
     std::string targetNodeName1 = "Surface3D";
     std::string targetNodeName2 = "BoundingBox";
-    auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+    auto allNodes = dataStorage->GetAll();
 
     for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
       std::string nodeNameCheck = itNodes.Value()->GetName();
@@ -121,7 +122,7 @@ void NvidiaSmartPolySegTool2D::Activated() {
 
 void NvidiaSmartPolySegTool2D::Deactivated() {
   // Remove the polygon pointset node
-  if (mitk::DataStorage *dataStorage = m_ToolManager->GetDataStorage()) {
+  if (mitk::DataStorage *dataStorage = this->GetToolManager()->GetDataStorage()) {
     dataStorage->Remove(m_PointSetPolygonNode);
 
     // Remove all polygon interaction nodes
@@ -165,7 +166,8 @@ std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
   double curLevel = 0;
   double curWindow = 0;
   if (lw->LoadPreset()) {
-    mitk::LabelSetImage::Pointer labelSetImageTemp = dynamic_cast<mitk::LabelSetImage*>(m_ToolManager->GetWorkingData(0)->GetData());
+    auto* toolManager = this->GetToolManager();
+    mitk::LabelSetImage::Pointer labelSetImageTemp = dynamic_cast<mitk::LabelSetImage*>(toolManager->GetWorkingData(0)->GetData());
     std::string organName = labelSetImageTemp->GetActiveLabel(labelSetImageTemp->GetActiveLayer())->GetName();
     curLevel = lw->getLevel(organName);
     curWindow = lw->getWindow(organName);
@@ -174,7 +176,7 @@ std::string NvidiaSmartPolySegTool2D::create2DSliceImage() {
       MITK_INFO("nvidia") << "Organ: " << organName << " found in Presets";
     } else {
       mitk::LevelWindow lwApply;
-      m_ToolManager->GetReferenceData(0)->GetLevelWindow(lwApply);
+      toolManager->GetReferenceData(0)->GetLevelWindow(lwApply);
       curWindow = lwApply.GetWindow();
       curLevel = lwApply.GetLevel();
 
@@ -260,7 +262,7 @@ void NvidiaSmartPolySegTool2D::PolygonFix() {
 
   for (size_t polygonNum = 0; polygonNum < polygonsOld.polys.size(); polygonNum++) {
     std::string targetNodeName = "Polygon_" + std::to_string(polygonNum + 1);
-    auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+    auto allNodes = this->GetToolManager()->GetDataStorage()->GetAll();
     mitk::PointSet::PointsContainer::Pointer polyVertices;
 
     for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
@@ -353,7 +355,7 @@ void NvidiaSmartPolySegTool2D::Mask2Polygon() {
 
   // Save Label Image to TempFile
   std::string tmpImageFileName = nvidia::aiaa::Utils::tempfilename() + ".nii.gz";
-  mitk::DataNode::Pointer workingNode = m_ToolManager->GetWorkingData(0);
+  mitk::DataNode::Pointer workingNode = this->GetToolManager()->GetWorkingData(0);
   mitk::LabelSetImage::Pointer labelSetImage = dynamic_cast<mitk::LabelSetImage*>(workingNode->GetData());
 
   mitk::Image::Pointer labelMask = mitk::Image::New();
@@ -390,7 +392,8 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     return;
   }
 
-  auto imageNode = m_ToolManager->GetReferenceData(0);
+  auto* toolManager = this->GetToolManager();
+  auto imageNode = toolManager->GetReferenceData(0);
   auto imageMitk = dynamic_cast<mitk::Image*>(imageNode->GetData());
   auto imageSize = imageMitk->GetDimensions();
   auto imageGeometry = imageMitk->GetGeometry();
@@ -413,11 +416,12 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
   }
 
   // Check if node with polygon name exist already, if so, remove for later update
-  auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+  auto* dataStorage = toolManager->GetDataStorage();
+  auto allNodes = dataStorage->GetAll();
   for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
     if (polygonNames1To100.find(itNodes.Value()->GetName()) != polygonNames1To100.end()) {
       mitk::DataNode::Pointer nodeToDelete = itNodes.Value();
-      m_ToolManager->GetDataStorage()->Remove(nodeToDelete);
+      dataStorage->Remove(nodeToDelete);
       nodeToDelete->SetData(NULL);
     }
   }
@@ -462,7 +466,7 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
     newPointInteractor->setNvidiaSmartPolySegTool(this);
 
     // Add the polygon node under control node
-    m_ToolManager->GetDataStorage()->Add(newPointSetNode, m_PointSetPolygonNode);
+    toolManager->GetDataStorage()->Add(newPointSetNode, m_PointSetPolygonNode);
     polygonNum++;
   }
   mitk::RenderingManager::GetInstance()->RequestUpdateAll();
@@ -470,7 +474,8 @@ void NvidiaSmartPolySegTool2D::SetCurrentSlice(unsigned int slice) {
 
 void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileName) {
   unsigned int curSliceNum = m_imageSize[2] - 1 - m_currentSlice;
-  mitk::DataNode::Pointer workingNode = m_ToolManager->GetWorkingData(0);
+  auto* toolManager = this->GetToolManager();
+  mitk::DataNode::Pointer workingNode = toolManager->GetWorkingData(0);
   if (!workingNode) {
     MITK_INFO("nvidia") << "No working data selected!" << std::endl;
     return;
@@ -549,15 +554,16 @@ void NvidiaSmartPolySegTool2D::displayResult(const std::string &tmpResultFileNam
   std::string tempLayerName = tempLabel->GetName() + "Surface3D";
 
   MITK_INFO("nvidia") << "Segmentation Layer: " << layerID << " Organ Surface: " << tempLayerName;
-  auto allNodes = m_ToolManager->GetDataStorage()->GetAll();
+  auto allNodes = toolManager->GetDataStorage()->GetAll();
+  auto dataStorage = toolManager->GetDataStorage();
   for (auto itNodes = allNodes->Begin(); itNodes != allNodes->End(); ++itNodes) {
     std::string nodeNameCheck = itNodes.Value()->GetName();
     if (tempLayerName == nodeNameCheck) {
       mitk::DataNode::Pointer nodeToUpdate = itNodes.Value();
-      m_ToolManager->GetDataStorage()->Remove(nodeToUpdate);
+      dataStorage->Remove(nodeToUpdate);
 
       nodeToUpdate->SetData(tempLayerImage);
-      m_ToolManager->GetDataStorage()->Add(nodeToUpdate, m_WorkingData);
+      dataStorage->Add(nodeToUpdate, m_WorkingData);
     }
   }
   mitk::RenderingManager::GetInstance()->RequestUpdateAll();

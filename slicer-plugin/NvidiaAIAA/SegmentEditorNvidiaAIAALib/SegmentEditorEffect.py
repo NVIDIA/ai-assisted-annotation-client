@@ -84,7 +84,7 @@ class SegmentEditorEffect(AbstractScriptedSegmentEditorEffect):
         serverUrl = self.ui.serverComboBox.currentText
         if not serverUrl:
             # Default Slicer AIAA server
-            serverUrl = "http://perklabseg.cs.queensu.ca:5000"
+            serverUrl = "http://perklabseg.cs.queensu.ca:8000"
         return serverUrl
 
     def setupOptionsFrame(self):

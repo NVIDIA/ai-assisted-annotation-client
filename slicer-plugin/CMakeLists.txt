@@ -5,9 +5,9 @@ cmake_minimum_required(VERSION 3.5)
 set(EXTENSION_HOMEPAGE "https://github.com/NVIDIA/ai-assisted-annotation-client/tree/master/slicer-plugin")
 set(EXTENSION_CATEGORY "Segmentation")
 set(EXTENSION_CONTRIBUTORS "Sachidanand Alle (NVIDIA), Andras Lasso (PerkLab)")
-set(EXTENSION_DESCRIPTION "This extension offers automatic segmentation using NVIDIA AI-Assisted Annotation framework (powered by the Clara Train SDK).")
+set(EXTENSION_DESCRIPTION "This extension offers automatic segmentation using NVIDIA AI-Assisted Annotation framework (Powered by the Clara Train SDK).")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/NvidiaAIAssistedAnnotation.png")
-set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot.jpg https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot-annotation-result-brain.jpg https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot-annotation-result-liver.jpg https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot-segmentation-result-liver.jpg")
+set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot.jpg https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot-annotation-points-liver.jpg https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot-annotation-result-liver.jpg https://raw.githubusercontent.com/NVIDIA/ai-assisted-annotation-client/master/slicer-plugin/snapshot-segmentation-result-liver.jpg")
 set(EXTENSION_DEPENDS "NA") # Specified as a space separated string, a list or 'NA' if any
 
 #-----------------------------------------------------------------------------
